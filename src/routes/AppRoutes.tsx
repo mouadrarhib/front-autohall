@@ -6,13 +6,15 @@ import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { ProtectedRoute } from '../components/layout/ProtectedRoute';
 import { UserList } from '../features/users/UserList';
 import { Dashboard } from '../features/dashboard/Dashboard';
+import { PermissionsList } from '../features/permissions/PermissionsList';
+import { CreatePermission } from '../features/permissions/CreatePermission';
+import { UserPermissionsManagement } from '../features/permissions/UserPermissionsManagement';
 import { useAuthStore } from '../store/authStore';
 
 const RedirectIfAuthenticated: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   
   if (isAuthenticated) {
-    console.log('Already authenticated, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -22,7 +24,6 @@ const RedirectIfAuthenticated: React.FC<{ children: React.ReactElement }> = ({ c
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public routes - redirect if already logged in */}
       <Route 
         path="/login" 
         element={
@@ -31,26 +32,56 @@ export const AppRoutes: React.FC = () => {
           </RedirectIfAuthenticated>
         } 
       />
-      <Route 
-        path="/register" 
-        element={
-          <RedirectIfAuthenticated>
-            <div>Register Page</div>
-          </RedirectIfAuthenticated>
-        } 
-      />
 
-      {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Users Routes */}
           <Route path="/users" element={<UserList />} />
-          <Route path="/permissions" element={<div>Permissions Page</div>} />
+          
+          {/* Permissions Routes */}
+          <Route 
+            path="/permissions" 
+            element={
+              <ProtectedRoute requiredPermissions={['PERMISSION_READ']} />
+            }
+          >
+            <Route index element={<PermissionsList />} />
+          </Route>
+          
+          <Route 
+            path="/permissions/create" 
+            element={
+              <ProtectedRoute requiredPermissions={['PERMISSION_CREATE']} />
+            }
+          >
+            <Route index element={<CreatePermission />} />
+          </Route>
+          
+          <Route 
+            path="/permissions/:permissionId/users" 
+            element={
+              <ProtectedRoute requiredPermissions={['PERMISSION_LINK_READ']} />
+            }
+          >
+            <Route index element={<div>Users with Permission Page</div>} />
+          </Route>
+          
+          {/* User Permissions Management */}
+          <Route 
+            path="/users/:userId/permissions" 
+            element={
+              <ProtectedRoute requiredPermissions={['PERMISSION_LINK_READ']} />
+            }
+          >
+            <Route index element={<UserPermissionsManagement />} />
+          </Route>
+
           <Route path="/vehicles" element={<div>Vehicles Page</div>} />
         </Route>
       </Route>
 
-      {/* Unauthorized page */}
       <Route path="/unauthorized" element={
         <div style={{ padding: '20px', textAlign: 'center' }}>
           <h1>Access Denied</h1>
@@ -58,7 +89,6 @@ export const AppRoutes: React.FC = () => {
         </div>
       } />
 
-      {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

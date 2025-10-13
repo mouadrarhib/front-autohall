@@ -5,11 +5,13 @@ import {
   GridColDef,
   GridPaginationModel,
   GridSortModel,
+  GridRowIdGetter,
+  GridValidRowModel,
 } from '@mui/x-data-grid';
 import { Paper, Box } from '@mui/material';
 import type { PaginationMeta } from '../../types/api.types';
 
-interface DataTableProps<T> {
+interface DataTableProps<T extends GridValidRowModel> {
   rows: T[];
   columns: GridColDef[];
   pagination: PaginationMeta;
@@ -18,9 +20,10 @@ interface DataTableProps<T> {
   onSortChange?: (model: GridSortModel) => void;
   checkboxSelection?: boolean;
   onSelectionChange?: (ids: number[]) => void;
+  getRowId?: GridRowIdGetter<T>; // Support custom row ID
 }
 
-export function DataTable<T extends { id: number }>({
+export function DataTable<T extends Record<string, any>>({
   rows,
   columns,
   pagination,
@@ -29,6 +32,7 @@ export function DataTable<T extends { id: number }>({
   onSortChange,
   checkboxSelection = false,
   onSelectionChange,
+  getRowId,
 }: DataTableProps<T>) {
   return (
     <Paper className="w-full">
@@ -37,6 +41,7 @@ export function DataTable<T extends { id: number }>({
           rows={rows}
           columns={columns}
           loading={loading}
+          getRowId={getRowId} // Pass custom getRowId
           pagination
           paginationMode="server"
           paginationModel={{

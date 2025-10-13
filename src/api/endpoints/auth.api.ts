@@ -10,6 +10,7 @@ import type {
   CreateUserCompleteRequest,
   PaginatedPermissionsResponse
 } from '../../types/auth.types';
+import { UsersListResponse } from '../../types/user.types';
 
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
@@ -86,9 +87,16 @@ export const authApi = {
   getAllUsers: async (params?: { 
     site_type?: 'filiale' | 'succursale'; 
     active_only?: boolean 
-  }) => {
-    const { data } = await apiClient.get('/api/auth/users', { params });
-    return data.data;
+  }): Promise<UsersListResponse> => {
+    const response = await apiClient.get<ApiResponse<UsersListResponse>>(
+      '/api/auth/users', 
+      { params }
+    );
+    
+    console.log('getAllUsers raw response:', response.data);
+    
+    // Backend returns: { success: true, data: { data: [...], total: 8 } }
+    return response.data.data;
   },
 
   getUserCompleteInfo: async (userId: number) => {
