@@ -22,7 +22,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import { usersiteApi } from '../../api/endpoints/usersite.api';
 import { groupementApi } from '../../api/endpoints/groupement.api';
-import { authApi } from '../../api/endpoints/auth.api';
+import { filialeApi } from '../../api/endpoints/filiale.api';
+import { succursaleApi } from '../../api/endpoints/succursale.api';
 import type { Groupement } from '../../types/usersite.types';
 
 interface CreateUserSiteFormData {
@@ -39,6 +40,7 @@ export const CreateUserSite: React.FC = () => {
   const [groupements, setGroupements] = useState<Groupement[]>([]);
   const [sites, setSites] = useState<any[]>([]);
   const [selectedGroupement, setSelectedGroupement] = useState<Groupement | null>(null);
+  const [loadingSites, setLoadingSites] = useState(false);
 
   const methods = useForm<CreateUserSiteFormData>({
     defaultValues: {
@@ -66,7 +68,7 @@ export const CreateUserSite: React.FC = () => {
     loadGroupements();
   }, []);
 
-  // Load sites when groupement changes
+  // Load sites when groupement changes using Filiale/Succursale APIs
   const handleGroupementChange = async (groupementId: number) => {
     if (!groupementId) {
       setSites([]);
@@ -78,21 +80,36 @@ export const CreateUserSite: React.FC = () => {
     setSelectedGroupement(groupement || null);
 
     try {
-      // Load available sites based on the groupement name (Filiale or Succursale)
-      const availableSites = await authApi.getAvailableSites();
-      
-      // Filter sites by type based on groupement name
+      setLoadingSites(true);
+      console.log('Loading sites for groupement:', groupement?.name);
+
       if (groupement?.name === 'Filiale') {
-        setSites(availableSites.filter((s: any) => s.type === 'filiale'));
+        // Fetch filiales
+        const response = await filialeApi.listFiliales({ page: 1, pageSize: 100 });
+        console.log('Filiales response:', response);
+        
+        // Filter active filiales
+        const activeFiliales = response.data.filter((f) => f.active);
+        setSites(activeFiliales);
       } else if (groupement?.name === 'Succursale') {
-        setSites(availableSites.filter((s: any) => s.type === 'succursale'));
+        // Fetch succursales (only active)
+        const response = await succursaleApi.listSuccursales({ 
+          onlyActive: true, 
+          page: 1, 
+          pageSize: 100 
+        });
+        console.log('Succursales response:', response);
+        
+        setSites(response.data);
       } else {
-        setSites(availableSites);
+        setSites([]);
       }
     } catch (err: any) {
       console.error('Failed to load sites:', err);
-      setError('Failed to load sites');
+      setError(err.response?.data?.error || 'Failed to load sites');
       setSites([]);
+    } finally {
+      setLoadingSites(false);
     }
   };
 
@@ -100,6 +117,7 @@ export const CreateUserSite: React.FC = () => {
     try {
       setError(null);
       setIsLoading(true);
+      console.log('Creating user site:', data);
       await usersiteApi.createUserSite(data);
       navigate('/user-sites');
     } catch (err: any) {
@@ -146,10 +164,10 @@ export const CreateUserSite: React.FC = () => {
                 rules={{ required: 'Groupement is required', min: 1 }}
                 render={({ field, fieldState }) => (
                   <FormControl fullWidth margin="normal" error={!!fieldState.error}>
-                    <InputLabel>Groupement</InputLabel>
+                    <InputLabel>Groupement Type</InputLabel>
                     <Select
                       {...field}
-                      label="Groupement"
+                      label="Groupement Type"
                       disabled={isLoading}
                       onChange={(e) => {
                         field.onChange(e);
@@ -157,7 +175,7 @@ export const CreateUserSite: React.FC = () => {
                         methods.setValue('idSite', 0); // Reset site selection
                       }}
                     >
-                      <MenuItem value={0}>Select Groupement</MenuItem>
+                      <MenuItem value={0}>Select Type</MenuItem>
                       {groupements.map((groupement) => (
                         <MenuItem key={groupement.id} value={groupement.id}>
                           {groupement.name}
@@ -167,6 +185,9 @@ export const CreateUserSite: React.FC = () => {
                     {fieldState.error && (
                       <FormHelperText>{fieldState.error.message}</FormHelperText>
                     )}
+                    <FormHelperText>
+                      Select either Filiale or Succursale
+                    </FormHelperText>
                   </FormControl>
                 )}
               />
@@ -181,10 +202,14 @@ export const CreateUserSite: React.FC = () => {
                     <Select
                       {...field}
                       label="Site"
-                      disabled={isLoading || sites.length === 0}
+                      disabled={isLoading || loadingSites || sites.length === 0}
                     >
                       <MenuItem value={0}>
-                        {sites.length === 0 ? 'Select Groupement First' : 'Select Site'}
+                        {loadingSites
+                          ? 'Loading sites...'
+                          : sites.length === 0
+                          ? 'Select Type First'
+                          : 'Select Site'}
                       </MenuItem>
                       {sites.map((site) => (
                         <MenuItem key={site.id} value={site.id}>
@@ -195,9 +220,9 @@ export const CreateUserSite: React.FC = () => {
                     {fieldState.error && (
                       <FormHelperText>{fieldState.error.message}</FormHelperText>
                     )}
-                    {selectedGroupement && (
+                    {selectedGroupement && sites.length > 0 && (
                       <FormHelperText>
-                        Type: {selectedGroupement.name}
+                        Type: {selectedGroupement.name} ({sites.length} available)
                       </FormHelperText>
                     )}
                   </FormControl>
