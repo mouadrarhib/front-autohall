@@ -27,7 +27,17 @@ import { DataTable } from '../../components/common/DataTable';
 import { permissionsApi } from '../../api/endpoints/permissions.api';
 import { authApi } from '../../api/endpoints/auth.api';
 import { useAuthStore } from '../../store/authStore';
-import type { UserPermissionLink, Permission } from '../../types/permission.types';
+import type { Permission } from '../../types/permission.types';
+
+// Updated interface to match backend response
+interface UserPermissionLink {
+  idUser: number;
+  idPermission: number;
+  active: boolean;
+  permissionName: string;
+  permissionActive: boolean;
+  TotalRecords?: number;
+}
 
 export const UserPermissionsManagement: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -57,10 +67,15 @@ export const UserPermissionsManagement: React.FC = () => {
     
     try {
       setLoading(true);
+      console.log('Loading permissions for user:', userId);
+      
       const response = await permissionsApi.listUserPermissions(Number(userId), {
         page: pagination.page,
         pageSize: pagination.pageSize,
       });
+      
+      console.log('User permissions response:', response);
+      console.log('Permissions data:', response.data);
 
       setUserPermissions(response.data || []);
       setPagination((prev) => ({
@@ -136,13 +151,13 @@ export const UserPermissionsManagement: React.FC = () => {
     if (!userId) return;
 
     try {
-      if (link.UserPermissionActive) {
+      if (link.active) {
         await permissionsApi.deactivateUserPermission(Number(userId), {
-          idPermission: link.PermissionId,
+          idPermission: link.idPermission,
         });
       } else {
         await permissionsApi.activateUserPermission(Number(userId), {
-          idPermission: link.PermissionId,
+          idPermission: link.idPermission,
         });
       }
       loadUserPermissions();
@@ -151,16 +166,16 @@ export const UserPermissionsManagement: React.FC = () => {
     }
   };
 
+  // Updated columns to match backend field names (lowercase)
   const columns: GridColDef[] = [
-    // Permission ID removed for security
     { 
-      field: 'PermissionName', 
+      field: 'permissionName',  // Changed from PermissionName to permissionName
       headerName: 'Permission Name', 
       flex: 1, 
       minWidth: 300 
     },
     {
-      field: 'UserPermissionActive',
+      field: 'active',  // Changed from UserPermissionActive to active
       headerName: 'User Status',
       width: 130,
       renderCell: (params) => (
@@ -176,7 +191,7 @@ export const UserPermissionsManagement: React.FC = () => {
       ),
     },
     {
-      field: 'PermissionActive',
+      field: 'permissionActive',  // Changed from PermissionActive to permissionActive
       headerName: 'Permission Status',
       width: 150,
       renderCell: (params) => (
@@ -201,8 +216,8 @@ export const UserPermissionsManagement: React.FC = () => {
                 size="small"
                 color="error"
                 onClick={() => handleRemovePermission(
-                  params.row.PermissionId,
-                  params.row.PermissionName
+                  params.row.idPermission,  // Changed from PermissionId to idPermission
+                  params.row.permissionName  // Changed from PermissionName to permissionName
                 )}
               >
                 <DeleteIcon fontSize="small" />
@@ -227,7 +242,7 @@ export const UserPermissionsManagement: React.FC = () => {
             User Permissions Management
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {user?.Username} - {user?.Email}
+            {user?.Username || user?.username} - {user?.Email || user?.email}
           </Typography>
         </Box>
         {hasLinkPermission && (
@@ -250,13 +265,17 @@ export const UserPermissionsManagement: React.FC = () => {
                 <Typography variant="caption" color="text.secondary">
                   Full Name
                 </Typography>
-                <Typography variant="body1">{user.FullName || user.full_name}</Typography>
+                <Typography variant="body1">
+                  {user.FullName || user.full_name}
+                </Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="caption" color="text.secondary">
                   Email
                 </Typography>
-                <Typography variant="body1">{user.Email || user.email}</Typography>
+                <Typography variant="body1">
+                  {user.Email || user.email}
+                </Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="caption" color="text.secondary">
