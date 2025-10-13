@@ -11,8 +11,10 @@ import {
   Alert,
   FormControlLabel,
   Checkbox,
+  CircularProgress,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SaveIcon from '@mui/icons-material/Save';
 import { FormInput } from '../../components/common/FormInput';
 import { permissionsApi } from '../../api/endpoints/permissions.api';
 
@@ -52,6 +54,7 @@ export const CreatePermission: React.FC = () => {
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/permissions')}
+          disabled={isLoading}
         >
           Back
         </Button>
@@ -79,6 +82,7 @@ export const CreatePermission: React.FC = () => {
                   },
                 }}
                 helperText="Example: VEHICLE_READ, USER_CREATE"
+                disabled={isLoading}
               />
 
               <FormControlLabel
@@ -86,6 +90,7 @@ export const CreatePermission: React.FC = () => {
                   <Checkbox
                     {...methods.register('active')}
                     defaultChecked
+                    disabled={isLoading}
                   />
                 }
                 label="Active"
@@ -97,6 +102,7 @@ export const CreatePermission: React.FC = () => {
                   variant="contained"
                   disabled={isLoading}
                   fullWidth
+                  startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                 >
                   {isLoading ? 'Creating...' : 'Create Permission'}
                 </Button>
@@ -104,6 +110,7 @@ export const CreatePermission: React.FC = () => {
                   variant="outlined"
                   onClick={() => navigate('/permissions')}
                   fullWidth
+                  disabled={isLoading}
                 >
                   Cancel
                 </Button>

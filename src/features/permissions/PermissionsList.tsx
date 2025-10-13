@@ -13,6 +13,7 @@ import {
   FormControlLabel,
   Alert,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import { GridColDef } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
@@ -37,7 +38,8 @@ export const PermissionsList: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showActiveOnly, setShowActiveOnly] = useState(true); // Changed variable name for clarity
+  const [showActiveOnly, setShowActiveOnly] = useState(true);
+  const [togglingId, setTogglingId] = useState<number | null>(null); // Track which permission is being toggled
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 50,
@@ -50,13 +52,8 @@ export const PermissionsList: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Loading permissions with filter:', {
-        active: showActiveOnly ? true : undefined,
-        search: searchTerm || undefined,
-      });
-
       const response = await permissionsApi.listPermissions({
-        active: showActiveOnly ? true : undefined, // Only filter active when checked
+        active: showActiveOnly ? true : undefined,
         search: searchTerm || undefined,
         page: pagination.page,
         pageSize: pagination.pageSize,
@@ -78,8 +75,6 @@ export const PermissionsList: React.FC = () => {
       }
 
       const validPermissions = permissionsData.filter(p => p && typeof p === 'object' && p.id);
-      
-      console.log('Loaded permissions:', validPermissions);
 
       setPermissions(validPermissions);
       setPagination((prev) => ({
@@ -106,31 +101,40 @@ export const PermissionsList: React.FC = () => {
   };
 
   const handleToggleActive = async (permission: Permission, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent row click
+    event.stopPropagation();
     
-    if (!hasUpdatePermission) return;
+    if (!hasUpdatePermission || togglingId === permission.id) return;
 
     try {
-      console.log('Toggling permission:', permission.name, 'from', permission.active, 'to', !permission.active);
+      setTogglingId(permission.id); // Set loading state for this specific permission
       
-      // Use setPermissionActive which toggles the state
       await permissionsApi.setPermissionActive(permission.id, !permission.active);
       
-      // Reload the list to get fresh data
-      await loadPermissions();
+      // Optimistic update - update local state immediately
+      setPermissions(prev => 
+        prev.map(p => 
+          p.id === permission.id 
+            ? { ...p, active: !p.active }
+            : p
+        )
+      );
     } catch (err: any) {
       console.error('Failed to toggle permission:', err);
       setError(err.response?.data?.error || 'Failed to update permission');
+      // Reload on error to get correct state
+      await loadPermissions();
+    } finally {
+      setTogglingId(null); // Clear loading state
     }
   };
 
   const handleEditClick = (permissionId: number, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent triggering parent handlers
+    event.stopPropagation();
     navigate(`/permissions/${permissionId}/edit`);
   };
 
   const handleUsersClick = (permissionId: number, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent triggering parent handlers
+    event.stopPropagation();
     navigate(`/permissions/${permissionId}/users`);
   };
 
@@ -156,43 +160,63 @@ export const PermissionsList: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 200,
+      width: 250,
       sortable: false,
-      renderCell: (params) => (
-        <Box display="flex" gap={0.5} alignItems="center">
-          {hasUpdatePermission && (
-            <>
-              <Tooltip title="Edit Permission">
-                <IconButton
-                  size="small"
-                  onClick={(e) => handleEditClick(params.row.id, e)}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={params.row.active ? 'Deactivate' : 'Activate'}>
-                <Switch
-                  size="small"
-                  checked={params.row.active}
-                  onChange={(e) => handleToggleActive(params.row, e as any)}
-                  onClick={(e) => e.stopPropagation()} // Extra safety
-                />
-              </Tooltip>
-            </>
-          )}
-          <Tooltip title="View Users">
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<PeopleIcon fontSize="small" />}
-              onClick={(e) => handleUsersClick(params.row.id, e)}
-              sx={{ ml: 1 }}
-            >
-              Users
-            </Button>
-          </Tooltip>
-        </Box>
-      ),
+      renderCell: (params) => {
+        const isToggling = togglingId === params.row.id;
+        
+        return (
+          <Box display="flex" gap={0.5} alignItems="center">
+            {hasUpdatePermission && (
+              <>
+                <Tooltip title="Edit Permission">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleEditClick(params.row.id, e)}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                
+                <Tooltip title={params.row.active ? 'Deactivate' : 'Activate'}>
+                  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                    <Switch
+                      size="small"
+                      checked={params.row.active}
+                      onChange={(e) => handleToggleActive(params.row, e as any)}
+                      onClick={(e) => e.stopPropagation()}
+                      disabled={isToggling}
+                    />
+                    {isToggling && (
+                      <CircularProgress
+                        size={20}
+                        sx={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          marginTop: '-10px',
+                          marginLeft: '-10px',
+                        }}
+                      />
+                    )}
+                  </Box>
+                </Tooltip>
+              </>
+            )}
+            <Tooltip title="View Users">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<PeopleIcon fontSize="small" />}
+                onClick={(e) => handleUsersClick(params.row.id, e)}
+                sx={{ ml: 1 }}
+              >
+                Users
+              </Button>
+            </Tooltip>
+          </Box>
+        );
+      },
     },
   ];
 
@@ -233,8 +257,12 @@ export const PermissionsList: React.FC = () => {
           size="small"
           sx={{ minWidth: 300 }}
         />
-        <Button variant="contained" onClick={handleSearch}>
-          Search
+        <Button 
+          variant="contained" 
+          onClick={handleSearch}
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Search'}
         </Button>
         <FormControlLabel
           control={

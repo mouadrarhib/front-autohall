@@ -18,6 +18,7 @@ import {
   Card,
   CardContent,
   Grid,
+  CircularProgress,
 } from '@mui/material';
 import { GridColDef } from '@mui/x-data-grid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -29,7 +30,6 @@ import { authApi } from '../../api/endpoints/auth.api';
 import { useAuthStore } from '../../store/authStore';
 import type { Permission } from '../../types/permission.types';
 
-// Updated interface to match backend response
 interface UserPermissionLink {
   idUser: number;
   idPermission: number;
@@ -54,6 +54,9 @@ export const UserPermissionsManagement: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [addingPermission, setAddingPermission] = useState(false);
+  const [removingId, setRemovingId] = useState<number | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
   
   const [pagination, setPagination] = useState({
     page: 1,
@@ -67,15 +70,10 @@ export const UserPermissionsManagement: React.FC = () => {
     
     try {
       setLoading(true);
-      console.log('Loading permissions for user:', userId);
-      
       const response = await permissionsApi.listUserPermissions(Number(userId), {
         page: pagination.page,
         pageSize: pagination.pageSize,
       });
-      
-      console.log('User permissions response:', response);
-      console.log('Permissions data:', response.data);
 
       setUserPermissions(response.data || []);
       setPagination((prev) => ({
@@ -123,14 +121,19 @@ export const UserPermissionsManagement: React.FC = () => {
 
     try {
       setError(null);
+      setAddingPermission(true);
+      
       await permissionsApi.addUserPermission(Number(userId), {
         idPermission: selectedPermission.id,
       });
+      
       setOpenDialog(false);
       setSelectedPermission(null);
-      loadUserPermissions();
+      await loadUserPermissions();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to add permission');
+    } finally {
+      setAddingPermission(false);
     }
   };
 
@@ -140,17 +143,29 @@ export const UserPermissionsManagement: React.FC = () => {
     }
 
     try {
+      setRemovingId(permissionId);
       await permissionsApi.removeUserPermission(Number(userId), permissionId, false);
-      loadUserPermissions();
+      
+      // Optimistic update
+      setUserPermissions(prev => prev.filter(p => p.idPermission !== permissionId));
+      setPagination(prev => ({
+        ...prev,
+        totalRecords: prev.totalRecords - 1,
+      }));
     } catch (error) {
       console.error('Failed to remove permission:', error);
+      await loadUserPermissions(); // Reload on error
+    } finally {
+      setRemovingId(null);
     }
   };
 
   const handleToggleActive = async (link: UserPermissionLink) => {
-    if (!userId) return;
+    if (!userId || togglingId === link.idPermission) return;
 
     try {
+      setTogglingId(link.idPermission);
+      
       if (link.active) {
         await permissionsApi.deactivateUserPermission(Number(userId), {
           idPermission: link.idPermission,
@@ -160,38 +175,70 @@ export const UserPermissionsManagement: React.FC = () => {
           idPermission: link.idPermission,
         });
       }
-      loadUserPermissions();
+      
+      // Optimistic update
+      setUserPermissions(prev =>
+        prev.map(p =>
+          p.idPermission === link.idPermission
+            ? { ...p, active: !p.active }
+            : p
+        )
+      );
     } catch (error) {
       console.error('Failed to toggle permission:', error);
+      await loadUserPermissions(); // Reload on error
+    } finally {
+      setTogglingId(null);
     }
   };
 
-  // Updated columns to match backend field names (lowercase)
   const columns: GridColDef[] = [
     { 
-      field: 'permissionName',  // Changed from PermissionName to permissionName
+      field: 'permissionName',
       headerName: 'Permission Name', 
       flex: 1, 
       minWidth: 300 
     },
     {
-      field: 'active',  // Changed from UserPermissionActive to active
+      field: 'active',
       headerName: 'User Status',
       width: 130,
-      renderCell: (params) => (
-        <Tooltip title={hasLinkPermission ? 'Click to toggle' : 'Status'}>
-          <Chip
-            label={params.value ? 'Active' : 'Inactive'}
-            color={params.value ? 'success' : 'default'}
-            size="small"
-            onClick={() => hasLinkPermission && handleToggleActive(params.row)}
-            sx={{ cursor: hasLinkPermission ? 'pointer' : 'default' }}
-          />
-        </Tooltip>
-      ),
+      renderCell: (params) => {
+        const isToggling = togglingId === params.row.idPermission;
+        
+        return (
+          <Tooltip title={hasLinkPermission ? 'Click to toggle' : 'Status'}>
+            <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+              <Chip
+                label={params.value ? 'Active' : 'Inactive'}
+                color={params.value ? 'success' : 'default'}
+                size="small"
+                onClick={() => hasLinkPermission && !isToggling && handleToggleActive(params.row)}
+                sx={{ 
+                  cursor: hasLinkPermission && !isToggling ? 'pointer' : 'default',
+                  opacity: isToggling ? 0.6 : 1,
+                }}
+                disabled={isToggling}
+              />
+              {isToggling && (
+                <CircularProgress
+                  size={16}
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    marginTop: '-8px',
+                    marginLeft: '-8px',
+                  }}
+                />
+              )}
+            </Box>
+          </Tooltip>
+        );
+      },
     },
     {
-      field: 'permissionActive',  // Changed from PermissionActive to permissionActive
+      field: 'permissionActive',
       headerName: 'Permission Status',
       width: 150,
       renderCell: (params) => (
@@ -208,24 +255,35 @@ export const UserPermissionsManagement: React.FC = () => {
       headerName: 'Actions',
       width: 100,
       sortable: false,
-      renderCell: (params) => (
-        <Box>
-          {hasLinkPermission && (
-            <Tooltip title="Remove Permission">
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => handleRemovePermission(
-                  params.row.idPermission,  // Changed from PermissionId to idPermission
-                  params.row.permissionName  // Changed from PermissionName to permissionName
-                )}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-      ),
+      renderCell: (params) => {
+        const isRemoving = removingId === params.row.idPermission;
+        
+        return (
+          <Box>
+            {hasLinkPermission && (
+              <Tooltip title="Remove Permission">
+                <span>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemovePermission(
+                      params.row.idPermission,
+                      params.row.permissionName
+                    )}
+                    disabled={isRemoving}
+                  >
+                    {isRemoving ? (
+                      <CircularProgress size={20} color="error" />
+                    ) : (
+                      <DeleteIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+          </Box>
+        );
+      },
     },
   ];
 
@@ -256,7 +314,6 @@ export const UserPermissionsManagement: React.FC = () => {
         )}
       </Box>
 
-      {/* User Info Card */}
       {user && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
@@ -320,7 +377,6 @@ export const UserPermissionsManagement: React.FC = () => {
         }
       />
 
-      {/* Add Permission Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Assign Permission to User</DialogTitle>
         <DialogContent>
@@ -334,6 +390,7 @@ export const UserPermissionsManagement: React.FC = () => {
             getOptionLabel={(option) => option.name}
             value={selectedPermission}
             onChange={(_, newValue) => setSelectedPermission(newValue)}
+            disabled={addingPermission}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -355,13 +412,16 @@ export const UserPermissionsManagement: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenDialog(false)} disabled={addingPermission}>
+            Cancel
+          </Button>
           <Button
             onClick={handleAddPermission}
             variant="contained"
-            disabled={!selectedPermission}
+            disabled={!selectedPermission || addingPermission}
+            startIcon={addingPermission ? <CircularProgress size={20} color="inherit" /> : null}
           >
-            Assign Permission
+            {addingPermission ? 'Assigning...' : 'Assign Permission'}
           </Button>
         </DialogActions>
       </Dialog>
