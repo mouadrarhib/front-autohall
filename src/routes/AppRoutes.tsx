@@ -8,6 +8,7 @@ import { UserList } from '../features/users/UserList';
 import { Dashboard } from '../features/dashboard/Dashboard';
 import { PermissionsList } from '../features/permissions/PermissionsList';
 import { CreatePermission } from '../features/permissions/CreatePermission';
+import { EditPermission } from '../features/permissions/EditPermission';
 import { UserPermissionsManagement } from '../features/permissions/UserPermissionsManagement';
 import { useAuthStore } from '../store/authStore';
 
@@ -57,6 +58,16 @@ export const AppRoutes: React.FC = () => {
             }
           >
             <Route index element={<CreatePermission />} />
+          </Route>
+          
+          {/* NEW: Edit Permission Route */}
+          <Route 
+            path="/permissions/:permissionId/edit" 
+            element={
+              <ProtectedRoute requiredPermissions={['PERMISSION_UPDATE']} />
+            }
+          >
+            <Route index element={<EditPermission />} />
           </Route>
           
           <Route 
