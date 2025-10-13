@@ -37,7 +37,7 @@ export const PermissionsList: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState<boolean | undefined>(true);
+  const [showActiveOnly, setShowActiveOnly] = useState(true); // Changed variable name for clarity
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 50,
@@ -49,9 +49,14 @@ export const PermissionsList: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
+      console.log('Loading permissions with filter:', {
+        active: showActiveOnly ? true : undefined,
+        search: searchTerm || undefined,
+      });
+
       const response = await permissionsApi.listPermissions({
-        active: activeFilter,
+        active: showActiveOnly ? true : undefined, // Only filter active when checked
         search: searchTerm || undefined,
         page: pagination.page,
         pageSize: pagination.pageSize,
@@ -73,6 +78,8 @@ export const PermissionsList: React.FC = () => {
       }
 
       const validPermissions = permissionsData.filter(p => p && typeof p === 'object' && p.id);
+      
+      console.log('Loaded permissions:', validPermissions);
 
       setPermissions(validPermissions);
       setPagination((prev) => ({
@@ -91,27 +98,43 @@ export const PermissionsList: React.FC = () => {
 
   useEffect(() => {
     loadPermissions();
-  }, [pagination.page, pagination.pageSize, activeFilter]);
+  }, [pagination.page, pagination.pageSize, showActiveOnly]);
 
   const handleSearch = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
     loadPermissions();
   };
 
-  const handleToggleActive = async (permission: Permission) => {
+  const handleToggleActive = async (permission: Permission, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent row click
+    
     if (!hasUpdatePermission) return;
 
     try {
+      console.log('Toggling permission:', permission.name, 'from', permission.active, 'to', !permission.active);
+      
+      // Use setPermissionActive which toggles the state
       await permissionsApi.setPermissionActive(permission.id, !permission.active);
-      loadPermissions();
+      
+      // Reload the list to get fresh data
+      await loadPermissions();
     } catch (err: any) {
       console.error('Failed to toggle permission:', err);
       setError(err.response?.data?.error || 'Failed to update permission');
     }
   };
 
+  const handleEditClick = (permissionId: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering parent handlers
+    navigate(`/permissions/${permissionId}/edit`);
+  };
+
+  const handleUsersClick = (permissionId: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering parent handlers
+    navigate(`/permissions/${permissionId}/users`);
+  };
+
   const columns: GridColDef[] = [
-    // ID column removed for security
     { 
       field: 'name', 
       headerName: 'Permission Name', 
@@ -142,7 +165,7 @@ export const PermissionsList: React.FC = () => {
               <Tooltip title="Edit Permission">
                 <IconButton
                   size="small"
-                  onClick={() => navigate(`/permissions/${params.row.id}/edit`)}
+                  onClick={(e) => handleEditClick(params.row.id, e)}
                 >
                   <EditIcon fontSize="small" />
                 </IconButton>
@@ -151,7 +174,8 @@ export const PermissionsList: React.FC = () => {
                 <Switch
                   size="small"
                   checked={params.row.active}
-                  onChange={() => handleToggleActive(params.row)}
+                  onChange={(e) => handleToggleActive(params.row, e as any)}
+                  onClick={(e) => e.stopPropagation()} // Extra safety
                 />
               </Tooltip>
             </>
@@ -161,7 +185,7 @@ export const PermissionsList: React.FC = () => {
               size="small"
               variant="outlined"
               startIcon={<PeopleIcon fontSize="small" />}
-              onClick={() => navigate(`/permissions/${params.row.id}/users`)}
+              onClick={(e) => handleUsersClick(params.row.id, e)}
               sx={{ ml: 1 }}
             >
               Users
@@ -193,7 +217,7 @@ export const PermissionsList: React.FC = () => {
         </Alert>
       )}
 
-      <Box display="flex" gap={2} mb={3}>
+      <Box display="flex" gap={2} mb={3} alignItems="center">
         <TextField
           placeholder="Search permissions..."
           value={searchTerm}
@@ -215,8 +239,8 @@ export const PermissionsList: React.FC = () => {
         <FormControlLabel
           control={
             <Switch
-              checked={activeFilter !== false}
-              onChange={(e) => setActiveFilter(e.target.checked ? true : undefined)}
+              checked={showActiveOnly}
+              onChange={(e) => setShowActiveOnly(e.target.checked)}
             />
           }
           label="Show Active Only"
