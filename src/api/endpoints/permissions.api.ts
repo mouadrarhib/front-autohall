@@ -168,11 +168,7 @@ export const permissionsApi = {
 
   listUsersByPermission: async (
     permissionId: number,
-    params?: {
-      active?: boolean;
-      page?: number;
-      pageSize?: number;
-    }
+    params?: { active?: boolean; page?: number; pageSize?: number }
   ): Promise<any> => {
     const response = await apiClient.get(
       `/api/permissions/${permissionId}/users`,

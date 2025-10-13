@@ -79,9 +79,9 @@ export const authApi = {
     return data.data.data || [];
   },
 
-  createUserComplete: async (userData: CreateUserCompleteRequest) => {
-    const { data } = await apiClient.post('/api/auth/create-user-complete', userData);
-    return data.data;
+  createUserComplete: async (userData: any): Promise<any> => {
+  const response = await apiClient.post('/api/auth/users/complete', userData);
+  return response.data.data;
   },
 
   getAllUsers: async (params?: { 
@@ -104,8 +104,8 @@ export const authApi = {
     return data.data;
   },
 
-  getAvailableSites: async () => {
-    const { data } = await apiClient.get('/api/auth/sites');
-    return data.data;
+  getAvailableSites: async (): Promise<any[]> => {
+    const response = await apiClient.get('/api/auth/available-sites');
+    return response.data.data;
   },
 };
