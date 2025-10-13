@@ -9,12 +9,15 @@ interface AuthState {
   permissions: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
-  hasLoadedOnce: boolean; // Add flag to prevent multiple loads
+  hasLoadedOnce: boolean;
+  lastActivity: number | null; // Track last activity timestamp
   
   login: (username: string, password: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
+  updateLastActivity: () => void;
+  clearSession: () => void;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
   hasAllPermissions: (permissions: string[]) => boolean;
@@ -28,6 +31,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       hasLoadedOnce: false,
+      lastActivity: null,
 
       login: async (username: string, password: string) => {
         try {
@@ -55,6 +59,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
               hasLoadedOnce: true,
+              lastActivity: Date.now(),
             });
             
             console.log('Login successful, state updated');
@@ -66,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
               hasLoadedOnce: true,
+              lastActivity: Date.now(),
             });
           }
         } catch (error: any) {
@@ -97,6 +103,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
               hasLoadedOnce: true,
+              lastActivity: Date.now(),
             });
           } catch (permError) {
             console.error('Error fetching permissions:', permError);
@@ -106,6 +113,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
               hasLoadedOnce: true,
+              lastActivity: Date.now(),
             });
           }
         } catch (error: any) {
@@ -117,17 +125,26 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
+          console.log('Performing logout...');
           await authApi.logout();
         } catch (error) {
-          console.error('Logout error:', error);
+          console.error('Logout API error:', error);
+          // Continue with local cleanup even if API fails
         } finally {
-          set({
-            user: null,
-            permissions: [],
-            isAuthenticated: false,
-            hasLoadedOnce: true,
-          });
+          // Clear all auth state
+          get().clearSession();
         }
+      },
+
+      clearSession: () => {
+        console.log('Clearing session...');
+        set({
+          user: null,
+          permissions: [],
+          isAuthenticated: false,
+          hasLoadedOnce: true,
+          lastActivity: null,
+        });
       },
 
       loadUser: async () => {
@@ -154,6 +171,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
               hasLoadedOnce: true,
+              lastActivity: Date.now(),
             });
           } catch (permError) {
             console.error('Error fetching permissions:', permError);
@@ -163,17 +181,19 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
               hasLoadedOnce: true,
+              lastActivity: Date.now(),
             });
           }
         } catch (error) {
           console.error('Error loading user:', error);
-          set({
-            user: null,
-            permissions: [],
-            isAuthenticated: false,
-            isLoading: false,
-            hasLoadedOnce: true,
-          });
+          // Session expired or invalid
+          get().clearSession();
+        }
+      },
+
+      updateLastActivity: () => {
+        if (get().isAuthenticated) {
+          set({ lastActivity: Date.now() });
         }
       },
 
@@ -198,6 +218,7 @@ export const useAuthStore = create<AuthState>()(
         permissions: state.permissions,
         isAuthenticated: state.isAuthenticated,
         hasLoadedOnce: state.hasLoadedOnce,
+        lastActivity: state.lastActivity,
       }),
     }
   )

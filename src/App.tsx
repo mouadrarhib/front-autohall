@@ -2,8 +2,12 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { AppRoutes } from './routes/AppRoutes';
 import { useAuthStore } from './store/authStore';
+import { useActivityTracker } from './hooks/useActivityTracker';
+import { useSessionTimeout } from './hooks/useSessionTimeout';
 
 const theme = createTheme({
   palette: {
@@ -16,20 +20,39 @@ const theme = createTheme({
   },
 });
 
-function App() {
+function AppContent() {
   const loadUser = useAuthStore((state) => state.loadUser);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  
+  // Track user activity
+  useActivityTracker();
+  
+  // Handle session timeout
+  useSessionTimeout();
 
   useEffect(() => {
-    // Only load user once on mount, not on every auth state change
     loadUser();
-  }, []); // Empty dependency array - run only once on mount
+  }, []);
 
+  return <AppRoutes />;
+}
+
+function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
-        <AppRoutes />
+        <AppContent />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={true}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
       </BrowserRouter>
     </ThemeProvider>
   );
