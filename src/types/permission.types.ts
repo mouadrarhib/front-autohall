@@ -7,13 +7,13 @@ export interface Permission {
   updatedAt?: string;
 }
 
+// Updated to match backend response exactly
 export interface UserPermissionLink {
-  UserId: number;
-  Username: string;
-  PermissionId: number;
-  PermissionName: string;
-  PermissionActive: boolean;
-  UserPermissionActive: boolean;
+  idUser: number;
+  idPermission: number;
+  active: boolean;  // This is the user-permission active status
+  permissionName: string;
+  permissionActive: boolean;  // This is the permission's own active status
   TotalRecords?: number;
 }
 
@@ -52,5 +52,8 @@ export interface UserPermissionsResponse {
     totalPages: number;
     hasNext: boolean;
     hasPrevious: boolean;
+    itemsOnPage: number;
+    firstItemNumber: number;
+    lastItemNumber: number;
   };
 }
