@@ -5,6 +5,8 @@ import { LoginForm } from '../components/auth/LoginForm';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { ProtectedRoute } from '../components/layout/ProtectedRoute';
 import { UserList } from '../features/users/UserList';
+import { UserDetails } from '../features/users/UserDetails';
+import { EditUser } from '../features/users/EditUser';
 import { Dashboard } from '../features/dashboard/Dashboard';
 import { PermissionsList } from '../features/permissions/PermissionsList';
 import { CreatePermission } from '../features/permissions/CreatePermission';
@@ -40,6 +42,16 @@ export const AppRoutes: React.FC = () => {
           
           {/* Users Routes */}
           <Route path="/users" element={<UserList />} />
+          <Route path="/users/:userId" element={<UserDetails />} />
+          <Route path="/users/:userId/edit" element={<EditUser />} />
+          <Route 
+            path="/users/:userId/permissions" 
+            element={
+              <ProtectedRoute requiredPermissions={['PERMISSION_LINK_READ']} />
+            }
+          >
+            <Route index element={<UserPermissionsManagement />} />
+          </Route>
           
           {/* Permissions Routes */}
           <Route 
@@ -60,7 +72,6 @@ export const AppRoutes: React.FC = () => {
             <Route index element={<CreatePermission />} />
           </Route>
           
-          {/* NEW: Edit Permission Route */}
           <Route 
             path="/permissions/:permissionId/edit" 
             element={
@@ -77,16 +88,6 @@ export const AppRoutes: React.FC = () => {
             }
           >
             <Route index element={<div>Users with Permission Page</div>} />
-          </Route>
-          
-          {/* User Permissions Management */}
-          <Route 
-            path="/users/:userId/permissions" 
-            element={
-              <ProtectedRoute requiredPermissions={['PERMISSION_LINK_READ']} />
-            }
-          >
-            <Route index element={<UserPermissionsManagement />} />
           </Route>
 
           <Route path="/vehicles" element={<div>Vehicles Page</div>} />

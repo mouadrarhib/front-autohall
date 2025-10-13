@@ -44,7 +44,7 @@ interface User {
 
 export const UserList: React.FC = () => {
   const navigate = useNavigate();
-  const hasCreatePermission = useAuthStore((state) => 
+  const hasCreatePermission = useAuthStore((state) =>
     state.hasPermission('USER_CREATE')
   );
 
@@ -62,12 +62,12 @@ export const UserList: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await authApi.getAllUsers({ active_only: false });
-      
+
       let usersData: User[] = [];
       let total = 0;
-      
+
       if (response && typeof response === 'object') {
         if ('data' in response && Array.isArray(response.data)) {
           usersData = response.data;
@@ -77,7 +77,7 @@ export const UserList: React.FC = () => {
           total = response.length;
         }
       }
-      
+
       setUsers(usersData);
       setPagination((prev) => ({
         ...prev,
@@ -96,23 +96,38 @@ export const UserList: React.FC = () => {
     loadUsers();
   }, [pagination.page, pagination.pageSize]);
 
+  // Fixed: Add event handlers with stopPropagation
+  const handleViewClick = (userId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    navigate(`/users/${userId}`);
+  };
+
+  const handleEditClick = (userId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    navigate(`/users/${userId}/edit`);
+  };
+
+  const handlePermissionsClick = (userId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    navigate(`/users/${userId}/permissions`);
+  };
+
   const columns: GridColDef[] = [
-    // ID column removed for security
-    { 
-      field: 'Username', 
-      headerName: 'Username', 
+    {
+      field: 'Username',
+      headerName: 'Username',
       width: 150,
       flex: 0.5,
     },
-    { 
-      field: 'FullName', 
-      headerName: 'Full Name', 
+    {
+      field: 'FullName',
+      headerName: 'Full Name',
       width: 200,
       flex: 1,
     },
-    { 
-      field: 'Email', 
-      headerName: 'Email', 
+    {
+      field: 'Email',
+      headerName: 'Email',
       width: 220,
       flex: 1,
     },
@@ -143,10 +158,10 @@ export const UserList: React.FC = () => {
       width: 120,
       align: 'center',
       renderCell: (params) => (
-        <Tooltip 
+        <Tooltip
           title={
-            params.row.UserPermissions 
-              ? params.row.UserPermissions.split(', ').slice(0, 5).join(', ') + 
+            params.row.UserPermissions
+              ? params.row.UserPermissions.split(', ').slice(0, 5).join(', ') +
                 (params.value > 5 ? '...' : '')
               : 'No permissions assigned'
           }
@@ -181,7 +196,7 @@ export const UserList: React.FC = () => {
           <Tooltip title="View Details">
             <IconButton
               size="small"
-              onClick={() => navigate(`/users/${params.row.UserId}`)}
+              onClick={(e) => handleViewClick(params.row.UserId, e)}
             >
               <VisibilityIcon fontSize="small" />
             </IconButton>
@@ -189,7 +204,7 @@ export const UserList: React.FC = () => {
           <Tooltip title="Edit User">
             <IconButton
               size="small"
-              onClick={() => navigate(`/users/${params.row.UserId}/edit`)}
+              onClick={(e) => handleEditClick(params.row.UserId, e)}
             >
               <EditIcon fontSize="small" />
             </IconButton>
@@ -197,7 +212,7 @@ export const UserList: React.FC = () => {
           <Tooltip title="Manage Permissions">
             <IconButton
               size="small"
-              onClick={() => navigate(`/users/${params.row.UserId}/permissions`)}
+              onClick={(e) => handlePermissionsClick(params.row.UserId, e)}
               color="primary"
             >
               <SecurityIcon fontSize="small" />
