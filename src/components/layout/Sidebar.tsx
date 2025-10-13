@@ -53,16 +53,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       permission: 'USER_READ' 
     },
     { 
-      text: 'Permissions', 
-      icon: <SecurityIcon />, 
-      path: '/permissions',
-      permission: 'PERMISSION_READ' 
-    },
-    { 
       text: 'Vehicles', 
       icon: <DirectionsCarIcon />, 
       path: '/vehicles',
       permission: 'VEHICLE_READ' 
+    },
+    { 
+    text: 'Permissions', 
+    icon: <SecurityIcon />, 
+    path: '/permissions',
+    permission: 'PERMISSION_READ' 
     },
   ];
 
