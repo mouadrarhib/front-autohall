@@ -1,5 +1,5 @@
-// src/features/usersites/UserSitesList.tsx
-import React, { useEffect, useState } from 'react';
+﻿// src/features/usersites/UserSitesList.tsx
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -9,26 +9,23 @@ import {
   IconButton,
   Alert,
   Tooltip,
-  CircularProgress,
   Switch,
+  FormControlLabel,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { GridColDef } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
-import PeopleIcon from '@mui/icons-material/People';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { DataTable } from '../../components/common/DataTable';
-import { usersiteApi } from '../../api/endpoints/usersite.api';
 import { useAuthStore } from '../../store/authStore';
-
-interface UserSite {
-  id: number;
-  idGroupement: number;
-  groupement_name: string;
-  idSite: number;
-  site_name: string;
-  site_type: string;
-  active: boolean;
-}
+import { authApi } from '../../api/endpoints/auth.api';
+import { filialeApi } from '../../api/endpoints/filiale.api';
+import { succursaleApi } from '../../api/endpoints/succursale.api';
+import type { User as UserWithSite } from '../../types/user.types';
 
 export const UserSitesList: React.FC = () => {
   const navigate = useNavigate();
@@ -39,99 +36,196 @@ export const UserSitesList: React.FC = () => {
     state.hasPermission('USERSITE_UPDATE')
   );
 
-  const [usersites, setUsersites] = useState<UserSite[]>([]);
+  const [users, setUsers] = useState<UserWithSite[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [siteType, setSiteType] = useState<'all' | 'filiale' | 'succursale'>('all');
 
-  const loadUserSites = async () => {
+  const filteredUsers = useMemo(() => {
+    return users.map((user) => {
+      const formattedGroupement = user.GroupementType
+        ? user.GroupementType.charAt(0).toUpperCase() + user.GroupementType.slice(1).toLowerCase()
+        : 'Unassigned';
+
+      return {
+        ...user,
+        GroupementType: formattedGroupement,
+      };
+    });
+  }, [users]);
+
+  const loadUsersWithSites = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log('Loading all user sites...');
-      const data = await usersiteApi.listUserSites();
-      console.log('Loaded user sites:', data);
-      setUsersites(data || []);
+      const params: { site_type?: 'filiale' | 'succursale'; active_only?: boolean } = {};
+      if (siteType !== 'all') {
+        params.site_type = siteType;
+      }
+      if (showActiveOnly) {
+        params.active_only = true;
+      }
+
+      const response = await authApi.getAllUsers(params);
+
+      let usersData: UserWithSite[] = [];
+      if (response && typeof response === 'object') {
+        if ('data' in response && Array.isArray(response.data)) {
+          usersData = response.data;
+        } else if (Array.isArray(response)) {
+          usersData = response;
+        }
+      }
+
+      if (usersData.length) {
+        const filialeIds = new Set<number>();
+        const succursaleIds = new Set<number>();
+
+        usersData.forEach((user) => {
+          if (user.SiteId && user.GroupementType) {
+            const type = user.GroupementType.toLowerCase();
+            if (type === 'filiale') {
+              filialeIds.add(user.SiteId);
+            } else if (type === 'succursale') {
+              succursaleIds.add(user.SiteId);
+            }
+          }
+        });
+
+        const [filialesResponse, succursalesResponse] = await Promise.all([
+          filialeIds.size
+            ? filialeApi
+                .listFiliales({ page: 1, pageSize: 1000 })
+                .catch((err) => {
+                  console.warn('Failed to load filiales for user sites:', err);
+                  return { data: [], pagination: { totalCount: 0 } };
+                })
+            : Promise.resolve({ data: [], pagination: { totalCount: 0 } }),
+          succursaleIds.size
+            ? succursaleApi
+                .listSuccursales({ page: 1, pageSize: 1000 })
+                .catch((err) => {
+                  console.warn('Failed to load succursales for user sites:', err);
+                  return { data: [], pagination: { totalCount: 0 } };
+                })
+            : Promise.resolve({ data: [], pagination: { totalCount: 0 } }),
+        ]);
+
+        const filialeNameById = new Map<number, string>();
+        filialesResponse.data?.forEach((filiale) => {
+          filialeNameById.set(filiale.id, filiale.name);
+        });
+
+        const succursaleNameById = new Map<number, string>();
+        succursalesResponse.data?.forEach((succursale) => {
+          succursaleNameById.set(succursale.id, succursale.name);
+        });
+
+        usersData = usersData.map((user) => {
+          const type = user.GroupementType?.toLowerCase();
+          const siteId = user.SiteId != null ? Number(user.SiteId) : null;
+
+          let siteName = user.SiteName?.trim() ?? '';
+
+          if (siteId) {
+            if (type === 'filiale' && filialeNameById.has(siteId)) {
+              siteName = filialeNameById.get(siteId) ?? siteName;
+            } else if (type === 'succursale' && succursaleNameById.has(siteId)) {
+              siteName = succursaleNameById.get(siteId) ?? siteName;
+            }
+          }
+
+          return {
+            ...user,
+            SiteName: siteName && siteName.length > 0 ? siteName : 'Unassigned',
+          };
+        });
+      }
+
+      setUsers(usersData);
     } catch (err: any) {
-      console.error('Failed to load user sites:', err);
-      setError(err.response?.data?.error || 'Failed to load user sites');
-      setUsersites([]);
+      console.error('Failed to load users with sites:', err);
+      setError(err.response?.data?.error || 'Failed to load users with sites');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [siteType, showActiveOnly]);
 
   useEffect(() => {
-    loadUserSites();
-  }, []);
+    loadUsersWithSites();
+  }, [loadUsersWithSites]);
 
-  const handleToggleActive = async (usersite: UserSite, event: React.MouseEvent) => {
+  const handleViewUser = (userId: number, event: React.MouseEvent) => {
     event.stopPropagation();
-
-    if (!hasUpdatePermission || togglingId === usersite.id) return;
-
-    try {
-      setTogglingId(usersite.id);
-
-      if (usersite.active) {
-        await usersiteApi.deactivateUserSite(usersite.id);
-      } else {
-        await usersiteApi.activateUserSite(usersite.id);
-      }
-
-      setUsersites((prev) =>
-        prev.map((u) =>
-          u.id === usersite.id ? { ...u, active: !u.active } : u
-        )
-      );
-    } catch (err: any) {
-      console.error('Failed to toggle usersite:', err);
-      setError(err.response?.data?.error || 'Failed to update user site');
-      await loadUserSites();
-    } finally {
-      setTogglingId(null);
-    }
+    navigate(`/users/${userId}`);
   };
 
-  const handleEditClick = (usersiteId: number, event: React.MouseEvent) => {
+  const handleEditUserSite = (userSiteId: number | null, event: React.MouseEvent) => {
     event.stopPropagation();
-    navigate(`/user-sites/${usersiteId}/edit`);
-  };
-
-  const handleViewUsersClick = (usersiteId: number, event: React.MouseEvent) => {
-    event.stopPropagation();
-    navigate(`/user-sites/${usersiteId}/users`);
+    if (!userSiteId || !hasUpdatePermission) return;
+    navigate(`/user-sites/${userSiteId}/edit`);
   };
 
   const columns: GridColDef[] = [
     {
-      field: 'groupement_name',
-      headerName: 'Groupement',
-      flex: 0.5,
+      field: 'Username',
+      headerName: 'Username',
+      flex: 0.4,
       minWidth: 150,
     },
     {
-      field: 'site_type',
-      headerName: 'Site Type',
-      width: 130,
+      field: 'FullName',
+      headerName: 'Full Name',
+      flex: 0.6,
+      minWidth: 200,
+    },
+    {
+      field: 'GroupementType',
+      headerName: 'Groupement',
+      width: 160,
       renderCell: (params) => (
         <Chip
-          label={params.value || 'Unknown'}
-          color={params.value === 'Filiale' ? 'primary' : 'secondary'}
+          label={params.value || 'Unassigned'}
+          color={params.value === 'Filiale' ? 'primary' : params.value === 'Succursale' ? 'secondary' : 'default'}
           size="small"
         />
       ),
     },
     {
-      field: 'site_name',
+      field: 'SiteName',
       headerName: 'Site Name',
-      flex: 1,
-      minWidth: 200,
+      flex: 0.8,
+      minWidth: 220,
+      valueGetter: (params) => params.value || 'Not assigned',
     },
     {
-      field: 'active',
-      headerName: 'Status',
+      field: 'UserSiteActive',
+      headerName: 'User Site Status',
+      width: 160,
+      renderCell: (params) => (
+        <Chip
+          label={
+            params.row.UserSiteId
+              ? params.value ? 'Active' : 'Inactive'
+              : 'Not assigned'
+          }
+          color={
+            params.row.UserSiteId
+              ? params.value
+                ? 'success'
+                : 'default'
+              : 'default'
+          }
+          size="small"
+        />
+      ),
+    },
+    {
+      field: 'UserActive',
+      headerName: 'User Status',
       width: 120,
       renderCell: (params) => (
         <Chip
@@ -144,63 +238,39 @@ export const UserSitesList: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 250,
+      width: 220,
       sortable: false,
-      renderCell: (params) => {
-        const isToggling = togglingId === params.row.id;
-
-        return (
-          <Box display="flex" gap={0.5} alignItems="center">
-            {hasUpdatePermission && (
-              <>
-                <Tooltip title="Edit User Site">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => handleEditClick(params.row.id, e)}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-
-                <Tooltip title={params.row.active ? 'Deactivate' : 'Activate'}>
-                  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                    <Switch
-                      size="small"
-                      checked={params.row.active}
-                      onChange={(e) => handleToggleActive(params.row, e as any)}
-                      onClick={(e) => e.stopPropagation()}
-                      disabled={isToggling}
-                    />
-                    {isToggling && (
-                      <CircularProgress
-                        size={20}
-                        sx={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          marginTop: '-10px',
-                          marginLeft: '-10px',
-                        }}
-                      />
-                    )}
-                  </Box>
-                </Tooltip>
-              </>
-            )}
-            <Tooltip title="View Users">
-              <Button
+      renderCell: (params) => (
+        <Box display="flex" gap={0.5} alignItems="center">
+          <Tooltip title="View User">
+            <IconButton
+              size="small"
+              onClick={(e) => handleViewUser(params.row.UserId, e)}
+            >
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title={
+              params.row.UserSiteId
+                ? hasUpdatePermission
+                  ? 'Edit User Site'
+                  : 'No permission'
+                : 'No site assigned'
+            }
+          >
+            <span>
+              <IconButton
                 size="small"
-                variant="outlined"
-                startIcon={<PeopleIcon fontSize="small" />}
-                onClick={(e) => handleViewUsersClick(params.row.id, e)}
-                sx={{ ml: 1 }}
+                onClick={(e) => handleEditUserSite(params.row.UserSiteId, e)}
+                disabled={!hasUpdatePermission || !params.row.UserSiteId}
               >
-                Users
-              </Button>
-            </Tooltip>
-          </Box>
-        );
-      },
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+      ),
     },
   ];
 
@@ -225,18 +295,50 @@ export const UserSitesList: React.FC = () => {
         </Alert>
       )}
 
+      <Box display="flex" gap={2} mb={3} flexWrap="wrap" alignItems="center">
+        <FormControl sx={{ minWidth: 200 }} size="small">
+          <InputLabel id="site-type-filter">Filter by Site Type</InputLabel>
+          <Select
+            labelId="site-type-filter"
+            label="Filter by Site Type"
+            value={siteType}
+            onChange={(event) => setSiteType(event.target.value as 'all' | 'filiale' | 'succursale')}
+          >
+            <MenuItem value="all">All</MenuItem>
+            <MenuItem value="filiale">Filiale</MenuItem>
+            <MenuItem value="succursale">Succursale</MenuItem>
+          </Select>
+        </FormControl>
+
+        <Tooltip title="Show only active users (and active sites)">
+          <Box>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showActiveOnly}
+                  onChange={(event) => setShowActiveOnly(event.target.checked)}
+                />
+              }
+              label="Show Active Users Only"
+            />
+          </Box>
+        </Tooltip>
+      </Box>
+
       <DataTable
-        rows={usersites}
+        rows={filteredUsers}
         columns={columns}
         pagination={{
           page: 1,
           pageSize: 50,
-          totalRecords: usersites.length,
+          totalRecords: filteredUsers.length,
           totalPages: 1,
         }}
         loading={loading}
+        getRowId={(row) => row.UserId}
         onPaginationChange={() => {}}
       />
     </Box>
   );
 };
+
