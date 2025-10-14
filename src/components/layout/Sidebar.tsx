@@ -15,8 +15,6 @@ import {
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
-import SecurityIcon from '@mui/icons-material/Security';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuthStore } from '../../store/authStore';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -55,23 +53,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       permission: 'USER_READ' 
     },
     { 
-      text: 'Vehicles', 
-      icon: <DirectionsCarIcon />, 
-      path: '/vehicles',
-      permission: 'VEHICLE_READ' 
-    },
-    { 
-    text: 'Permissions', 
-    icon: <SecurityIcon />, 
-    path: '/permissions',
-    permission: 'PERMISSION_READ' 
-    },
-      { 
     text: 'User Sites', 
     icon: <BusinessIcon />, 
     path: '/user-sites',
     permission: 'USERSITE_READ' 
-  },
+    },
   ];
 
   return (
