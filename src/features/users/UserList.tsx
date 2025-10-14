@@ -9,6 +9,8 @@ import {
   IconButton,
   Alert,
   Tooltip,
+  Card,
+  alpha,
 } from '@mui/material';
 import { GridColDef } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
@@ -116,39 +118,103 @@ export const UserList: React.FC = () => {
     {
       field: 'Username',
       headerName: 'Username',
-      width: 150,
-      flex: 0.5,
+      minWidth: 130,
+      flex: 0.8,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {params.row.Username}
+          </Typography>
+        </Box>
+      ),
     },
     {
       field: 'FullName',
       headerName: 'Full Name',
-      width: 200,
-      flex: 1,
+      minWidth: 180,
+      flex: 1.2,
+      renderCell: (params) => (
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'text.primary',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {params.row.FullName}
+        </Typography>
+      ),
     },
     {
       field: 'Email',
       headerName: 'Email',
-      width: 220,
-      flex: 1,
+      minWidth: 200,
+      flex: 1.5,
+      renderCell: (params) => (
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'text.secondary',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            fontSize: '0.875rem',
+          }}
+        >
+          {params.row.Email}
+        </Typography>
+      ),
     },
     {
       field: 'SiteName',
       headerName: 'Site',
-      width: 150,
-      flex: 0.8,
+      minWidth: 140,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'text.primary',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {params.row.SiteName || '-'}
+        </Typography>
+      ),
     },
     {
       field: 'GroupementType',
       headerName: 'Type',
-      width: 130,
+      minWidth: 130,
+      flex: 0.7,
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => {
         const type = params.row.GroupementType;
         if (!type) {
-          return <Chip label="N/A" size="small" variant="outlined" />;
+          return (
+            <Chip
+              label="N/A"
+              size="small"
+              variant="outlined"
+              sx={{
+                borderColor: 'grey.300',
+                color: 'text.disabled',
+                fontWeight: 500,
+              }}
+            />
+          );
         }
-        
+
         const isFiliale = type === 'Filiale';
         return (
           <Chip
@@ -156,7 +222,14 @@ export const UserList: React.FC = () => {
             label={type}
             size="small"
             color={isFiliale ? 'primary' : 'secondary'}
-            variant="outlined"
+            sx={{
+              fontWeight: 500,
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                transform: 'scale(1.05)',
+                boxShadow: 1,
+              },
+            }}
           />
         );
       },
@@ -164,7 +237,8 @@ export const UserList: React.FC = () => {
     {
       field: 'ActiveRolesCount',
       headerName: 'Roles',
-      width: 90,
+      minWidth: 90,
+      flex: 0.5,
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
@@ -172,13 +246,22 @@ export const UserList: React.FC = () => {
           label={params.row.ActiveRolesCount}
           size="small"
           color={params.row.ActiveRolesCount > 0 ? 'primary' : 'default'}
+          sx={{
+            fontWeight: 600,
+            minWidth: '36px',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              transform: 'scale(1.1)',
+            },
+          }}
         />
       ),
     },
     {
       field: 'ActivePermissionsCount',
       headerName: 'Permissions',
-      width: 120,
+      minWidth: 120,
+      flex: 0.7,
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
@@ -190,11 +273,22 @@ export const UserList: React.FC = () => {
                 : ''
               : 'No permissions assigned'
           }
+          arrow
+          placement="top"
         >
           <Chip
             label={params.row.ActivePermissionsCount}
             size="small"
             color={params.row.ActivePermissionsCount > 0 ? 'success' : 'default'}
+            sx={{
+              fontWeight: 600,
+              minWidth: '36px',
+              transition: 'all 0.2s ease',
+              cursor: params.row.ActivePermissionsCount > 0 ? 'help' : 'default',
+              '&:hover': {
+                transform: params.row.ActivePermissionsCount > 0 ? 'scale(1.1)' : 'none',
+              },
+            }}
           />
         </Tooltip>
       ),
@@ -202,43 +296,83 @@ export const UserList: React.FC = () => {
     {
       field: 'UserActive',
       headerName: 'Status',
-      width: 100,
+      minWidth: 110,
+      flex: 0.6,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
         <Chip
           label={params.row.UserActive ? 'Active' : 'Inactive'}
           color={params.row.UserActive ? 'success' : 'default'}
           size="small"
+          sx={{
+            fontWeight: 500,
+            transition: 'all 0.2s ease',
+          }}
         />
       ),
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 150,
+      minWidth: 140,
+      flex: 0.7,
       sortable: false,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
-        <Box>
-          <Tooltip title="View Details">
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0.5,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Tooltip title="View Details" arrow>
             <IconButton
               size="small"
               onClick={(e) => handleViewClick(params.row.UserId, e)}
+              sx={{
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: (theme) => alpha(theme.palette.info.main, 0.1),
+                  color: 'info.main',
+                  transform: 'scale(1.1)',
+                },
+              }}
             >
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Edit User">
+          <Tooltip title="Edit Roles & Permissions" arrow>
             <IconButton
               size="small"
               onClick={(e) => handleEditClick(params.row.UserId, e)}
+              sx={{
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: (theme) => alpha(theme.palette.warning.main, 0.1),
+                  color: 'warning.main',
+                  transform: 'scale(1.1)',
+                },
+              }}
             >
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Manage Permissions">
+          <Tooltip title="Direct Permissions" arrow>
             <IconButton
               size="small"
               onClick={(e) => handlePermissionsClick(params.row.UserId, e)}
-              color="primary"
+              sx={{
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                  color: 'primary.main',
+                  transform: 'scale(1.1)',
+                },
+              }}
             >
               <SecurityIcon fontSize="small" />
             </IconButton>
@@ -249,40 +383,88 @@ export const UserList: React.FC = () => {
   ];
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Users Management</Typography>
-        {hasCreatePermission && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/users/create')}
-          >
-            Create User
-          </Button>
+    <Box sx={{ p: 3 }}>
+      <Card
+        elevation={0}
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            p: 3,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: (theme) =>
+              theme.palette.mode === 'dark' ? 'background.paper' : 'grey.50',
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            Users Management
+          </Typography>
+          {hasCreatePermission && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/users/create')}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+                boxShadow: 2,
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  boxShadow: 4,
+                  transform: 'translateY(-2px)',
+                },
+              }}
+            >
+              Create User
+            </Button>
+          )}
+        </Box>
+
+        {error && (
+          <Box sx={{ p: 2 }}>
+            <Alert
+              severity="error"
+              onClose={() => setError(null)}
+              sx={{
+                borderRadius: 2,
+                '& .MuiAlert-message': {
+                  width: '100%',
+                },
+              }}
+            >
+              {error}
+            </Alert>
+          </Box>
         )}
-      </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      <DataTable
-        rows={users}
-        columns={columns}
-        loading={loading}
-        pagination={pagination}
-        getRowId={(row) => row.UserId}
-        onPaginationChange={(model) =>
-          setPagination((prev) => ({
-            ...prev,
-            page: model.page,
-            pageSize: model.pageSize,
-          }))
-        }
-      />
+        <Box sx={{ height: '100%', width: '100%' }}>
+          <DataTable
+            rows={users}
+            columns={columns}
+            loading={loading}
+            pagination={pagination}
+            getRowId={(row) => row.UserId}
+            onPaginationChange={(model) =>
+              setPagination((prev) => ({
+                ...prev,
+                page: model.page,
+                pageSize: model.pageSize,
+              }))
+            }
+          />
+        </Box>
+      </Card>
     </Box>
   );
 };
