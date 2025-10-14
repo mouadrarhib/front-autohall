@@ -21,6 +21,12 @@ import { UserPermissionsManagement } from '../features/permissions/UserPermissio
 import { UserSitesList } from '../features/usersites/UserSitesList';
 import { CreateUserSite } from '../features/usersites/CreateUserSite';
 import { EditUserSite } from '../features/usersites/EditUserSite';
+import { FilialesList } from '../features/filiales/FilialesList';
+import { CreateFiliale } from '../features/filiales/CreateFiliale';
+import { EditFiliale } from '../features/filiales/EditFiliale';
+import { SuccursalesList } from '../features/succursales/SuccursalesList';
+import { CreateSuccursale } from '../features/succursales/CreateSuccursale';
+import { EditSuccursale } from '../features/succursales/EditSuccursale';
 
 import { useAuthStore } from '../store/authStore';
 import { CreateUser } from '../features/users/CreateUser';
@@ -78,6 +84,16 @@ export const AppRoutes: React.FC = () => {
           <Route path="/user-sites" element={<UserSitesList />} />
           <Route path="/user-sites/create" element={<CreateUserSite />} />
           <Route path="/user-sites/:usersiteId/edit" element={<EditUserSite />} />
+          
+          {/* ===== FILIALES ROUTES ===== */}
+          <Route path="/filiales" element={<FilialesList />} />
+          <Route path="/filiales/create" element={<CreateFiliale />} />
+          <Route path="/filiales/:filialeId/edit" element={<EditFiliale />} />
+          
+          {/* ===== SUCCURSALES ROUTES ===== */}
+          <Route path="/succursales" element={<SuccursalesList />} />
+          <Route path="/succursales/create" element={<CreateSuccursale />} />
+          <Route path="/succursales/:succursaleId/edit" element={<EditSuccursale />} />
           
           {/* ===== OTHER ROUTES ===== */}
           <Route path="/vehicles" element={<div>Vehicles Page</div>} />

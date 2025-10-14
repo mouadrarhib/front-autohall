@@ -16,8 +16,10 @@ import {
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { useAuthStore } from '../../store/authStore';
 import BusinessIcon from '@mui/icons-material/Business';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import ApartmentIcon from '@mui/icons-material/Apartment';
+import { useAuthStore } from '../../store/authStore';
 
 
 interface SidebarProps {
@@ -40,23 +42,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   };
 
   const menuItems = [
-    { 
-      text: 'Dashboard', 
-      icon: <DashboardIcon />, 
+    {
+      text: 'Dashboard',
+      icon: <DashboardIcon />,
       path: '/dashboard',
-      permission: null 
+      permission: null,
     },
-    { 
-      text: 'Users', 
-      icon: <PeopleIcon />, 
+    {
+      text: 'Users',
+      icon: <PeopleIcon />,
       path: '/users',
-      permission: 'USER_READ' 
+      permission: 'USER_READ',
     },
-    { 
-    text: 'User Sites', 
-    icon: <BusinessIcon />, 
-    path: '/user-sites',
-    permission: 'USERSITE_READ' 
+    {
+      text: 'User Sites',
+      icon: <BusinessIcon />,
+      path: '/user-sites',
+      permission: 'USERSITE_READ',
+    },
+    {
+      text: 'Filiales',
+      icon: <AccountTreeIcon />,
+      path: '/filiales',
+      permission: 'FILIALE_READ',
+    },
+    {
+      text: 'Succursales',
+      icon: <ApartmentIcon />,
+      path: '/succursales',
+      permission: 'SUCCURSALE_READ',
     },
   ];
 
