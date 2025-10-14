@@ -7,6 +7,7 @@ import type {
   PermissionsListResponse,
   UserPermissionsResponse,
   AssignPermissionRequest,
+  UserPermissionLink,
 } from '../../types/permission.types';
 
 export const permissionsApi = {
@@ -133,37 +134,89 @@ export const permissionsApi = {
     return response.data.data;
   },
 
+  // Get permissions for a user
   listUserPermissions: async (
     userId: number,
-    params?: {
-      active?: boolean;
-      page?: number;
-      pageSize?: number;
-    }
+    params?: { page?: number; pageSize?: number }
   ): Promise<UserPermissionsResponse> => {
-    const response = await apiClient.get<ApiResponse<UserPermissionsResponse>>(
-      `/api/permissions/user/${userId}/list`,
-      { params }
-    );
-    
+    const response = await apiClient.get<
+      ApiResponse<UserPermissionsResponse | UserPermissionLink[] | undefined>
+    >(`/api/permissions/user/${userId}/list`, { params });
+
     const responseData = response.data.data;
-    
-    // Handle nested data structure
-    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+
+    const normalizeLink = (raw: any): UserPermissionLink => ({
+      idUser:
+        raw?.idUser ??
+        raw?.IdUser ??
+        raw?.userId ??
+        raw?.UserId ??
+        raw?.id_user ??
+        0,
+      idPermission:
+        raw?.idPermission ??
+        raw?.IdPermission ??
+        raw?.permissionId ??
+        raw?.PermissionId ??
+        raw?.id_permission ??
+        0,
+      active: Boolean(raw?.active ?? raw?.Active ?? raw?.userPermissionActive),
+      permissionName:
+        raw?.permissionName ??
+        raw?.PermissionName ??
+        raw?.name ??
+        raw?.permission_name ??
+        '',
+      permissionActive: Boolean(
+        raw?.permissionActive ?? raw?.PermissionActive ?? raw?.activePermission
+      ),
+      TotalRecords: raw?.TotalRecords ?? raw?.totalRecords,
+    });
+
+    const fallbackPagination = {
+      page: params?.page ?? 1,
+      pageSize: params?.pageSize ?? 25,
+      totalCount: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrevious: false,
+      itemsOnPage: 0,
+      firstItemNumber: 0,
+      lastItemNumber: 0,
+    };
+
+    if (responseData && Array.isArray((responseData as any).data)) {
+      const payload = responseData as UserPermissionsResponse;
+      const normalized = payload.data.map(normalizeLink);
       return {
-        data: responseData.data || [],
-        pagination: responseData.pagination || {
-          page: 1,
-          pageSize: 25,
-          totalCount: 0,
-          totalPages: 0,
-          hasNext: false,
-          hasPrevious: false,
+        data: normalized,
+        pagination: {
+          ...fallbackPagination,
+          ...payload.pagination,
+          totalCount: payload.pagination?.totalCount ?? normalized.length,
+          totalPages: payload.pagination?.totalPages ?? 1,
         },
       };
     }
-    
-    return responseData;
+
+    if (Array.isArray(responseData)) {
+      const normalized = responseData.map(normalizeLink);
+      return {
+        data: normalized,
+        pagination: {
+          ...fallbackPagination,
+          totalCount: normalized.length,
+          totalPages: 1,
+          itemsOnPage: normalized.length,
+          lastItemNumber: normalized.length,
+        },
+      };
+    }
+
+    return {
+      data: [],
+      pagination: fallbackPagination,
+    };
   },
 
   listUsersByPermission: async (
@@ -177,13 +230,24 @@ export const permissionsApi = {
     return response.data.data;
   },
 
-  addUserPermission: async (
-    userId: number,
-    data: AssignPermissionRequest
-  ): Promise<any> => {
-    const response = await apiClient.post(
+  // Add permission to user
+  addUserPermission: async (userId: number, permissionId: number): Promise<any> => {
+    const response = await apiClient.post<ApiResponse<any>>(
       `/api/permissions/user/${userId}/add`,
-      data
+      { idPermission: permissionId }
+    );
+    return response.data.data;
+  },
+
+    // Remove permission from user
+  removeUserPermission: async (
+    userId: number,
+    permissionId: number,
+    hardDelete = false
+  ): Promise<any> => {
+    const response = await apiClient.delete<ApiResponse<any>>(
+      `/api/permissions/user/${userId}/remove`,
+      { data: { idPermission: permissionId, hardDelete } }
     );
     return response.data.data;
   },
@@ -206,20 +270,6 @@ export const permissionsApi = {
     const response = await apiClient.post(
       `/api/permissions/user/${userId}/deactivate`,
       data
-    );
-    return response.data.data;
-  },
-
-  removeUserPermission: async (
-    userId: number,
-    permissionId: number,
-    hardDelete: boolean = false
-  ): Promise<any> => {
-    const response = await apiClient.delete(
-      `/api/permissions/user/${userId}/remove`,
-      {
-        data: { idPermission: permissionId, hardDelete },
-      }
     );
     return response.data.data;
   },

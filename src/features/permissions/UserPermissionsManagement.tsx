@@ -19,6 +19,8 @@ import {
   CardContent,
   Grid,
   CircularProgress,
+  SxProps,
+  Theme,
 } from '@mui/material';
 import { GridColDef } from '@mui/x-data-grid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -27,22 +29,14 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { DataTable } from '../../components/common/DataTable';
 import { permissionsApi } from '../../api/endpoints/permissions.api';
 import { authApi } from '../../api/endpoints/auth.api';
+import { userRoleApi } from '../../api/endpoints/userRole.api';
+import { rolePermissionApi } from '../../api/endpoints/rolePermission.api';
 import { useAuthStore } from '../../store/authStore';
-import type { Permission } from '../../types/permission.types';
-
-interface UserPermissionLink {
-  idUser: number;
-  idPermission: number;
-  active: boolean;
-  permissionName: string;
-  permissionActive: boolean;
-  TotalRecords?: number;
-}
+import type { Permission, UserPermissionLink } from '../../types/permission.types';
 
 export const UserPermissionsManagement: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  
   const hasLinkPermission = useAuthStore((state) =>
     state.hasPermission('PERMISSION_LINK')
   );
@@ -57,7 +51,6 @@ export const UserPermissionsManagement: React.FC = () => {
   const [addingPermission, setAddingPermission] = useState(false);
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
-  
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 25,
@@ -67,7 +60,7 @@ export const UserPermissionsManagement: React.FC = () => {
 
   const loadUserPermissions = async () => {
     if (!userId) return;
-    
+
     try {
       setLoading(true);
       const response = await permissionsApi.listUserPermissions(Number(userId), {
@@ -75,11 +68,11 @@ export const UserPermissionsManagement: React.FC = () => {
         pageSize: pagination.pageSize,
       });
 
-      setUserPermissions(response.data || []);
+      setUserPermissions(response.data);
       setPagination((prev) => ({
         ...prev,
-        totalRecords: response.pagination?.totalCount || 0,
-        totalPages: response.pagination?.totalPages || 0,
+        totalRecords: response.pagination?.totalCount ?? response.data.length,
+        totalPages: response.pagination?.totalPages ?? 1,
       }));
     } catch (error) {
       console.error('Failed to load user permissions:', error);
@@ -88,20 +81,65 @@ export const UserPermissionsManagement: React.FC = () => {
     }
   };
 
+  /**
+   * Load available permissions based on user's roles
+   * Instead of loading all permissions, we load only permissions
+   * that are assigned to the user's roles
+   */
   const loadAvailablePermissions = async () => {
+    if (!userId) return;
+
     try {
-      const response = await permissionsApi.listPermissions({
-        active: true,
-        pageSize: 1000,
+      // 1. Get user's roles
+      const userRoles = await userRoleApi.getRolesByUser(Number(userId), true);
+      console.log('User roles:', userRoles);
+
+      if (!userRoles || userRoles.length === 0) {
+        setAvailablePermissions([]);
+        return;
+      }
+
+      // 2. Get permissions for each role and merge them
+      const rolePermissionsPromises = userRoles.map((userRole: any) => {
+        const roleId = userRole.roleId || userRole.RoleId || userRole.idRole;
+        return rolePermissionApi.getPermissionsByRole(roleId, true);
       });
-      setAvailablePermissions(response.data || []);
+
+      const rolePermissionsArrays = await Promise.all(rolePermissionsPromises);
+      console.log('Role permissions arrays:', rolePermissionsArrays);
+
+      // 3. Flatten and deduplicate permissions
+      const permissionsMap = new Map<number, Permission>();
+      
+      rolePermissionsArrays.forEach((rolePermissions) => {
+        rolePermissions.forEach((rp: any) => {
+          const permissionId = rp.idPermission || rp.PermissionId;
+          const permissionName = rp.permissionName || rp.PermissionName;
+          const permissionActive = rp.permissionActive || rp.PermissionActive;
+
+          if (!permissionsMap.has(permissionId)) {
+            permissionsMap.set(permissionId, {
+              id: permissionId,
+              name: permissionName,
+              active: permissionActive,
+            });
+          }
+        });
+      });
+
+      const uniquePermissions = Array.from(permissionsMap.values());
+      console.log('Available permissions (from roles):', uniquePermissions);
+      
+      setAvailablePermissions(uniquePermissions);
     } catch (error) {
       console.error('Failed to load available permissions:', error);
+      setAvailablePermissions([]);
     }
   };
 
   const loadUserInfo = async () => {
     if (!userId) return;
+
     try {
       const userInfo = await authApi.getUserCompleteInfo(Number(userId));
       setUser(userInfo);
@@ -122,11 +160,7 @@ export const UserPermissionsManagement: React.FC = () => {
     try {
       setError(null);
       setAddingPermission(true);
-      
-      await permissionsApi.addUserPermission(Number(userId), {
-        idPermission: selectedPermission.id,
-      });
-      
+      await permissionsApi.addUserPermission(Number(userId), selectedPermission.id);
       setOpenDialog(false);
       setSelectedPermission(null);
       await loadUserPermissions();
@@ -145,7 +179,6 @@ export const UserPermissionsManagement: React.FC = () => {
     try {
       setRemovingId(permissionId);
       await permissionsApi.removeUserPermission(Number(userId), permissionId, false);
-      
       // Optimistic update
       setUserPermissions(prev => prev.filter(p => p.idPermission !== permissionId));
       setPagination(prev => ({
@@ -165,7 +198,6 @@ export const UserPermissionsManagement: React.FC = () => {
 
     try {
       setTogglingId(link.idPermission);
-      
       if (link.active) {
         await permissionsApi.deactivateUserPermission(Number(userId), {
           idPermission: link.idPermission,
@@ -175,7 +207,7 @@ export const UserPermissionsManagement: React.FC = () => {
           idPermission: link.idPermission,
         });
       }
-      
+
       // Optimistic update
       setUserPermissions(prev =>
         prev.map(p =>
@@ -192,62 +224,76 @@ export const UserPermissionsManagement: React.FC = () => {
     }
   };
 
+  const statusChipSx: SxProps<Theme> = {
+    minWidth: 110,
+    height: 28,
+    borderRadius: '999px',
+    fontWeight: 600,
+    px: 1.5,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const statusCellSx: SxProps<Theme> = {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  };
+
   const columns: GridColDef[] = [
-    { 
+    {
       field: 'permissionName',
-      headerName: 'Permission Name', 
-      flex: 1, 
-      minWidth: 300 
+      headerName: 'Permission Name',
+      flex: 1,
+      minWidth: 300
     },
     {
       field: 'active',
       headerName: 'User Status',
-      width: 130,
+      headerAlign: 'center',
+      align: 'center',
+      width: 150,
       renderCell: (params) => {
         const isToggling = togglingId === params.row.idPermission;
-        
         return (
-          <Tooltip title={hasLinkPermission ? 'Click to toggle' : 'Status'}>
-            <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+          <Box sx={statusCellSx} gap={1}>
+            <Box>
               <Chip
-                label={params.value ? 'Active' : 'Inactive'}
-                color={params.value ? 'success' : 'default'}
+                label={params.row.active ? 'Active' : 'Inactive'}
+                color={params.row.active ? 'success' : 'default'}
                 size="small"
                 onClick={() => hasLinkPermission && !isToggling && handleToggleActive(params.row)}
-                sx={{ 
+                sx={{
                   cursor: hasLinkPermission && !isToggling ? 'pointer' : 'default',
                   opacity: isToggling ? 0.6 : 1,
+                  ...statusChipSx,
                 }}
                 disabled={isToggling}
               />
-              {isToggling && (
-                <CircularProgress
-                  size={16}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    marginTop: '-8px',
-                    marginLeft: '-8px',
-                  }}
-                />
-              )}
             </Box>
-          </Tooltip>
+            {isToggling && <CircularProgress size={16} />}
+          </Box>
         );
       },
     },
     {
       field: 'permissionActive',
       headerName: 'Permission Status',
-      width: 150,
+      headerAlign: 'center',
+      align: 'center',
+      width: 170,
       renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          color={params.value ? 'info' : 'default'}
-          size="small"
-          variant="outlined"
-        />
+        <Box sx={statusCellSx}>
+          <Chip
+            label={params.row.permissionActive ? 'Active' : 'Inactive'}
+            color={params.row.permissionActive ? 'success' : 'default'}
+            size="small"
+            sx={statusChipSx}
+          />
+        </Box>
       ),
     },
     {
@@ -257,28 +303,27 @@ export const UserPermissionsManagement: React.FC = () => {
       sortable: false,
       renderCell: (params) => {
         const isRemoving = removingId === params.row.idPermission;
-        
         return (
           <Box>
             {hasLinkPermission && (
               <Tooltip title="Remove Permission">
-                <span>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleRemovePermission(
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() =>
+                    handleRemovePermission(
                       params.row.idPermission,
                       params.row.permissionName
-                    )}
-                    disabled={isRemoving}
-                  >
-                    {isRemoving ? (
-                      <CircularProgress size={20} color="error" />
-                    ) : (
-                      <DeleteIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </span>
+                    )
+                  }
+                  disabled={isRemoving}
+                >
+                  {isRemoving ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <DeleteIcon fontSize="small" />
+                  )}
+                </IconButton>
               </Tooltip>
             )}
           </Box>
@@ -290,19 +335,15 @@ export const UserPermissionsManagement: React.FC = () => {
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <Tooltip title="Back to Users">
-          <IconButton onClick={() => navigate('/users')}>
-            <ArrowBackIcon />
-          </IconButton>
-        </Tooltip>
-        <Box flexGrow={1}>
-          <Typography variant="h4">
-            User Permissions Management
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {user?.Username || user?.username} - {user?.Email || user?.email}
-          </Typography>
-        </Box>
+        <IconButton onClick={() => navigate('/users')}>
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h4" sx={{ flexGrow: 1 }}>
+          User Permissions Management
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary">
+          {user?.Username || user?.username} - {user?.Email || user?.email}
+        </Typography>
         {hasLinkPermission && (
           <Button
             variant="contained"
@@ -318,15 +359,15 @@ export const UserPermissionsManagement: React.FC = () => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={4}>
                 <Typography variant="caption" color="text.secondary">
                   Full Name
                 </Typography>
-                <Typography variant="body1">
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>
                   {user.FullName || user.full_name}
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={4}>
                 <Typography variant="caption" color="text.secondary">
                   Email
                 </Typography>
@@ -334,29 +375,26 @@ export const UserPermissionsManagement: React.FC = () => {
                   {user.Email || user.email}
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={4}>
                 <Typography variant="caption" color="text.secondary">
                   Total Permissions
                 </Typography>
-                <Typography variant="body1">
-                  <Chip 
-                    label={pagination.totalRecords} 
-                    size="small" 
-                    color="primary"
-                  />
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  {pagination.totalRecords}
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12}>
                 <Typography variant="caption" color="text.secondary">
                   Status
                 </Typography>
-                <Typography variant="body1">
-                  <Chip 
-                    label={user.UserActive || user.actif ? 'Active' : 'Inactive'} 
-                    size="small" 
-                    color={user.UserActive || user.actif ? 'success' : 'default'}
+                <Box mt={0.5}>
+                  <Chip
+                    label={user.UserActive || user.active ? 'Active' : 'Inactive'}
+                    color={user.UserActive || user.active ? 'success' : 'default'}
+                    size="small"
+                    sx={statusChipSx}
                   />
-                </Typography>
+                </Box>
               </Grid>
             </Grid>
           </CardContent>
@@ -364,7 +402,7 @@ export const UserPermissionsManagement: React.FC = () => {
       )}
 
       <DataTable
-        rows={userPermissions.map((p, idx) => ({ ...p, id: idx }))}
+        rows={userPermissions.map((p) => ({ ...p, id: p.idPermission }))}
         columns={columns}
         pagination={pagination}
         loading={loading}
@@ -385,31 +423,40 @@ export const UserPermissionsManagement: React.FC = () => {
               {error}
             </Alert>
           )}
-          <Autocomplete
-            options={availablePermissions}
-            getOptionLabel={(option) => option.name}
-            value={selectedPermission}
-            onChange={(_, newValue) => setSelectedPermission(newValue)}
-            disabled={addingPermission}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Select Permission"
-                placeholder="Search permissions..."
-                margin="normal"
-              />
-            )}
-            renderOption={(props, option) => (
-              <li {...props}>
-                <Box>
-                  <Typography variant="body2">{option.name}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {option.active ? 'Active' : 'Inactive'}
-                  </Typography>
-                </Box>
-              </li>
-            )}
-          />
+          {availablePermissions.length === 0 ? (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              No permissions available. The user must have at least one role with assigned permissions.
+            </Alert>
+          ) : (
+            <Autocomplete
+              options={availablePermissions}
+              getOptionLabel={(option) => option.name}
+              value={selectedPermission}
+              onChange={(_, newValue) => setSelectedPermission(newValue)}
+              disabled={addingPermission}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Select Permission"
+                  placeholder="Search permissions from user's roles..."
+                  margin="normal"
+                  fullWidth
+                />
+              )}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  <Box display="flex" justifyContent="space-between" width="100%">
+                    <Typography>{option.name}</Typography>
+                    <Chip
+                      label={option.active ? 'Active' : 'Inactive'}
+                      size="small"
+                      color={option.active ? 'success' : 'default'}
+                    />
+                  </Box>
+                </li>
+              )}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)} disabled={addingPermission}>
@@ -419,7 +466,7 @@ export const UserPermissionsManagement: React.FC = () => {
             onClick={handleAddPermission}
             variant="contained"
             disabled={!selectedPermission || addingPermission}
-            startIcon={addingPermission ? <CircularProgress size={20} color="inherit" /> : null}
+            startIcon={addingPermission ? <CircularProgress size={16} /> : null}
           >
             {addingPermission ? 'Assigning...' : 'Assign Permission'}
           </Button>

@@ -26,6 +26,7 @@ import { useAuthStore } from '../store/authStore';
 import { CreateUser } from '../features/users/CreateUser';
 import { UserSiteUsers } from '../features/usersites/UserSiteUsers';
 import { PermissionUsers } from '../features/permissions/PermissionUsers';
+import { UserRolesPermissions } from '../features/users/UserRolesPermissions';
 
 
 const RedirectIfAuthenticated: React.FC<{ children: React.ReactElement }> = ({ 
@@ -64,7 +65,7 @@ export const AppRoutes: React.FC = () => {
           {/* ===== USERS ROUTES ===== */}
           <Route path="/users" element={<UserList />} />
           <Route path="/users/:userId" element={<UserDetails />} />
-          <Route path="/users/:userId/edit" element={<EditUser />} />
+          <Route path="/users/:userId/edit" element={<UserRolesPermissions />}/>
           <Route path="/users/:userId/permissions" element={<UserPermissionsManagement />} />
           
           {/* ===== PERMISSIONS ROUTES ===== */}

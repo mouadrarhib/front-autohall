@@ -108,4 +108,16 @@ export const authApi = {
     const response = await apiClient.get('/api/auth/available-sites');
     return response.data.data;
   },
+
+    // Update user roles and permissions
+  updateUserRolesAndPermissions: async (
+    userId: number,
+    data: { roleIds: number[]; permissionIds: number[] }
+  ): Promise<any> => {
+    const response = await apiClient.patch(
+      `/api/auth/users/${userId}/roles-permissions`,
+      data
+    );
+    return response.data.data;
+  },
 };
