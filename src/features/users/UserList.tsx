@@ -15,6 +15,8 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import SecurityIcon from '@mui/icons-material/Security';
+import BusinessIcon from '@mui/icons-material/Business';
+import StoreIcon from '@mui/icons-material/Store';
 import { DataTable } from '../../components/common/DataTable';
 import { authApi } from '../../api/endpoints/auth.api';
 import { useAuthStore } from '../../store/authStore';
@@ -62,7 +64,6 @@ export const UserList: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-
       const response = await authApi.getAllUsers({ active_only: false });
 
       let usersData: User[] = [];
@@ -96,7 +97,6 @@ export const UserList: React.FC = () => {
     loadUsers();
   }, [pagination.page, pagination.pageSize]);
 
-  // Fixed: Add event handlers with stopPropagation
   const handleViewClick = (userId: number, event: React.MouseEvent) => {
     event.stopPropagation();
     navigate(`/users/${userId}`);
@@ -138,18 +138,41 @@ export const UserList: React.FC = () => {
       flex: 0.8,
     },
     {
+      field: 'GroupementType',
+      headerName: 'Type',
+      width: 130,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => {
+        const type = params.row.GroupementType;
+        if (!type) {
+          return <Chip label="N/A" size="small" variant="outlined" />;
+        }
+        
+        const isFiliale = type === 'Filiale';
+        return (
+          <Chip
+            icon={isFiliale ? <BusinessIcon /> : <StoreIcon />}
+            label={type}
+            size="small"
+            color={isFiliale ? 'primary' : 'secondary'}
+            variant="outlined"
+          />
+        );
+      },
+    },
+    {
       field: 'ActiveRolesCount',
       headerName: 'Roles',
       width: 90,
       align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
-        <Tooltip title={params.row.UserRoles || 'No roles assigned'}>
-          <Chip
-            label={params.value || 0}
-            size="small"
-            color={params.value > 0 ? 'primary' : 'default'}
-          />
-        </Tooltip>
+        <Chip
+          label={params.row.ActiveRolesCount}
+          size="small"
+          color={params.row.ActiveRolesCount > 0 ? 'primary' : 'default'}
+        />
       ),
     },
     {
@@ -157,19 +180,21 @@ export const UserList: React.FC = () => {
       headerName: 'Permissions',
       width: 120,
       align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
         <Tooltip
           title={
             params.row.UserPermissions
-              ? params.row.UserPermissions.split(', ').slice(0, 5).join(', ') +
-                (params.value > 5 ? '...' : '')
+              ? params.row.UserPermissions.split(',').length > 5
+                ? params.row.UserPermissions
+                : ''
               : 'No permissions assigned'
           }
         >
           <Chip
-            label={params.value || 0}
+            label={params.row.ActivePermissionsCount}
             size="small"
-            color={params.value > 0 ? 'success' : 'default'}
+            color={params.row.ActivePermissionsCount > 0 ? 'success' : 'default'}
           />
         </Tooltip>
       ),
@@ -180,8 +205,8 @@ export const UserList: React.FC = () => {
       width: 100,
       renderCell: (params) => (
         <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          color={params.value ? 'success' : 'default'}
+          label={params.row.UserActive ? 'Active' : 'Inactive'}
+          color={params.row.UserActive ? 'success' : 'default'}
           size="small"
         />
       ),
@@ -192,7 +217,7 @@ export const UserList: React.FC = () => {
       width: 150,
       sortable: false,
       renderCell: (params) => (
-        <Box display="flex" gap={0.5}>
+        <Box>
           <Tooltip title="View Details">
             <IconButton
               size="small"
@@ -247,8 +272,8 @@ export const UserList: React.FC = () => {
       <DataTable
         rows={users}
         columns={columns}
-        pagination={pagination}
         loading={loading}
+        pagination={pagination}
         getRowId={(row) => row.UserId}
         onPaginationChange={(model) =>
           setPagination((prev) => ({

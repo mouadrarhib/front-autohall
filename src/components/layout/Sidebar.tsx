@@ -54,12 +54,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       path: '/users',
       permission: 'USER_READ',
     },
-    {
-      text: 'User Sites',
-      icon: <BusinessIcon />,
-      path: '/user-sites',
-      permission: 'USERSITE_READ',
-    },
+    // {
+    //   text: 'User Sites',
+    //   icon: <BusinessIcon />,
+    //   path: '/user-sites',
+    //   permission: 'USERSITE_READ',
+    // },
     {
       text: 'Filiales',
       icon: <AccountTreeIcon />,
