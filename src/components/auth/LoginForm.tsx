@@ -3,14 +3,20 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
 import {
+  Alert,
+  Avatar,
   Box,
   Button,
   Card,
   CardContent,
+  Divider,
+  InputAdornment,
   Typography,
-  Alert,
-  Link,
 } from '@mui/material';
+import {
+  LockOutlined,
+  PersonOutline,
+} from '@mui/icons-material';
 import { FormInput } from '../common/FormInput';
 import { useAuthStore } from '../../store/authStore';
 
@@ -58,15 +64,52 @@ export const LoginForm: React.FC = () => {
 
   return (
     <Box
-      className="min-h-screen flex items-center justify-center bg-gray-100"
-      sx={{ p: 2 }}
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #2563eb 100%)',
+        p: 2,
+      }}
     >
-      <Card className="w-full max-w-md">
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom align="center">
-            Autohall Login
-          </Typography>
-          
+      <Card
+        sx={{
+          width: '100%',
+          maxWidth: 420,
+          borderRadius: 3,
+          boxShadow: '0 24px 50px rgba(15, 23, 42, 0.35)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        <CardContent sx={{ p: 5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1,
+              mb: 4,
+            }}
+          >
+            <Avatar
+              sx={{
+                bgcolor: 'primary.main',
+                width: 56,
+                height: 56,
+                boxShadow: 3,
+              }}
+            >
+              AH
+            </Avatar>
+            <Typography variant="h4" component="h1" fontWeight={600}>
+              Welcome Back
+            </Typography>
+            <Typography variant="body2" color="text.secondary" align="center">
+              Sign in to access your Autohall workspace dashboard.
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 4 }} />
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -80,6 +123,14 @@ export const LoginForm: React.FC = () => {
                 label="Username"
                 rules={{ required: 'Username is required' }}
                 autoComplete="username"
+                placeholder="Enter your username"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonOutline fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
               />
               
               <FormInput
@@ -88,6 +139,14 @@ export const LoginForm: React.FC = () => {
                 type="password"
                 rules={{ required: 'Password is required' }}
                 autoComplete="current-password"
+                placeholder="Enter your password"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockOutlined fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
               />
 
               <Button
@@ -96,21 +155,20 @@ export const LoginForm: React.FC = () => {
                 fullWidth
                 size="large"
                 disabled={isLoading}
-                sx={{ mt: 3, mb: 2 }}
+                sx={{
+                  mt: 4,
+                  py: 1.5,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  boxShadow: '0 12px 24px rgba(37, 99, 235, 0.35)',
+                  ':hover': {
+                    boxShadow: '0 16px 30px rgba(37, 99, 235, 0.45)',
+                  },
+                }}
               >
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
-
-              <Box textAlign="center">
-                <Link
-                  component="button"
-                  variant="body2"
-                  onClick={() => navigate('/register')}
-                  type="button"
-                >
-                  Don't have an account? Sign Up
-                </Link>
-              </Box>
             </form>
           </FormProvider>
         </CardContent>
