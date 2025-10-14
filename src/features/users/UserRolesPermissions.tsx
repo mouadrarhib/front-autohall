@@ -438,7 +438,6 @@ export const UserRolesPermissions: React.FC = () => {
                           <ListItem key={permission.id} divider>
                             <ListItemText
                               primary={permission.name}
-                              secondary={`ID: ${permission.id}`}
                             />
                             <ListItemSecondaryAction>
                               <Checkbox
