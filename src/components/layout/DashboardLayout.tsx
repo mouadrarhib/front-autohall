@@ -1,19 +1,9 @@
 // src/components/layout/DashboardLayout.tsx
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import {
-  Box,
-  Drawer,
-  AppBar,
-  Toolbar,
-  Typography,
-  IconButton,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import { Box, Drawer, useTheme, useMediaQuery } from '@mui/material';
 import { Sidebar } from './Sidebar';
-import { useAuthStore } from '../../store/authStore';
+import { Navbar } from './Navbar';
 
 const DRAWER_WIDTH = 260;
 
@@ -21,38 +11,25 @@ export const DashboardLayout: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const user = useAuthStore((state) => state.user);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { md: `${DRAWER_WIDTH}px` },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Autohall Management
-          </Typography>
-          <Typography variant="body2">
-            Welcome, {user?.full_name || user?.username}
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #f1f5f9 0%, #ffffff 45%)',
+      }}
+    >
+      <Navbar
+        onMenuToggle={handleDrawerToggle}
+        showMenuButton={isMobile}
+        drawerWidth={DRAWER_WIDTH}
+        isDesktop={!isMobile}
+      />
 
       <Box
         component="nav"
@@ -68,6 +45,8 @@ export const DashboardLayout: React.FC = () => {
               '& .MuiDrawer-paper': {
                 boxSizing: 'border-box',
                 width: DRAWER_WIDTH,
+                background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #1d4ed8 100%)',
+                color: 'common.white',
               },
             }}
           >
@@ -80,6 +59,9 @@ export const DashboardLayout: React.FC = () => {
               '& .MuiDrawer-paper': {
                 boxSizing: 'border-box',
                 width: DRAWER_WIDTH,
+                background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 45%, #1d4ed8 100%)',
+                color: 'common.white',
+                borderRight: '1px solid rgba(255, 255, 255, 0.12)',
               },
             }}
             open
@@ -93,12 +75,16 @@ export const DashboardLayout: React.FC = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 3, md: 4 },
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: 8,
+          mt: { xs: '72px', md: '88px' },
+          display: 'flex',
+          justifyContent: 'center',
         }}
       >
-        <Outlet />
+        <Box sx={{ width: '100%', maxWidth: 1200 }}>
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );
