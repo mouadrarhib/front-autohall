@@ -75,25 +75,64 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   ];
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-          <Avatar sx={{ bgcolor: 'primary.main' }}>
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        color: 'inherit',
+      }}
+    >
+      <Toolbar
+        sx={{
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: 2,
+          pt: 3,
+          pb: 2,
+          px: 3,
+        }}
+      >
+        <Box>
+          <Typography variant="overline" sx={{ opacity: 0.7, letterSpacing: 2 }}>
+            Autohall
+          </Typography>
+          <Typography variant="h5" fontWeight={600}>
+            Control Center
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+          <Avatar
+            sx={{
+              bgcolor: 'rgba(255, 255, 255, 0.22)',
+              color: 'common.white',
+              fontWeight: 600,
+            }}
+          >
             {user?.full_name?.charAt(0) || user?.username?.charAt(0)}
           </Avatar>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" noWrap>
+            <Typography variant="subtitle1" noWrap fontWeight={600}>
               {user?.full_name}
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap>
+            <Typography variant="caption" sx={{ opacity: 0.75 }} noWrap>
               {user?.email}
             </Typography>
           </Box>
         </Box>
       </Toolbar>
-      <Divider />
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)', mx: 3 }} />
       
-      <List sx={{ flexGrow: 1 }}>
+      <List
+        sx={{
+          flexGrow: 1,
+          mt: 1,
+          px: 1,
+          '& .MuiListItemIcon-root': {
+            color: 'inherit',
+          },
+        }}
+      >
         {menuItems.map((item) => {
           if (item.permission && !hasPermission(item.permission)) {
             return null;
@@ -106,23 +145,65 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
               <ListItemButton
                 selected={isActive}
                 onClick={() => handleNavigation(item.path)}
+                sx={{
+                  mx: 1,
+                  my: 0.5,
+                  borderRadius: 2,
+                  py: 1.25,
+                  px: 2.5,
+                  color: 'inherit',
+                  transition: 'background-color 0.2s ease, transform 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                    transform: 'translateX(4px)',
+                  },
+                  '&.Mui-selected': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    color: 'common.white',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                    },
+                  },
+                  '& .MuiListItemIcon-root': {
+                    minWidth: 36,
+                  },
+                }}
               >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
+                <ListItemIcon sx={{ color: 'inherit' }}>{item.icon}</ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{ fontWeight: isActive ? 600 : 500 }}
+                />
               </ListItemButton>
             </ListItem>
           );
         })}
       </List>
 
-      <Divider />
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)', mx: 3 }} />
       <List>
         <ListItem disablePadding>
-          <ListItemButton onClick={handleLogout}>
-            <ListItemIcon>
+          <ListItemButton
+            onClick={handleLogout}
+            sx={{
+              mx: 1,
+              mb: 2,
+              borderRadius: 2,
+              py: 1.25,
+              px: 2.5,
+              color: 'inherit',
+              '&:hover': {
+                backgroundColor: 'rgba(239, 68, 68, 0.18)',
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: 'inherit' }}>
               <LogoutIcon />
             </ListItemIcon>
-            <ListItemText primary="Logout" />
+            <ListItemText
+              primary="Logout"
+              primaryTypographyProps={{ fontWeight: 600 }}
+            />
           </ListItemButton>
         </ListItem>
       </List>
