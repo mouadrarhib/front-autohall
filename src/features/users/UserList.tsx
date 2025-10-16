@@ -320,6 +320,7 @@ export const UserList: React.FC = () => {
       sortable: false,
       align: 'center',
       headerAlign: 'center',
+      cellClassName: 'action-cell',
       renderCell: (params) => (
         <Box
           sx={{
@@ -327,6 +328,8 @@ export const UserList: React.FC = () => {
             gap: 0.5,
             justifyContent: 'center',
             alignItems: 'center',
+            width: '100%',
+            height: '100%',
           }}
         >
           <Tooltip title="View Details" arrow>
