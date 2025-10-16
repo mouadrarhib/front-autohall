@@ -24,14 +24,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <AppBar
       position="fixed"
+      color="inherit"
       elevation={0}
       sx={{
-        background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #38bdf8 100%)',
-        boxShadow: '0 16px 40px rgba(30, 64, 175, 0.35)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+        background: 'linear-gradient(135deg, #0f172a 0%, #0b1120 55%, #1d4ed8 100%)',
+        boxShadow: '0 18px 45px rgba(15, 23, 42, 0.45)',
+        borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
         width: isDesktop ? `calc(100% - ${drawerWidth}px)` : '100%',
         ml: isDesktop ? `${drawerWidth}px` : 0,
-        backdropFilter: 'blur(12px)',
+        backdropFilter: 'blur(14px)',
+        color: '#e2e8f0',
       }}
     >
       <Toolbar
@@ -41,6 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           display: 'flex',
           alignItems: 'center',
           gap: 2,
+          color: 'inherit',
         }}
       >
         {showMenuButton && (
@@ -55,7 +58,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
         <Box sx={{ flexGrow: 1 }}>
           {title ? (
-            <Typography variant="h5" fontWeight={600}>
+            <Typography
+              variant="h5"
+              fontWeight={600}
+              sx={{ color: '#f8fafc', letterSpacing: 0.2 }}
+            >
               {title}
             </Typography>
           ) : null}
@@ -66,12 +73,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: 1,
-            bgcolor: 'rgba(255, 255, 255, 0.12)',
-            px: 1.5,
-            py: 0.75,
+            bgcolor: 'rgba(37, 99, 235, 0.16)',
+            px: 1.25,
+            py: 0.7,
             borderRadius: 999,
-            backdropFilter: 'blur(8px)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: 'inset 0 1px 0 rgba(148, 163, 184, 0.2)',
+            border: '1px solid rgba(37, 99, 235, 0.35)',
           }}
         >
           <IconButton color="inherit" size="small">
