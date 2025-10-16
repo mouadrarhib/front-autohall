@@ -120,8 +120,18 @@ export const UserList: React.FC = () => {
       headerName: 'Username',
       minWidth: 130,
       flex: 0.8,
+      align: 'center',
+      headerAlign: 'center',
+      cellClassName: 'text-center-cell',
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <Typography
             variant="body2"
             sx={{
@@ -129,6 +139,9 @@ export const UserList: React.FC = () => {
               color: 'text.primary',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              maxWidth: '100%',
             }}
           >
             {params.row.Username}
@@ -141,17 +154,32 @@ export const UserList: React.FC = () => {
       headerName: 'Full Name',
       minWidth: 180,
       flex: 1.2,
+      align: 'center',
+      headerAlign: 'center',
+      cellClassName: 'text-center-cell',
       renderCell: (params) => (
-        <Typography
-          variant="body2"
+        <Box
           sx={{
-            color: 'text.primary',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {params.row.FullName}
-        </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'text.primary',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              maxWidth: '100%',
+            }}
+          >
+            {params.row.FullName}
+          </Typography>
+        </Box>
       ),
     },
     {
@@ -159,18 +187,33 @@ export const UserList: React.FC = () => {
       headerName: 'Email',
       minWidth: 200,
       flex: 1.5,
+      align: 'center',
+      headerAlign: 'center',
+      cellClassName: 'text-center-cell',
       renderCell: (params) => (
-        <Typography
-          variant="body2"
+        <Box
           sx={{
-            color: 'text.secondary',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            fontSize: '0.875rem',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {params.row.Email}
-        </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'text.secondary',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              fontSize: '0.875rem',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              maxWidth: '100%',
+            }}
+          >
+            {params.row.Email}
+          </Typography>
+        </Box>
       ),
     },
     {
@@ -178,17 +221,32 @@ export const UserList: React.FC = () => {
       headerName: 'Site',
       minWidth: 140,
       flex: 1,
+      align: 'center',
+      headerAlign: 'center',
+      cellClassName: 'text-center-cell',
       renderCell: (params) => (
-        <Typography
-          variant="body2"
+        <Box
           sx={{
-            color: 'text.primary',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {params.row.SiteName || '-'}
-        </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'text.primary',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              maxWidth: '100%',
+            }}
+          >
+            {params.row.SiteName || '-'}
+          </Typography>
+        </Box>
       ),
     },
     {
