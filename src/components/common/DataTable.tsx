@@ -72,6 +72,13 @@ export function DataTable<T extends Record<string, any>>({
             '& .MuiDataGrid-row:hover': {
               backgroundColor: 'rgba(0, 0, 0, 0.04)',
             },
+            '& .MuiDataGrid-cell.action-cell': {
+              justifyContent: 'center',
+              alignItems: 'center',
+            },
+            '& .MuiDataGrid-cell.action-cell > *': {
+              margin: '0 auto',
+            },
           }}
         />
       </Box>

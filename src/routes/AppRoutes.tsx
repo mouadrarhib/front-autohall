@@ -34,6 +34,9 @@ import { UserSiteUsers } from '../features/usersites/UserSiteUsers';
 import { PermissionUsers } from '../features/permissions/PermissionUsers';
 import { UserRolesPermissions } from '../features/users/UserRolesPermissions';
 
+import { GroupementManagement } from '../features/groupement/GroupementManagement';
+
+
 
 const RedirectIfAuthenticated: React.FC<{ children: React.ReactElement }> = ({ 
   children 
@@ -99,6 +102,9 @@ export const AppRoutes: React.FC = () => {
           <Route path="/vehicles" element={<div>Vehicles Page</div>} />
           <Route path="/users/create" element={<CreateUser />} />
           <Route path="/user-sites/:usersiteId/users" element={<UserSiteUsers />} />
+
+          <Route path="/groupement" element={<GroupementManagement />} />
+
           
         </Route>
       </Route>
