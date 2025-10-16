@@ -14,10 +14,6 @@ import {
   Tooltip,
   CircularProgress,
   alpha,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material';
 import { GridColDef } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
@@ -26,7 +22,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { DataTable } from '../../components/common/DataTable';
 import { marqueApi, Marque } from '../../api/endpoints/marque.api';
-import { filialeApi } from '../../api/endpoints/filiale.api';
 import { useAuthStore } from '../../store/authStore';
 
 interface MarqueManagementProps {
@@ -42,7 +37,6 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
   const hasUpdatePermission = useAuthStore((state) => state.hasPermission('MARQUE_UPDATE'));
 
   const [marques, setMarques] = useState<Marque[]>([]);
-  const [filiales, setFiliales] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -58,24 +52,11 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     imageUrl: '',
-    idFiliale: 0,
   });
 
   useEffect(() => {
     loadMarques();
-    if (groupementType === 'Succursale') {
-      loadFiliales();
-    }
   }, [siteId, groupementType, pagination.page, pagination.pageSize]);
-
-  const loadFiliales = async () => {
-    try {
-      const response = await filialeApi.listFiliales({ active: true, pageSize: 1000 });
-      setFiliales(response.data || []);
-    } catch (err: any) {
-      console.error('Failed to load filiales:', err);
-    }
-  };
 
   const loadMarques = async () => {
     try {
@@ -95,6 +76,7 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
           totalPages: response.pagination?.totalPages || 0,
         }));
       } else {
+        // Succursale - just load all marques, don't care about filiales
         const response = await marqueApi.list({
           onlyActive: false,
           page: pagination.page,
@@ -121,14 +103,12 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
       setFormData({
         name: marque.name,
         imageUrl: marque.imageUrl || '',
-        idFiliale: marque.idFiliale,
       });
     } else {
       setEditingMarque(null);
       setFormData({
         name: '',
         imageUrl: '',
-        idFiliale: groupementType === 'Filiale' ? siteId : 0,
       });
     }
     setOpenDialog(true);
@@ -137,7 +117,7 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingMarque(null);
-    setFormData({ name: '', imageUrl: '', idFiliale: 0 });
+    setFormData({ name: '', imageUrl: '' });
     setError(null);
   };
 
@@ -147,15 +127,17 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
       setError(null);
 
       if (editingMarque) {
+        // When editing, keep the existing idFiliale
         await marqueApi.update(editingMarque.id, {
           name: formData.name,
           imageUrl: formData.imageUrl || null,
-          idFiliale: formData.idFiliale,
+          idFiliale: editingMarque.idFiliale, // Keep existing filiale
         });
       } else {
+        // When creating from Filiale, use siteId as idFiliale
         await marqueApi.create({
           name: formData.name,
-          idFiliale: formData.idFiliale,
+          idFiliale: siteId,
           imageUrl: formData.imageUrl || null,
           active: true,
         });
@@ -192,16 +174,7 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
       flex: 1,
       minWidth: 200,
     },
-    ...(groupementType === 'Succursale'
-      ? [
-          {
-            field: 'filialeName',
-            headerName: 'Filiale',
-            flex: 0.8,
-            minWidth: 150,
-          },
-        ]
-      : []),
+    // ❌ Removed filialeName column completely for both Filiale and Succursale
     {
       field: 'imageUrl',
       headerName: 'Image',
@@ -241,17 +214,13 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
       sortable: false,
       align: 'center' as const,
       headerAlign: 'center' as const,
-      cellClassName: 'action-cell',
       renderCell: (params: any) => (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 1,
-            width: '100%',
-            height: '100%',
-          }}
+        <Box 
+          display="flex" 
+          gap={1} 
+          justifyContent="center" 
+          alignItems="center"
+          width="100%"
         >
           {hasUpdatePermission && (
             <>
@@ -314,7 +283,7 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
     <Box sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Chip label={`${marques.length} Marques`} color="primary" sx={{ fontWeight: 600 }} />
-        {hasCreatePermission && (
+        {hasCreatePermission && groupementType === 'Filiale' && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -351,6 +320,7 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
         }
       />
 
+      {/* Create/Edit Dialog - only for Filiale */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{editingMarque ? 'Edit Marque' : 'Add New Marque'}</DialogTitle>
         <DialogContent>
@@ -370,23 +340,7 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             disabled={saving}
           />
-          {groupementType === 'Succursale' && (
-            <FormControl fullWidth margin="dense" required>
-              <InputLabel>Filiale</InputLabel>
-              <Select
-                value={formData.idFiliale}
-                label="Filiale"
-                onChange={(e) => setFormData({ ...formData, idFiliale: Number(e.target.value) })}
-                disabled={saving}
-              >
-                {filiales.map((filiale) => (
-                  <MenuItem key={filiale.id} value={filiale.id}>
-                    {filiale.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
+          {/* ❌ Removed Filiale dropdown completely */}
           <TextField
             margin="dense"
             label="Image URL (Optional)"
@@ -405,7 +359,7 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
           <Button
             onClick={handleSave}
             variant="contained"
-            disabled={saving || !formData.name.trim() || !formData.idFiliale}
+            disabled={saving || !formData.name.trim()}
             startIcon={saving ? <CircularProgress size={16} /> : null}
           >
             {saving ? 'Saving...' : editingMarque ? 'Update' : 'Create'}
