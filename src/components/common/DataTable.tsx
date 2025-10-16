@@ -79,6 +79,12 @@ export function DataTable<T extends Record<string, any>>({
             '& .MuiDataGrid-cell.action-cell > *': {
               margin: '0 auto',
             },
+            '& .MuiDataGrid-cell.text-center-cell': {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+            },
           }}
         />
       </Box>
