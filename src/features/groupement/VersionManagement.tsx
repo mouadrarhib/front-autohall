@@ -316,12 +316,20 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({
       field: 'price',
       headerName: 'Price',
       width: 120,
-      align: 'right' as const,
-      headerAlign: 'right' as const,
+      align: 'center' as const,
+      headerAlign: 'center' as const,
       renderCell: (params: any) => (
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            fontWeight: 600,
+          }}
+        >
           {params.row.price.toLocaleString()} DH
-        </Typography>
+        </Box>
       ),
     },
     {
