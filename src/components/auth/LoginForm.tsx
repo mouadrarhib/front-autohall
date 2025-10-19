@@ -2,23 +2,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
-import {
-  Alert,
-  Avatar,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Divider,
-  InputAdornment,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Divider, InputAdornment, Typography } from '@mui/material';
 import {
   LockOutlined,
   PersonOutline,
 } from '@mui/icons-material';
 import { FormInput } from '../common/FormInput';
 import { useAuthStore } from '../../store/authStore';
+import logo from '../../assets/logo.png';
 
 interface LoginFormData {
   username: string;
@@ -92,16 +83,20 @@ export const LoginForm: React.FC = () => {
               mb: 4,
             }}
           >
-            <Avatar
+            <Box
+              component="img"
+              src={logo}
+              alt="AutoHall"
               sx={{
-                bgcolor: 'primary.main',
-                width: 56,
-                height: 56,
+                width: 72,
+                height: 72,
+                borderRadius: '20%',
                 boxShadow: 3,
+                objectFit: 'contain',
+                bgcolor: 'common.white',
+                p: 1,
               }}
-            >
-              AH
-            </Avatar>
+            />
             <Typography variant="h4" component="h1" fontWeight={600}>
               Welcome Back
             </Typography>
