@@ -35,6 +35,7 @@ import { PermissionUsers } from '../features/permissions/PermissionUsers';
 import { UserRolesPermissions } from '../features/users/UserRolesPermissions';
 
 import { GroupementManagement } from '../features/groupement/GroupementManagement';
+import { ObjectifManagement } from '../features/objectifs/ObjectifManagement';
 
 
 
@@ -105,6 +106,8 @@ export const AppRoutes: React.FC = () => {
 
           <Route path="/groupement" element={<GroupementManagement />} />
 
+              {/* Objectif Routes */}
+          <Route path="/objectifs" element={<ObjectifManagement />} />
           
         </Route>
       </Route>

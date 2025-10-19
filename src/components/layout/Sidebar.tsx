@@ -1,6 +1,7 @@
 // src/components/layout/Sidebar.tsx
+
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Drawer,
   List,
@@ -16,46 +17,34 @@ import {
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import BusinessIcon from '@mui/icons-material/Business';
+import SecurityIcon from '@mui/icons-material/Security';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import { useAuthStore } from '../../store/authStore';
+import TrackChangesIcon from '@mui/icons-material/TrackChanges';
 
 const drawerWidth = 260;
 
 interface MenuItem {
-  text: string;
+  title: string;
   icon: React.ReactElement;
   path: string;
-  permission?: string;
 }
 
 export const Sidebar: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-  const hasPermission = useAuthStore((state) => state.hasPermission);
+  const navigate = useNavigate();
 
   const menuItems: MenuItem[] = [
-    {
-      text: 'Dashboard',
-      icon: <DashboardIcon />,
-      path: '/dashboard',
-    },
-    {
-      text: 'Users',
-      icon: <PeopleIcon />,
-      path: '/users',
-      permission: 'USER_READ',
-    },
-    {
-      text: 'Groupement Management',
-      icon: <BusinessIcon />,
-      path: '/groupement',
-      permission: 'GROUPEMENT_READ',
-    },
+    { title: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { title: 'Users', icon: <PeopleIcon />, path: '/users' },
+    { title: 'Permissions', icon: <SecurityIcon />, path: '/permissions' },
+    { title: 'Groupements', icon: <BusinessIcon />, path: '/groupement' },
+    { title: 'Marques', icon: <DirectionsCarIcon />, path: '/groupement' },
+    { title: 'Objectifs', icon: <TrackChangesIcon />, path: '/objectifs' },
   ];
 
-  const filteredMenuItems = menuItems.filter(
-    (item) => !item.permission || hasPermission(item.permission)
-  );
+  const isActive = (path: string) => {
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
 
   return (
     <Drawer
@@ -66,101 +55,103 @@ export const Sidebar: React.FC = () => {
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
-          borderRight: '1px solid rgba(148, 163, 184, 0.15)',
-          background: 'linear-gradient(180deg, #0f172a 0%, #111827 100%)',
-          color: '#e2e8f0',
-          display: 'flex',
-          flexDirection: 'column',
-          paddingBottom: 2,
-          boxShadow: '8px 0 24px rgba(15, 23, 42, 0.55)',
+          backgroundColor: '#1e293b',
+          color: '#cbd5e1',
+          borderRight: '1px solid rgba(148, 163, 184, 0.1)',
         },
       }}
     >
       <Toolbar
         sx={{
-          px: 3,
-          py: 2,
-          minHeight: 80,
-          borderBottom: '1px solid rgba(148, 163, 184, 0.12)',
+          backgroundColor: '#0f172a',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              display: 'grid',
-              placeItems: 'center',
-              width: 42,
-              height: 42,
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(14, 165, 233, 0.65))',
-              boxShadow: '0 8px 20px rgba(37, 99, 235, 0.4)',
-            }}
-          >
-            <DirectionsCarIcon sx={{ fontSize: 26, color: '#f8fafc' }} />
-          </Box>
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <DirectionsCarIcon sx={{ color: '#3b82f6', fontSize: 32 }} />
           <Typography
             variant="h6"
-            noWrap
-            component="div"
-            sx={{ fontWeight: 700, letterSpacing: 0.4, color: '#f8fafc' }}
+            sx={{
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '0.5px',
+            }}
           >
             AutoHall
           </Typography>
         </Box>
       </Toolbar>
-      <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.12)' }} />
-      <List
-        sx={{
-          mt: 1,
-          px: 1.5,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 0.25,
-        }}
-      >
-        {filteredMenuItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
+
+      <List sx={{ pt: 2, px: 1.5 }}>
+        {menuItems.map((item) => (
+          <ListItem key={`${item.path}-${item.title}`} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
-              selected={location.pathname.startsWith(item.path)}
               onClick={() => navigate(item.path)}
+              selected={isActive(item.path)}
               sx={{
-                mb: 0.5,
-                px: 2,
-                py: 1.25,
-                borderRadius: '14px',
+                borderRadius: 2,
                 transition: 'all 0.2s ease',
-                color: 'rgba(226, 232, 240, 0.84)',
-                '&:hover': {
-                  backgroundColor: 'rgba(37, 99, 235, 0.18)',
-                  color: '#f8fafc',
-                },
                 '&.Mui-selected': {
-                  background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.92), rgba(79, 70, 229, 0.75))',
-                  color: '#f8fafc',
-                  boxShadow: '0 12px 30px rgba(37, 99, 235, 0.35)',
+                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                  borderLeft: '3px solid #3b82f6',
                   '& .MuiListItemIcon-root': {
-                    color: '#f8fafc',
+                    color: '#3b82f6',
+                  },
+                  '& .MuiListItemText-primary': {
+                    color: '#f1f5f9',
+                    fontWeight: 600,
                   },
                   '&:hover': {
-                    background: 'linear-gradient(135deg, rgba(37, 99, 235, 1), rgba(59, 130, 246, 0.85))',
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                  },
+                },
+                '&:hover': {
+                  backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                  '& .MuiListItemIcon-root': {
+                    color: '#94a3b8',
                   },
                 },
               }}
             >
               <ListItemIcon
                 sx={{
-                  color: location.pathname.startsWith(item.path)
-                    ? 'inherit'
-                    : 'rgba(148, 163, 184, 0.75)',
-                  }}
+                  color: isActive(item.path) ? '#3b82f6' : '#64748b',
+                  minWidth: 40,
+                  transition: 'color 0.2s ease',
+                }}
               >
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText
+                primary={item.title}
+                primaryTypographyProps={{
+                  fontSize: '0.9375rem',
+                  fontWeight: isActive(item.path) ? 600 : 500,
+                  color: isActive(item.path) ? '#f1f5f9' : '#cbd5e1',
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
+
+      <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.1)', my: 2 }} />
+
+      <Box sx={{ px: 2.5, py: 1 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: '#64748b',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            fontWeight: 600,
+          }}
+        >
+          Version 1.0.0
+        </Typography>
+      </Box>
     </Drawer>
   );
 };
