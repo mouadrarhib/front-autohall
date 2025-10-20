@@ -10,6 +10,8 @@ import {
   Paper,
   Stack,
   Typography,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import DirectionsCarFilledOutlinedIcon from '@mui/icons-material/DirectionsCarFilledOutlined';
@@ -45,6 +47,8 @@ interface DashboardStats {
 
 export const Dashboard: React.FC = () => {
   const user = useAuthStore((state) => state.user);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [stats, setStats] = useState<DashboardStats>({
     users: { total: 0, active: 0 },
     groupements: { total: 0, active: 0 },
@@ -147,46 +151,66 @@ export const Dashboard: React.FC = () => {
     () => [
       {
         label: 'Utilisateurs',
-        value: statsLoading ? '...' : formatNumber(stats.users.total),
-        change: statsLoading ? '' : `${formatNumber(stats.users.active)} actifs`,
+        value: statsLoading ? '--' : formatNumber(stats.users.total),
+        descriptor: statsLoading ? 'Calcul en cours...' : `${formatNumber(stats.users.active)} actifs`,
+        caption: 'Comptes enregistres',
         icon: <PeopleAltOutlinedIcon />,
-        trend: 'Comptes enregistres',
-        gradient: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(56,189,248,0.28) 100%)',
-        iconBg: 'rgba(59,130,246,0.2)',
+        gradient: 'linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%)',
+        avatarBg: 'rgba(59,130,246,0.18)',
       },
       {
         label: 'Sites',
-        value: statsLoading ? '...' : formatNumber(stats.sites.total),
-        change: statsLoading
-          ? ''
+        value: statsLoading ? '--' : formatNumber(stats.sites.total),
+        descriptor: statsLoading
+          ? 'Calcul en cours...'
           : `${formatNumber(stats.filiales.total)} filiales | ${formatNumber(
               stats.succursales.total
             )} succursales`,
+        caption: 'Implantations suivies',
         icon: <StorefrontOutlinedIcon />,
-        trend: 'Implantations suivies',
-        gradient: 'linear-gradient(135deg, rgba(14,116,144,0.2) 0%, rgba(45,212,191,0.32) 100%)',
-        iconBg: 'rgba(45,212,191,0.25)',
+        gradient: 'linear-gradient(135deg, #ccfbf1 0%, #a5f3fc 100%)',
+        avatarBg: 'rgba(14,116,144,0.18)',
       },
       {
         label: 'Marques',
-        value: statsLoading ? '...' : formatNumber(stats.marques.total),
-        change: statsLoading ? '' : `${formatNumber(stats.marques.active)} actives`,
+        value: statsLoading ? '--' : formatNumber(stats.marques.total),
+        descriptor: statsLoading
+          ? 'Calcul en cours...'
+          : `${formatNumber(stats.marques.active)} actives`,
+        caption: 'Catalogue vehicules',
         icon: <DirectionsCarFilledOutlinedIcon />,
-        trend: 'Catalogue vehicules',
-        gradient: 'linear-gradient(135deg, rgba(251,191,36,0.18) 0%, rgba(249,115,22,0.24) 100%)',
-        iconBg: 'rgba(245,158,11,0.25)',
+        gradient: 'linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%)',
+        avatarBg: 'rgba(245,158,11,0.22)',
       },
       {
         label: 'Groupements',
-        value: statsLoading ? '...' : formatNumber(stats.groupements.total),
-        change: statsLoading ? '' : `${formatNumber(stats.groupements.active)} actifs`,
+        value: statsLoading ? '--' : formatNumber(stats.groupements.total),
+        descriptor: statsLoading
+          ? 'Calcul en cours...'
+          : `${formatNumber(stats.groupements.active)} actifs`,
+        caption: 'Entites operationnelles',
         icon: <BusinessOutlinedIcon />,
-        trend: 'Entites operationnelles',
-        gradient: 'linear-gradient(135deg, rgba(79,70,229,0.16) 0%, rgba(129,140,248,0.28) 100%)',
-        iconBg: 'rgba(99,102,241,0.25)',
+        gradient: 'linear-gradient(135deg, #ede9fe 0%, #c7d2fe 100%)',
+        avatarBg: 'rgba(109,40,217,0.18)',
       },
     ],
     [formatNumber, stats, statsLoading]
+  );
+
+  const heroQuickStats = useMemo(
+    () => [
+      {
+        label: statsLoading
+          ? 'Actualisation...'
+          : `${formatNumber(stats.users.active)} utilisateurs actifs`,
+        icon: <TrendingUpIcon fontSize="small" />,
+      },
+      {
+        label: statsLoading ? 'Chargement...' : `${formatNumber(stats.sites.total)} sites suivis`,
+        icon: <TimelineIcon fontSize="small" />,
+      },
+    ],
+    [formatNumber, stats.users.active, stats.sites.total, statsLoading]
   );
 
   const operationsMetrics = useMemo(() => {
@@ -281,14 +305,21 @@ export const Dashboard: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: { xs: 3, md: 4 },
+        width: '100%',
+      }}
+    >
       <Paper
         sx={{
-          p: { xs: 3, md: 4 },
+          p: { xs: 3, md: 5 },
           borderRadius: 4,
           overflow: 'hidden',
           position: 'relative',
-          background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #38bdf8 100%)',
+          background: 'linear-gradient(130deg, #1e3a8a 0%, #2563eb 45%, #22d3ee 100%)',
           color: 'common.white',
           boxShadow: '0 32px 80px rgba(30, 64, 175, 0.35)',
         }}
@@ -296,101 +327,113 @@ export const Dashboard: React.FC = () => {
         {statsLoading && (
           <LinearProgress
             color="inherit"
-            sx={{ position: 'absolute', left: 0, right: 0, top: 0, opacity: 0.5 }}
+            sx={{ position: 'absolute', left: 0, right: 0, top: 0, opacity: 0.45 }}
           />
         )}
-        <Box sx={{ position: 'absolute', inset: 0, opacity: 0.12, backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'300\' height=\'300\' viewBox=\'0 0 300 300\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' stroke=\'%23ffffff\' stroke-opacity=\'0.35\' stroke-width=\'0.5\'%3E%3Cpath d=\'M150 0L0 75l150 75 150-75z\'/%3E%3Cpath d=\'M150 150L0 225l150 75 150-75z\'/%3E%3C/g%3E%3C/svg%3E")' }} />
-        <Stack direction={{ xs: 'column', md: 'row' }} alignItems="center" spacing={4}>
-          <Box sx={{ position: 'relative', zIndex: 1, flex: 1 }}>
-            <Typography variant="overline" sx={{ letterSpacing: 3, opacity: 0.8 }}>
-              Welcome back
-            </Typography>
-            <Typography variant="h3" fontWeight={700} gutterBottom>
-              {welcomeName}
-            </Typography>
-            <Typography variant="body1" sx={{ maxWidth: 420, opacity: 0.9 }}>
-              Your operations overview is ready. Track performance, monitor security, and stay ahead with real-time insights across your Autohall ecosystem.
-            </Typography>
-            <Stack direction="row" spacing={2} mt={3}>
-              <Chip
-                icon={<TrendingUpIcon sx={{ color: 'inherit !important' }} />}
-                label={
-                  statsLoading
-                    ? 'Mise a jour des utilisateurs...'
-                    : `${formatNumber(stats.users.active)} utilisateurs actifs`
-                }
-                sx={{
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  color: 'inherit',
-                  backdropFilter: 'blur(6px)',
-                }}
-              />
-              <Chip
-                icon={<TimelineIcon sx={{ color: 'inherit !important' }} />}
-                label={
-                  statsLoading
-                    ? 'Chargement des sites...'
-                    : `${formatNumber(stats.sites.total)} sites suivis`
-                }
-                sx={{
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  color: 'inherit',
-                  backdropFilter: 'blur(6px)',
-                }}
-              />
-            </Stack>
-          </Box>
-          <Box
-            sx={{
-              position: 'relative',
-              zIndex: 1,
-              width: { xs: '100%', md: 'auto' },
-              minWidth: { md: 260 },
-            }}
-            >
-              <Paper
-                sx={{
-                  p: 3,
-                  borderRadius: 3,
-                bgcolor: 'rgba(255, 255, 255, 0.16)',
-                color: 'inherit',
-                  minWidth: 240,
-                  backdropFilter: 'blur(10px)',
-                }}
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            opacity: 0.1,
+            backgroundImage:
+              'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.25) 0, transparent 60%), radial-gradient(circle at 80% 0%, rgba(255,255,255,0.2) 0, transparent 55%)',
+          }}
+        />
+        <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
+          <Grid item xs={12} md={7}>
+            <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
+              <Typography variant="overline" sx={{ letterSpacing: 4, opacity: 0.75 }}>
+                Welcome back
+              </Typography>
+              <Typography
+                variant={isMobile ? 'h4' : 'h3'}
+                fontWeight={700}
+                sx={{ lineHeight: 1.1 }}
               >
-                <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>
-                  Couverture des sites actifs
+                {welcomeName}
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ maxWidth: 520, opacity: 0.92, lineHeight: 1.6 }}
+              >
+                Votre tableau de bord est pret. Visualisez vos indicateurs, suivez les sites et
+                marques actifs, et gardez une longueur d&apos;avance sur l&apos;ecosysteme
+                Autohall.
+              </Typography>
+              <Grid container spacing={1.2} sx={{ pt: 1 }}>
+                {heroQuickStats.map((item) => (
+                  <Grid item xs={12} sm="auto" key={item.label}>
+                    <Chip
+                      icon={item.icon}
+                      label={item.label}
+                      sx={{
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        color: 'inherit',
+                        backdropFilter: 'blur(8px)',
+                        fontWeight: 600,
+                        px: 1.6,
+                        height: 36,
+                        borderRadius: 999,
+                        width: { xs: '100%', sm: 'auto' },
+                        '& .MuiChip-icon': {
+                          color: 'inherit',
+                        },
+                      }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Stack>
+          </Grid>
+          <Grid item xs={12} md={5}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 2.5, md: 3 },
+                borderRadius: 3,
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 100%)',
+                color: 'inherit',
+                backdropFilter: 'blur(14px)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                boxShadow: '0 18px 40px rgba(14, 23, 42, 0.35)',
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ opacity: 0.78 }}>
+                Couverture des sites actifs
+              </Typography>
+              <Typography variant={isMobile ? 'h4' : 'h3'} fontWeight={700}>
+                {statsLoading ? '--' : `${siteAvailabilityPercent.toFixed(1)}%`}
+              </Typography>
+              <Box mt={2}>
+                <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                  Sites actifs / total
                 </Typography>
-                <Typography variant="h4" fontWeight={700}>
-                  {statsLoading ? '--' : `${siteAvailabilityPercent.toFixed(1)}%`}
-                </Typography>
-                <Box mt={2}>
-                  <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                    Sites actifs / total
-                  </Typography>
-                  <LinearProgress
-                    variant={statsLoading ? 'indeterminate' : 'determinate'}
-                    value={statsLoading ? undefined : Math.min(siteAvailabilityPercent, 100)}
-                    sx={{
-                      mt: 1,
-                      height: 8,
-                      borderRadius: 999,
-                      bgcolor: 'rgba(255,255,255,0.3)',
+                <LinearProgress
+                  variant={statsLoading ? 'indeterminate' : 'determinate'}
+                  value={statsLoading ? undefined : Math.min(siteAvailabilityPercent, 100)}
+                  sx={{
+                    mt: 1.2,
+                    height: 10,
+                    borderRadius: 999,
+                    bgcolor: 'rgba(255,255,255,0.28)',
                     '& .MuiLinearProgress-bar': {
                       borderRadius: 999,
-                        bgcolor: 'common.white',
-                      },
-                    }}
-                  />
-                  {!statsLoading && (
-                    <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', mt: 1 }}>
-                      {formatNumber(stats.sites.active)} actifs sur {formatNumber(stats.sites.total)}
-                    </Typography>
-                  )}
-                </Box>
-              </Paper>
-            </Box>
-        </Stack>
+                      bgcolor: '#fff',
+                    },
+                  }}
+                />
+                {!statsLoading && (
+                  <Typography
+                    variant="caption"
+                    sx={{ opacity: 0.78, display: 'block', mt: 1.2, fontWeight: 600 }}
+                  >
+                    {formatNumber(stats.sites.active)} actifs sur {formatNumber(stats.sites.total)}
+                  </Typography>
+                )}
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
       </Paper>
 
       {statsError && (
@@ -403,25 +446,25 @@ export const Dashboard: React.FC = () => {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         {statsCards.map((stat) => (
           <Grid item xs={12} sm={6} md={3} key={stat.label}>
             <Paper
               sx={{
-                p: 3,
+                p: { xs: 2.5, md: 3 },
                 borderRadius: 3,
                 height: '100%',
                 background: stat.gradient,
-                boxShadow: '0 24px 50px rgba(15, 23, 42, 0.12)',
+                boxShadow: '0 20px 45px rgba(15, 23, 42, 0.12)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 2,
+                gap: 1.25,
               }}
             >
-              <Stack direction="row" alignItems="center" spacing={2}>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ pr: 1 }}>
                 <Avatar
                   sx={{
-                    bgcolor: stat.iconBg,
+                    bgcolor: stat.avatarBg,
                     color: '#0f172a',
                     width: 44,
                     height: 44,
@@ -430,22 +473,33 @@ export const Dashboard: React.FC = () => {
                   {stat.icon}
                 </Avatar>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ opacity: 0.75 }}>
+                  <Typography variant="subtitle2" sx={{ opacity: 0.7, fontWeight: 600 }}>
                     {stat.label}
                   </Typography>
-                  <Typography variant="h4" fontWeight={700}>
+                  <Typography
+                    variant="h4"
+                    fontWeight={700}
+                    sx={{ lineHeight: 1, fontSize: { xs: '1.9rem', md: '2.1rem' } }}
+                  >
                     {stat.value}
                   </Typography>
                 </Box>
               </Stack>
+              <Typography
+                variant="body2"
+                sx={{ opacity: 0.72, lineHeight: 1.6, minHeight: 32 }}
+              >
+                {stat.descriptor}
+              </Typography>
               <Chip
-                label={stat.change ? `${stat.change} ${stat.trend}` : stat.trend}
+                label={stat.caption}
                 size="small"
                 sx={{
                   alignSelf: 'flex-start',
                   bgcolor: 'rgba(15, 23, 42, 0.08)',
                   color: '#0f172a',
                   fontWeight: 600,
+                  mt: 'auto',
                 }}
               />
             </Paper>
@@ -453,26 +507,29 @@ export const Dashboard: React.FC = () => {
         ))}
       </Grid>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         <Grid item xs={12} md={7}>
           <Paper
             sx={{
-              p: 3,
+              p: { xs: 2.5, md: 3 },
               borderRadius: 3,
               height: '100%',
-              boxShadow: '0 16px 40px rgba(15, 23, 42, 0.08)',
+              background: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)',
+              boxShadow: '0 16px 36px rgba(15, 23, 42, 0.07)',
             }}
           >
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Box>
-                <Typography variant="h6">Operations Pulse</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                  Indicateurs operationnels
+                </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Key metrics from the past 24 hours
+                  Evolution des 24 dernieres heures
                 </Typography>
               </Box>
               <Chip
                 icon={<NotificationsActiveOutlinedIcon />}
-                label="Auto-refresh"
+                label="Actualisation auto"
                 size="small"
                 sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: 'primary.main' }}
               />
@@ -501,34 +558,38 @@ export const Dashboard: React.FC = () => {
         <Grid item xs={12} md={5}>
           <Paper
             sx={{
-              p: 3,
+              p: { xs: 2.5, md: 3 },
               borderRadius: 3,
               height: '100%',
-              boxShadow: '0 16px 40px rgba(15, 23, 42, 0.08)',
+              background: 'linear-gradient(135deg, #fdf4ff 0%, #f5f3ff 100%)',
+              boxShadow: '0 16px 36px rgba(15, 23, 42, 0.07)',
               display: 'flex',
               flexDirection: 'column',
               gap: 2.5,
             }}
           >
-            <Typography variant="h6">Priority Updates</Typography>
-            <Stack spacing={2}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#312e81' }}>
+              Informations importantes
+            </Typography>
+            <Stack spacing={1.5}>
               {priorityUpdates.map((item) => (
-                <Box
+                <Paper
                   key={item.title}
                   sx={{
-                    p: 2,
+                    p: 2.25,
                     borderRadius: 2,
-                    bgcolor: 'rgba(15, 23, 42, 0.04)',
-                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    background: 'rgba(255,255,255,0.75)',
+                    border: '1px solid rgba(148, 163, 184, 0.18)',
+                    boxShadow: '0 12px 24px rgba(15, 23, 42, 0.06)',
                   }}
                 >
-                  <Typography variant="subtitle1" fontWeight={600}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ color: '#1e1b4b' }}>
                     {item.title}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {item.detail}
                   </Typography>
-                </Box>
+                </Paper>
               ))}
             </Stack>
           </Paper>
@@ -537,5 +598,7 @@ export const Dashboard: React.FC = () => {
     </Box>
   );
 };
+
+
 
 

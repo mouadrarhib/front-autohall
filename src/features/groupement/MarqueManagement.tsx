@@ -216,11 +216,12 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
       headerAlign: 'center' as const,
       renderCell: (params: any) => (
         <Box 
-          display="flex" 
-          gap={1} 
-          justifyContent="center" 
+          display="flex"
+          gap={0.75}
           alignItems="center"
+          justifyContent="center"
           width="100%"
+          height="100%"
         >
           {hasUpdatePermission && (
             <>
@@ -369,3 +370,4 @@ export const MarqueManagement: React.FC<MarqueManagementProps> = ({
     </Box>
   );
 };
+
