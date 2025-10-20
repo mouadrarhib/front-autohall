@@ -50,9 +50,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const menuItems: MenuItem[] = [
     { title: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { title: 'Users', icon: <PeopleIcon />, path: '/users' },
-    { title: 'Permissions', icon: <SecurityIcon />, path: '/permissions' },
+    // { title: 'Permissions', icon: <SecurityIcon />, path: '/permissions' },
     { title: 'Groupements', icon: <BusinessIcon />, path: '/groupement' },
-    { title: 'Marques', icon: <DirectionsCarIcon />, path: '/groupement' },
+    // { title: 'Marques', icon: <DirectionsCarIcon />, path: '/groupement' },
     { title: 'Objectifs', icon: <TrackChangesIcon />, path: '/objectifs' },
   ];
 
@@ -293,3 +293,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     </Box>
   );
 };
+
+
+
