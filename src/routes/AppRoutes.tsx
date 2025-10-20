@@ -1,4 +1,4 @@
-// src/routes/AppRoutes.tsx
+﻿// src/routes/AppRoutes.tsx
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoginForm } from '../components/auth/LoginForm';
@@ -34,7 +34,10 @@ import { UserSiteUsers } from '../features/usersites/UserSiteUsers';
 import { PermissionUsers } from '../features/permissions/PermissionUsers';
 import { UserRolesPermissions } from '../features/users/UserRolesPermissions';
 
-import { GroupementManagement } from '../features/groupement/GroupementManagement';
+import { SitesManagement } from '../features/sites/SitesManagement';
+import { MarqueManagement } from '../features/marques/MarqueManagement';
+import { ModeleManagement } from '../features/modeles/ModeleManagement';
+import { VersionManagement } from '../features/versions/VersionManagement';
 import { ObjectifManagement } from '../features/objectifs/ObjectifManagement';
 
 
@@ -103,10 +106,12 @@ export const AppRoutes: React.FC = () => {
           <Route path="/vehicles" element={<div>Vehicles Page</div>} />
           <Route path="/users/create" element={<CreateUser />} />
           <Route path="/user-sites/:usersiteId/users" element={<UserSiteUsers />} />
+          <Route path="/sites" element={<SitesManagement />} />
+          <Route path="/marques" element={<MarqueManagement />} />
+          <Route path="/modeles" element={<ModeleManagement />} />
+          <Route path="/versions" element={<VersionManagement />} />
 
-          <Route path="/groupement" element={<GroupementManagement />} />
-
-              {/* Objectif Routes */}
+          {/* Objectif Routes */}
           <Route path="/objectifs" element={<ObjectifManagement />} />
           
         </Route>
@@ -129,3 +134,11 @@ export const AppRoutes: React.FC = () => {
     </Routes>
   );
 };
+
+
+
+
+
+
+
+

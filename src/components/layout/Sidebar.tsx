@@ -1,11 +1,12 @@
-// src/components/layout/Sidebar.tsx
+﻿// src/components/layout/Sidebar.tsx
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Avatar,
   Box,
   Button,
+  Collapse,
   Divider,
   IconButton,
   List,
@@ -20,19 +21,28 @@ import {
 import { useTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
-import BusinessIcon from '@mui/icons-material/Business';
 import SecurityIcon from '@mui/icons-material/Security';
 import TrackChangesIcon from '@mui/icons-material/TrackChanges';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import CategoryIcon from '@mui/icons-material/Category';
+import LayersIcon from '@mui/icons-material/Layers';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import CloseIcon from '@mui/icons-material/Close';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import logo from '../../assets/logo.png';
 import { useAuthStore } from '../../store/authStore';
 
 interface MenuItem {
   title: string;
   icon: React.ReactElement;
-  path: string;
+  path?: string;
+  children?: Array<{
+    title: string;
+    icon: React.ReactElement;
+    path: string;
+  }>;
 }
 
 interface SidebarProps {
@@ -47,21 +57,48 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+
   const menuItems: MenuItem[] = [
     { title: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { title: 'Users', icon: <PeopleIcon />, path: '/users' },
-    // { title: 'Permissions', icon: <SecurityIcon />, path: '/permissions' },
-    { title: 'Groupements', icon: <BusinessIcon />, path: '/groupement' },
-    // { title: 'Marques', icon: <DirectionsCarIcon />, path: '/groupement' },
+    { title: 'Permissions', icon: <SecurityIcon />, path: '/permissions' },
+    { title: 'Sites', icon: <StorefrontIcon />, path: '/sites' },
+    {
+      title: 'Marques',
+      icon: <DirectionsCarIcon />,
+      path: '/marques',
+      children: [
+        { title: 'Modèles', icon: <CategoryIcon />, path: '/modeles' },
+        { title: 'Versions', icon: <LayersIcon />, path: '/versions' },
+      ],
+    },
     { title: 'Objectifs', icon: <TrackChangesIcon />, path: '/objectifs' },
   ];
 
-  const isActive = (path: string) =>
+  const isPathActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const handleNavigation = (path: string) => {
     navigate(path);
     onItemClick?.();
+  };
+
+  const toggleMenu = (title: string) => {
+    setOpenMenus((prev) => ({
+      ...prev,
+      [title]: !prev[title],
+    }));
+  };
+
+  const isMenuActive = (item: MenuItem) => {
+    if (item.path && isPathActive(item.path)) {
+      return true;
+    }
+    if (item.children) {
+      return item.children.some((child) => isPathActive(child.path));
+    }
+    return false;
   };
 
   const userInitials = useMemo(() => {
@@ -134,59 +171,131 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       </Toolbar>
 
       <List sx={{ pt: 2, px: 1.5, flexGrow: 1, overflowY: 'auto' }} dense={isCompact}>
-        {menuItems.map((item) => (
-          <ListItem key={`${item.path}-${item.title}`} disablePadding sx={{ mb: 0.5 }}>
-            <ListItemButton
-              onClick={() => handleNavigation(item.path)}
-              selected={isActive(item.path)}
-              sx={{
-                borderRadius: 2,
-                transition: 'all 0.2s ease',
-                py: isCompact ? 0.75 : 1,
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                  borderLeft: '3px solid #3b82f6',
-                  '& .MuiListItemIcon-root': { color: '#3b82f6' },
-                  '& .MuiListItemText-primary': {
-                    color: '#f1f5f9',
-                    fontWeight: 600,
-                  },
-                  '&:hover': {
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                  },
-                },
-                '&:hover': {
-                  backgroundColor: 'rgba(148, 163, 184, 0.1)',
-                  '& .MuiListItemIcon-root': { color: '#94a3b8' },
-                },
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  color: isActive(item.path) ? '#3b82f6' : '#64748b',
-                  minWidth: isCompact ? 32 : 40,
-                  transition: 'color 0.2s ease',
-                  '& svg': {
-                    fontSize: isCompact ? '1.15rem' : '1.25rem',
-                  },
-                }}
-              >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.title}
-                sx={{
-                  display: isCompact ? 'none' : 'block',
-                }}
-                primaryTypographyProps={{
-                  fontSize: '0.95rem',
-                  fontWeight: isActive(item.path) ? 600 : 500,
-                  color: isActive(item.path) ? '#f1f5f9' : '#cbd5e1',
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        {menuItems.map((item) => {
+          const active = isMenuActive(item);
+          const isExpanded = openMenus[item.title] ?? active;
+          const hasChildren = Boolean(item.children && item.children.length > 0);
+
+          const handleItemClick = () => {
+            if (hasChildren) {
+              toggleMenu(item.title);
+              if (item.path) {
+                handleNavigation(item.path);
+              }
+            } else if (item.path) {
+              handleNavigation(item.path);
+            }
+          };
+
+          return (
+            <Box key={item.title} sx={{ mb: 0.5 }}>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={handleItemClick}
+                  selected={active}
+                  sx={{
+                    borderRadius: 2,
+                    transition: 'all 0.2s ease',
+                    py: isCompact ? 0.75 : 1,
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                      borderLeft: '3px solid #3b82f6',
+                      '& .MuiListItemIcon-root': { color: '#3b82f6' },
+                      '& .MuiListItemText-primary': {
+                        color: '#f1f5f9',
+                        fontWeight: 600,
+                      },
+                      '&:hover': {
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                      },
+                    },
+                    '&:hover': {
+                      backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                      '& .MuiListItemIcon-root': { color: '#94a3b8' },
+                    },
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      color: active ? '#3b82f6' : '#64748b',
+                      minWidth: isCompact ? 32 : 40,
+                      transition: 'color 0.2s ease',
+                      '& svg': {
+                        fontSize: isCompact ? '1.15rem' : '1.25rem',
+                      },
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.title}
+                    sx={{ display: isCompact ? 'none' : 'block' }}
+                    primaryTypographyProps={{
+                      fontSize: '0.95rem',
+                      fontWeight: active ? 600 : 500,
+                      color: active ? '#f1f5f9' : '#cbd5e1',
+                    }}
+                  />
+                  {!isCompact && hasChildren && (
+                    <Box component="span" sx={{ color: '#94a3b8', ml: 1 }}>
+                      {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                    </Box>
+                  )}
+                </ListItemButton>
+              </ListItem>
+              {hasChildren && (
+                <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding sx={{ pl: isCompact ? 2 : 4 }}>
+                    {item.children!.map((child) => {
+                      const childActive = isPathActive(child.path);
+                      return (
+                        <ListItem key={child.path} disablePadding sx={{ mb: 0.25 }}>
+                          <ListItemButton
+                            onClick={() => handleNavigation(child.path)}
+                            selected={childActive}
+                            sx={{
+                              borderRadius: 2,
+                              py: 0.75,
+                              '&.Mui-selected': {
+                                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                                '& .MuiListItemIcon-root': { color: '#3b82f6' },
+                                '& .MuiListItemText-primary': {
+                                  color: '#f1f5f9',
+                                  fontWeight: 600,
+                                },
+                              },
+                            }}
+                          >
+                            <ListItemIcon
+                              sx={{
+                                color: childActive ? '#3b82f6' : '#64748b',
+                                minWidth: isCompact ? 32 : 36,
+                                '& svg': {
+                                  fontSize: isCompact ? '1rem' : '1.1rem',
+                                },
+                              }}
+                            >
+                              {child.icon}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={child.title}
+                              sx={{ display: isCompact ? 'none' : 'block' }}
+                              primaryTypographyProps={{
+                                fontSize: '0.9rem',
+                                fontWeight: childActive ? 600 : 500,
+                                color: childActive ? '#f1f5f9' : '#cbd5e1',
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              )}
+            </Box>
+          );
+        })}
       </List>
 
       <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.15)', mx: 2.5 }} />
@@ -293,6 +402,3 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     </Box>
   );
 };
-
-
-
