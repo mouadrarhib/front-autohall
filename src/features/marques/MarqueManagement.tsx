@@ -1,55 +1,17 @@
 // src/features/marques/MarqueManagement.tsx
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Stack,
-  Switch,
-  TextField,
-  Typography,
-} from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import {
-  DataGrid,
-  type GridColDef,
-  type GridPaginationModel,
-} from '@mui/x-data-grid';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
+import { Box, Stack } from '@mui/material';
+import type { GridPaginationModel } from '@mui/x-data-grid';
 
 import { filialeApi, type Filiale } from '../../api/endpoints/filiale.api';
 import { marqueApi, type Marque } from '../../api/endpoints/marque.api';
 import { useAuthStore } from '../../store/authStore';
-
-interface PaginationState {
-  page: number;
-  pageSize: number;
-  totalRecords: number;
-  totalPages: number;
-}
-
-interface MarqueFormState {
-  name: string;
-  idFiliale: number | null;
-  imageUrl: string;
-  active: boolean;
-}
-
-type DialogMode = 'create' | 'edit';
+import { MarqueFilters } from './MarqueFilters';
+import { MarqueTable } from './MarqueTable';
+import { MarqueDialog } from './MarqueDialog';
+import { useMarqueColumns } from './useMarqueColumns';
+import type { DialogMode, MarqueFormState, PaginationState } from './marqueTypes';
 
 const DEFAULT_PAGINATION: PaginationState = {
   page: 1,
@@ -57,8 +19,6 @@ const DEFAULT_PAGINATION: PaginationState = {
   totalRecords: 0,
   totalPages: 0,
 };
-
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 export const MarqueManagement: React.FC = () => {
   const hasCreate = useAuthStore((state) => state.hasPermission('MARQUE_CREATE'));
@@ -143,7 +103,7 @@ export const MarqueManagement: React.FC = () => {
     } finally {
       setMarquesLoading(false);
     }
-  }, [filterFilialeId, filialeNameMap, pageState.page, pageState.pageSize, reloadToken]);
+  }, [filialeNameMap, filterFilialeId, pageState.page, pageState.pageSize, reloadToken]);
 
   useEffect(() => {
     loadFiliales();
@@ -163,6 +123,7 @@ export const MarqueManagement: React.FC = () => {
   const handleOpenDialog = (mode: DialogMode, marque?: Marque) => {
     setDialogMode(mode);
     setCurrentMarque(marque ?? null);
+
     if (mode === 'edit' && marque) {
       setFormState({
         name: marque.name,
@@ -173,11 +134,12 @@ export const MarqueManagement: React.FC = () => {
     } else {
       setFormState({
         name: '',
-        idFiliale: null,
+        idFiliale: filterFilialeId === 'all' ? null : filterFilialeId,
         imageUrl: '',
         active: true,
       });
     }
+
     setMarquesError(null);
     setDialogOpen(true);
   };
@@ -192,7 +154,7 @@ export const MarqueManagement: React.FC = () => {
     setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSaveMarque = async () => {
+  const handleSave = async () => {
     if (!formState.name.trim()) {
       setMarquesError('Le nom de la marque est requis.');
       return;
@@ -204,22 +166,20 @@ export const MarqueManagement: React.FC = () => {
 
     try {
       setSaving(true);
+      const payload = {
+        name: formState.name.trim(),
+        idFiliale: formState.idFiliale,
+        imageUrl: formState.imageUrl || null,
+        active: formState.active,
+      };
+
       if (dialogMode === 'edit' && currentMarque) {
-        await marqueApi.update(currentMarque.id, {
-          name: formState.name.trim(),
-          idFiliale: formState.idFiliale,
-          imageUrl: formState.imageUrl || null,
-          active: formState.active,
-        });
+        await marqueApi.update(currentMarque.id, payload);
       } else {
-        await marqueApi.create({
-          name: formState.name.trim(),
-          idFiliale: formState.idFiliale,
-          imageUrl: formState.imageUrl || null,
-          active: formState.active,
-        });
+        await marqueApi.create(payload);
         setPageState((prev) => ({ ...prev, page: 1 }));
       }
+
       setDialogOpen(false);
       setReloadToken((value) => value + 1);
     } catch (err: any) {
@@ -240,168 +200,27 @@ export const MarqueManagement: React.FC = () => {
       }
       setReloadToken((value) => value + 1);
     } catch (err: any) {
-      console.error('Failed to update marque status', err);
+      console.error('Failed to update marque', err);
       setMarquesError(err?.response?.data?.error ?? "Impossible de mettre a jour l'etat de la marque.");
     } finally {
       setTogglingId(null);
     }
   };
 
-  const columns = useMemo<GridColDef<Marque>[]>(
-    () => [
-      {
-        field: 'marque',
-        headerName: 'Marque',
-        flex: 1.6,
-        align: 'left',
-        headerAlign: 'left',
-        minWidth: 240,
-        sortable: false,
-        renderCell: ({ row }) => (
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-            sx={{ minWidth: 0, width: '100%', justifyContent: 'flex-start' }}
-          >
-            <Box
-              component="img"
-              src={row.imageUrl ?? ''}
-              alt={row.name}
-              onError={({ currentTarget }) => {
-                currentTarget.onerror = null;
-                currentTarget.src = '';
-              }}
-              sx={{
-                width: 52,
-                height: 52,
-                borderRadius: 2,
-                objectFit: 'contain',
-                border: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-                p: 0.5,
-                boxShadow: '0 6px 14px rgba(15, 23, 42, 0.08)',
-              }}
-            />
-            <Stack spacing={0.3} sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.1, fontSize: "1.05rem" }}>
-                {row.name}
-              </Typography>
-            </Stack>
-          </Stack>
-        ),
-      },
-      {
-        field: 'filialeName',
-        headerName: 'Filiale',
-        flex: 1,
-        minWidth: 180,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-            }}
-          >
-            <Chip
-              label={row.filialeName ?? 'N/A'}
-              size="small"
-              sx={{
-                fontWeight: 600,
-                borderRadius: 2,
-                bgcolor: alpha('#2563eb', 0.15),
-                color: '#1d4ed8',
-              }}
-            />
-          </Box>
-        ),
-      },
-      {
-        field: 'active',
-        headerName: 'Statut',
-        width: 150,
-        sortable: false,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-            }}
-          >
-            <Chip
-              label={row.active ? 'Active' : 'Inactive'}
-              size="small"
-              sx={{
-                fontWeight: 600,
-                borderRadius: 2,
-                bgcolor: row.active ? alpha('#22c55e', 0.15) : alpha('#94a3b8', 0.2),
-                color: row.active ? '#15803d' : '#475569',
-              }}
-            />
-          </Box>
-        ),
-      },
-      {
-        field: 'actions',
-        headerName: 'Actions',
-        width: 270,
-        sortable: false,
-        filterable: false,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
-            sx={{ width: '100%', justifyContent: 'center', alignItems: 'center' }}
-          >
-            {hasUpdate && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<EditIcon fontSize="small" />}
-                onClick={() => handleOpenDialog('edit', row)}
-                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-              >
-                Modifier
-              </Button>
-            )}
-            {hasUpdate && (
-              <Button
-                variant="contained"
-                size="small"
-                color={row.active ? 'error' : 'success'}
-                onClick={() => handleToggleActive(row)}
-                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, minWidth: 120 }}
-                disabled={togglingId === row.id}
-              >
-                {togglingId === row.id
-                  ? 'Veuillez patienter...'
-                  : row.active
-                  ? 'Desactiver'
-                  : 'Activer'}
-              </Button>
-            )}
-          </Stack>
-        ),
-      },
-    ],
-    [hasUpdate, togglingId]
-  );
+  const columns = useMarqueColumns({
+    hasUpdate,
+    togglingId,
+    onEdit: (marque) => handleOpenDialog('edit', marque),
+    onToggleActive: handleToggleActive,
+  });
 
-  const isFormValid =
-    formState.name.trim().length > 0 && formState.idFiliale !== null;
+  const isFormValid = formState.name.trim().length > 0 && formState.idFiliale !== null;
+
+  const handleFilterChange = (value: number | 'all') => {
+    setFilterFilialeId(value);
+    setPageState((prev) => ({ ...prev, page: 1 }));
+    setReloadToken((prev) => prev + 1);
+  };
 
   return (
     <Box
@@ -416,237 +235,41 @@ export const MarqueManagement: React.FC = () => {
       }}
     >
       <Stack spacing={3}>
-        <Box textAlign="center">
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>
-            Marques
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Gerez l'ensemble des marques et assignez-les aux filiales concernees.
-          </Typography>
-        </Box>
+        <MarqueFilters
+          filiales={filiales}
+          filterFilialeId={filterFilialeId}
+          filialesLoading={filialesLoading}
+          totalRecords={pagination.totalRecords}
+          hasCreate={hasCreate}
+          error={filialesError}
+          onClearError={() => setFilialesError(null)}
+          onChangeFiliale={handleFilterChange}
+          onCreate={() => handleOpenDialog('create')}
+        />
 
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 4,
-            p: { xs: 2.5, md: 3 },
-            border: '1px solid',
-            borderColor: alpha('#1e293b', 0.06),
-            boxShadow: '0 20px 40px rgba(15, 23, 42, 0.08)',
-            backdropFilter: 'blur(6px)',
-          }}
-        >
-          <Grid container spacing={2.5} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Filiale (optionnel)</InputLabel>
-                <Select
-                  value={filterFilialeId === 'all' ? '' : filterFilialeId}
-                  label="Filiale (optionnel)"
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setFilterFilialeId(value === '' ? 'all' : Number(value));
-                    setPageState((prev) => ({ ...prev, page: 1 }));
-                  }}
-                  disabled={filialesLoading}
-                >
-                  <MenuItem value="">Toutes les filiales</MenuItem>
-                  {filiales.map((filiale) => (
-                    <MenuItem key={filiale.id} value={filiale.id}>
-                      {filiale.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1.5}
-                justifyContent="center"
-                alignItems="center"
-              >
-                <Chip
-                  label={`${pagination.totalRecords} marque${pagination.totalRecords === 1 ? '' : 's'}`}
-                  color="primary"
-                  sx={{ fontWeight: 600, borderRadius: 2 }}
-                />
-                {hasCreate && (
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => handleOpenDialog('create')}
-                    sx={{
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      fontWeight: 700,
-                      boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
-                    }}
-                  >
-                    Nouvelle marque
-                  </Button>
-                )}
-              </Stack>
-            </Grid>
-          </Grid>
-          {filialesError && (
-            <Alert severity="error" sx={{ mt: 2 }} onClose={() => setFilialesError(null)}>
-              {filialesError}
-            </Alert>
-          )}
-        </Paper>
-
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 4,
-            p: { xs: 2.5, md: 3 },
-            border: '1px solid',
-            borderColor: alpha('#1e293b', 0.05),
-            boxShadow: '0 22px 48px rgba(15, 23, 42, 0.12)',
-            backdropFilter: 'blur(6px)',
-          }}
-        >
-          {marquesError && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setMarquesError(null)}>
-              {marquesError}
-            </Alert>
-          )}
-          <DataGrid
-            autoHeight
-            rows={marques}
-            columns={columns}
-            getRowId={(row) => row.id}
-            loading={marquesLoading}
-            paginationMode="server"
-            paginationModel={{
-              page: Math.max(pagination.page - 1, 0),
-              pageSize: pagination.pageSize,
-            }}
-            rowCount={pagination.totalRecords}
-            onPaginationModelChange={handlePaginationModelChange}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
-            disableColumnMenu
-            disableColumnFilter
-            disableColumnSelector
-            density="comfortable"
-            sx={{
-              border: 'none',
-              '& .MuiDataGrid-columnSeparator': {
-                display: 'none',
-              },
-              '& .MuiDataGrid-row': {
-                borderRadius: 3,
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 18px 30px rgba(15, 23, 42, 0.14)',
-                  backgroundColor: alpha('#2563eb', 0.06),
-                },
-              },
-              '& .MuiDataGrid-cell': {
-                borderBottom: '1px solid',
-                borderColor: alpha('#1e293b', 0.05),
-                paddingTop: '14px',
-                paddingBottom: '14px',
-              },
-              '& .MuiDataGrid-columnHeaders': {
-                borderBottom: '1px solid',
-                borderColor: alpha('#1e293b', 0.1),
-                background: alpha('#1d4ed8', 0.1),
-              },
-            }}
-          />
-        </Paper>
+        <MarqueTable
+          rows={marques}
+          columns={columns}
+          loading={marquesLoading}
+          pagination={pagination}
+          onPaginationChange={handlePaginationModelChange}
+          error={marquesError}
+          onClearError={() => setMarquesError(null)}
+        />
       </Stack>
 
-      <Dialog
+      <MarqueDialog
         open={dialogOpen}
+        dialogMode={dialogMode}
+        formState={formState}
+        filiales={filiales}
+        filialesLoading={filialesLoading}
+        saving={saving}
+        isFormValid={isFormValid}
         onClose={handleCloseDialog}
-        fullWidth
-        maxWidth="sm"
-        scroll="paper"
-        PaperProps={{
-          sx: {
-            maxHeight: '85vh',
-            display: 'flex',
-            flexDirection: 'column',
-          },
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          {dialogMode === 'edit' ? 'Modifier la marque' : 'Nouvelle marque'}
-        </DialogTitle>
-        <DialogContent
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-            pt: 2,
-            maxHeight: { xs: '60vh', md: '65vh' },
-            overflowY: 'auto',
-            pr: 1,
-            flexGrow: 1,
-          }}
-        >
-          <TextField
-            label="Nom de la marque"
-            value={formState.name}
-            onChange={(event) => handleFormChange('name', event.target.value)}
-            fullWidth
-            required
-            autoFocus
-          />
-          <FormControl fullWidth required>
-            <InputLabel>Filiale</InputLabel>
-            <Select
-              value={formState.idFiliale ?? ''}
-              label="Filiale"
-              onChange={(event) =>
-                handleFormChange('idFiliale', event.target.value === '' ? null : Number(event.target.value))
-              }
-              disabled={filialesLoading}
-            >
-              <MenuItem value="">Selectionner une filiale</MenuItem>
-              {filiales.map((filiale) => (
-                <MenuItem key={filiale.id} value={filiale.id}>
-                  {filiale.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label="Image URL (optionnel)"
-            value={formState.imageUrl}
-            onChange={(event) => handleFormChange('imageUrl', event.target.value)}
-            fullWidth
-            placeholder="https://exemple.com/logo.png"
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={formState.active}
-                onChange={(event) => handleFormChange('active', event.target.checked)}
-              />
-            }
-            label="Active"
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseDialog} disabled={saving}>
-            Annuler
-          </Button>
-          <Button
-            onClick={handleSaveMarque}
-            variant="contained"
-            startIcon={saving ? <CircularProgress size={16} /> : undefined}
-            disabled={saving || !isFormValid}
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-          >
-            {dialogMode === 'edit' ? 'Mettre a jour' : 'Creer'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSave={handleSave}
+        onChangeField={handleFormChange}
+      />
     </Box>
   );
 };
