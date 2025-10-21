@@ -56,13 +56,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const isCompact = useMediaQuery(theme.breakpoints.down('sm'));
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
-
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const menuItems: MenuItem[] = [
     { title: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { title: 'Users', icon: <PeopleIcon />, path: '/users' },
-    { title: 'Permissions', icon: <SecurityIcon />, path: '/permissions' },
+    // { title: 'Permissions', icon: <SecurityIcon />, path: '/permissions' },
     { title: 'Sites', icon: <StorefrontIcon />, path: '/sites' },
     {
       title: 'Marques',
@@ -115,62 +114,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   return (
     <Box
       sx={{
+        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        height: '100%',
-        color: '#cbd5f5',
+        background: 'linear-gradient(180deg, rgba(15,23,42,1) 0%, rgba(30,41,59,1) 100%)',
+        borderRight: '1px solid rgba(148, 163, 184, 0.2)',
+        boxShadow: '0 12px 40px rgba(15, 23, 42, 0.35)',
       }}
     >
-      <Toolbar
-      sx={{
-          backgroundColor: 'transparent',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
-          px: 2.5,
-          minHeight: 72,
-        }}
-      >
-        <Box display="flex" alignItems="center" gap={1.5} width="100%">
-          <Box
-            component="img"
-            src={logo}
-            alt="AutoHall"
-            sx={{
-              width: isCompact ? 36 : 44,
-              height: isCompact ? 36 : 44,
-              borderRadius: '12px',
-              objectFit: 'contain',
-              bgcolor: 'common.white',
-              p: 0.6,
-              boxShadow: '0 6px 18px rgba(15, 23, 42, 0.35)',
-            }}
-          />
-          {!isCompact && (
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                letterSpacing: '0.6px',
-                background: 'linear-gradient(135deg, #e2e8f0 0%, #ffffff 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+      <Toolbar sx={{ justifyContent: isCompact ? 'space-between' : 'center', px: 2 }}>
+        {!isCompact && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              component="img"
+              src={logo}
+              alt="Logo"
+              sx={{ 
+                height: 50, 
+                width: 'auto', 
+                objectFit: 'contain',
+                filter: 'invert(1) brightness(1.2)',
               }}
-            >
-              AutoHall
-            </Typography>
-          )}
-          {isCompact && onItemClick && (
-            <IconButton
-              onClick={onItemClick}
-              sx={{ ml: 'auto', color: '#cbd5e1' }}
-              size="small"
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          )}
-        </Box>
+            />
+          </Box>
+        )}
+        {isCompact && onItemClick && (
+          <IconButton onClick={onItemClick} sx={{ color: '#f1f5f9' }}>
+            <CloseIcon />
+          </IconButton>
+        )}
       </Toolbar>
 
-      <List sx={{ pt: 2, px: 1.5, flexGrow: 1, overflowY: 'auto' }} dense={isCompact}>
+      <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.2)' }} />
+
+      <List sx={{ flex: 1, overflowY: 'auto', px: 2, py: 2 }}>
         {menuItems.map((item) => {
           const active = isMenuActive(item);
           const isExpanded = openMenus[item.title] ?? active;
@@ -188,119 +165,94 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           };
 
           return (
-            <Box key={item.title} sx={{ mb: 0.5 }}>
-              <ListItem disablePadding>
-                <ListItemButton
-                  onClick={handleItemClick}
-                  selected={active}
-                  sx={{
-                    borderRadius: 2,
-                    transition: 'all 0.2s ease',
-                    py: isCompact ? 0.75 : 1,
-                    '&.Mui-selected': {
-                      backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                      borderLeft: '3px solid #3b82f6',
-                      '& .MuiListItemIcon-root': { color: '#3b82f6' },
-                      '& .MuiListItemText-primary': {
-                        color: '#f1f5f9',
-                        fontWeight: 600,
-                      },
-                      '&:hover': {
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                      },
+            <ListItem key={item.title} disablePadding sx={{ display: 'block', mb: 0.5 }}>
+              <ListItemButton
+                onClick={handleItemClick}
+                selected={active && !hasChildren}
+                sx={{
+                  borderRadius: 2,
+                  py: 1.25,
+                  '&.Mui-selected': {
+                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                    '& .MuiListItemIcon-root': { color: '#3b82f6' },
+                    '& .MuiListItemText-primary': {
+                      color: '#f1f5f9',
+                      fontWeight: 600,
                     },
-                    '&:hover': {
-                      backgroundColor: 'rgba(148, 163, 184, 0.1)',
-                      '& .MuiListItemIcon-root': { color: '#94a3b8' },
-                    },
+                  },
+                  '&:hover': {
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40, color: active ? '#3b82f6' : '#94a3b8' }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.title}
+                  primaryTypographyProps={{
+                    fontWeight: active ? 600 : 500,
+                    color: active ? '#f1f5f9' : '#cbd5e1',
                   }}
-                >
-                  <ListItemIcon
-                    sx={{
-                      color: active ? '#3b82f6' : '#64748b',
-                      minWidth: isCompact ? 32 : 40,
-                      transition: 'color 0.2s ease',
-                      '& svg': {
-                        fontSize: isCompact ? '1.15rem' : '1.25rem',
-                      },
-                    }}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.title}
-                    sx={{ display: isCompact ? 'none' : 'block' }}
-                    primaryTypographyProps={{
-                      fontSize: '0.95rem',
-                      fontWeight: active ? 600 : 500,
-                      color: active ? '#f1f5f9' : '#cbd5e1',
-                    }}
-                  />
-                  {!isCompact && hasChildren && (
-                    <Box component="span" sx={{ color: '#94a3b8', ml: 1 }}>
-                      {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                    </Box>
-                  )}
-                </ListItemButton>
-              </ListItem>
+                />
+                {!isCompact && hasChildren && (
+                  <Box sx={{ color: '#94a3b8' }}>
+                    {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </Box>
+                )}
+              </ListItemButton>
+
               {hasChildren && (
                 <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding sx={{ pl: isCompact ? 2 : 4 }}>
+                  <List component="div" disablePadding>
                     {item.children!.map((child) => {
                       const childActive = isPathActive(child.path);
                       return (
-                        <ListItem key={child.path} disablePadding sx={{ mb: 0.25 }}>
-                          <ListItemButton
-                            onClick={() => handleNavigation(child.path)}
-                            selected={childActive}
-                            sx={{
-                              borderRadius: 2,
-                              py: 0.75,
-                              '&.Mui-selected': {
-                                backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                                '& .MuiListItemIcon-root': { color: '#3b82f6' },
-                                '& .MuiListItemText-primary': {
-                                  color: '#f1f5f9',
-                                  fontWeight: 600,
-                                },
+                        <ListItemButton
+                          key={child.path}
+                          onClick={() => handleNavigation(child.path)}
+                          selected={childActive}
+                          sx={{
+                            pl: 7,
+                            borderRadius: 2,
+                            py: 0.75,
+                            '&.Mui-selected': {
+                              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                              '& .MuiListItemIcon-root': { color: '#3b82f6' },
+                              '& .MuiListItemText-primary': {
+                                color: '#f1f5f9',
+                                fontWeight: 600,
                               },
+                            },
+                            '&:hover': {
+                              backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                            },
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 36, color: childActive ? '#3b82f6' : '#94a3b8' }}>
+                            {child.icon}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={child.title}
+                            primaryTypographyProps={{
+                              fontWeight: childActive ? 600 : 500,
+                              color: childActive ? '#f1f5f9' : '#cbd5e1',
                             }}
-                          >
-                            <ListItemIcon
-                              sx={{
-                                color: childActive ? '#3b82f6' : '#64748b',
-                                minWidth: isCompact ? 32 : 36,
-                                '& svg': {
-                                  fontSize: isCompact ? '1rem' : '1.1rem',
-                                },
-                              }}
-                            >
-                              {child.icon}
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={child.title}
-                              sx={{ display: isCompact ? 'none' : 'block' }}
-                              primaryTypographyProps={{
-                                fontSize: '0.9rem',
-                                fontWeight: childActive ? 600 : 500,
-                                color: childActive ? '#f1f5f9' : '#cbd5e1',
-                              }}
-                            />
-                          </ListItemButton>
-                        </ListItem>
+                          />
+                        </ListItemButton>
                       );
                     })}
                   </List>
                 </Collapse>
               )}
-            </Box>
+            </ListItem>
           );
         })}
       </List>
 
-      <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.15)', mx: 2.5 }} />
+      <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.2)' }} />
 
-      <Box sx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Box sx={{ p: 2 }}>
         <Box
           role="button"
           tabIndex={0}
@@ -337,22 +289,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         >
           <Avatar
             sx={{
-              width: 42,
-              height: 42,
-              fontWeight: 600,
-              bgcolor: 'rgba(59,130,246,0.25)',
-              color: '#f8fafc',
-              textTransform: 'uppercase',
+              bgcolor: '#3b82f6',
+              color: '#ffffff',
+              width: 40,
+              height: 40,
+              fontWeight: 700,
             }}
           >
             {userInitials}
           </Avatar>
           {!isCompact && (
-            <Box>
-              <Typography variant="subtitle2" sx={{ color: '#f8fafc', fontWeight: 600 }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#f1f5f9' }}>
                 {user?.full_name || user?.username || 'Utilisateur'}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(226, 232, 240, 0.75)' }}>
+              <Typography variant="caption" sx={{ color: '#94a3b8' }}>
                 {user?.email || 'email@autohall.ma'}
               </Typography>
             </Box>
@@ -361,8 +312,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
 
         <Button
           variant="outlined"
-          size="small"
-          startIcon={<LogoutIcon fontSize="small" />}
+          fullWidth
+          startIcon={<LogoutIcon />}
           onClick={async () => {
             try {
               await logout();
@@ -371,6 +322,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             }
           }}
           sx={{
+            mt: 2,
             color: '#f1f5f9',
             borderColor: 'rgba(148, 163, 184, 0.35)',
             textTransform: 'none',
@@ -388,12 +340,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         {!isCompact && (
           <Typography
             variant="caption"
-            sx={{
-              color: '#64748b',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              fontWeight: 600,
-            }}
+            sx={{ display: 'block', textAlign: 'center', color: '#64748b', mt: 2 }}
           >
             Version 1.0.0
           </Typography>
