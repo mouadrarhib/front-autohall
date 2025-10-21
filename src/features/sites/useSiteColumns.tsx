@@ -136,7 +136,7 @@ export const useSiteColumns = ({
               </Tooltip>
             )}
           </Stack>
-        ),
+        ),  
       },
     ];
   }, [siteType, hasUpdate, onEdit, onToggleActive, togglingId, onViewMarques]);
