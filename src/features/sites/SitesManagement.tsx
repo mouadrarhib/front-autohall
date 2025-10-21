@@ -1,445 +1,301 @@
 // src/features/sites/SitesManagement.tsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import React, { useCallback, useEffect, useState } from "react";
+import { Box, Stack, Tab, Tabs, Paper } from "@mui/material";
+import type { GridPaginationModel } from "@mui/x-data-grid";
+import { filialeApi, type Filiale } from "../../api/endpoints/filiale.api";
 import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControlLabel,
-  IconButton,
-  Paper,
-  Stack,
-  Switch,
-  TextField,
-  Typography,
-} from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import { filialeApi, type Filiale } from '../../api/endpoints/filiale.api';
-import { succursaleApi, type Succursale } from '../../api/endpoints/succursale.api';
+  succursaleApi,
+  type Succursale,
+} from "../../api/endpoints/succursale.api";
+import { useAuthStore } from "../../store/authStore";
+import {
+  DialogMode,
+  PaginationState,
+  SiteFormState,
+  SiteType,
+} from "./siteTypes";
+import { useSiteColumns } from "./useSiteColumns";
+import { SiteFilters } from "./SiteFilters";
+import { SiteTable } from "./SiteTable";
+import { SiteDialog } from "./SiteDialog";
 
-type SiteType = 'filiale' | 'succursale';
-
-interface ManageDialogState {
-  open: boolean;
-  type: SiteType | null;
-  entityId: number | null;
-  name: string;
-  active: boolean;
-}
-
-const INITIAL_DIALOG_STATE: ManageDialogState = {
-  open: false,
-  type: null,
-  entityId: null,
-  name: '',
-  active: true,
+const DEFAULT_PAGINATION: PaginationState = {
+  page: 1,
+  pageSize: 10,
+  totalRecords: 0,
+  totalPages: 0,
 };
 
 export const SitesManagement: React.FC = () => {
-  const [filiales, setFiliales] = useState<Filiale[]>([]);
-  const [succursales, setSuccursales] = useState<Succursale[]>([]);
-  const [loadingFiliales, setLoadingFiliales] = useState(false);
-  const [loadingSuccursales, setLoadingSuccursales] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [togglingId, setTogglingId] = useState<{ type: SiteType; id: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [dialogState, setDialogState] = useState<ManageDialogState>(INITIAL_DIALOG_STATE);
-
-  const stats = useMemo(
-    () => ({
-      filialesTotal: filiales.length,
-      filialesActive: filiales.filter((item) => item.active).length,
-      succursalesTotal: succursales.length,
-      succursalesActive: succursales.filter((item) => item.active).length,
-    }),
-    [filiales, succursales]
+  const hasCreateFiliale = useAuthStore((state) =>
+    state.hasPermission("FILIALE_CREATE")
+  );
+  const hasUpdateFiliale = useAuthStore((state) =>
+    state.hasPermission("FILIALE_UPDATE")
+  );
+  const hasCreateSuccursale = useAuthStore((state) =>
+    state.hasPermission("SUCCURSALE_CREATE")
+  );
+  const hasUpdateSuccursale = useAuthStore((state) =>
+    state.hasPermission("SUCCURSALE_UPDATE")
   );
 
-  const loadFiliales = useCallback(async () => {
-    try {
-      setLoadingFiliales(true);
-      const response = await filialeApi.listFiliales({ page: 1, pageSize: 1000 });
-      setFiliales(response.data ?? []);
-    } catch (err: any) {
-      console.error('Failed to load filiales', err);
-      setError(err?.response?.data?.error ?? 'Impossible de charger les filiales.');
-    } finally {
-      setLoadingFiliales(false);
-    }
-  }, []);
+  const [activeTab, setActiveTab] = useState<SiteType>("filiale");
+  const [sites, setSites] = useState<(Filiale | Succursale)[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] =
+    useState<PaginationState>(DEFAULT_PAGINATION);
+  const [pageState, setPageState] = useState({ page: 1, pageSize: 10 });
+  const [reloadToken, setReloadToken] = useState(0);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<DialogMode>("create");
+  const [currentSite, setCurrentSite] = useState<Filiale | Succursale | null>(
+    null
+  );
+  const [formState, setFormState] = useState<SiteFormState>({
+    name: "",
+    active: true,
+  });
+  const [saving, setSaving] = useState(false);
 
-  const loadSuccursales = useCallback(async () => {
+  const loadSites = useCallback(async () => {
     try {
-      setLoadingSuccursales(true);
-      const response = await succursaleApi.listSuccursales({ page: 1, pageSize: 1000 });
-      setSuccursales(response.data ?? []);
+      setLoading(true);
+      setError(null);
+
+      const response =
+        activeTab === "filiale"
+          ? await filialeApi.listFiliales({
+              page: pageState.page,
+              pageSize: pageState.pageSize,
+            })
+          : await succursaleApi.listSuccursales({
+              page: pageState.page,
+              pageSize: pageState.pageSize,
+            });
+
+      setSites(response.data ?? []);
+      setPagination({
+        page: response.pagination?.page ?? pageState.page,
+        pageSize: response.pagination?.pageSize ?? pageState.pageSize,
+        totalRecords:
+          response.pagination?.totalCount ?? response.data?.length ?? 0,
+        totalPages: response.pagination?.totalPages ?? 1,
+      });
     } catch (err: any) {
-      console.error('Failed to load succursales', err);
-      setError(err?.response?.data?.error ?? 'Impossible de charger les succursales.');
+      console.error("Failed to load sites", err);
+      setError(
+        err?.response?.data?.error ??
+          `Impossible de charger les ${
+            activeTab === "filiale" ? "filiales" : "succursales"
+          }.`
+      );
+      setSites([]);
+      setPagination((prev) => ({ ...prev, totalRecords: 0, totalPages: 0 }));
     } finally {
-      setLoadingSuccursales(false);
+      setLoading(false);
     }
-  }, []);
+  }, [activeTab, pageState.page, pageState.pageSize, reloadToken]);
 
   useEffect(() => {
-    loadFiliales();
-    loadSuccursales();
-  }, [loadFiliales, loadSuccursales]);
+    loadSites();
+  }, [loadSites]);
 
-  const closeDialog = () => {
-    setDialogState(INITIAL_DIALOG_STATE);
-    setError(null);
+  const handlePaginationModelChange = (model: GridPaginationModel) => {
+    setPageState({
+      page: model.page + 1,
+      pageSize: model.pageSize,
+    });
   };
 
-  const openCreateDialog = (type: SiteType) => {
-    setDialogState({
-      open: true,
-      type,
-      entityId: null,
-      name: '',
-      active: true,
-    });
+  const handleOpenDialog = (mode: DialogMode, site?: Filiale | Succursale) => {
+    setDialogMode(mode);
+    setCurrentSite(site ?? null);
+    if (mode === "edit" && site) {
+      setFormState({
+        name: site.name,
+        active: site.active,
+      });
+    } else {
+      setFormState({
+        name: "",
+        active: true,
+      });
+    }
     setError(null);
+    setDialogOpen(true);
   };
 
-  const openEditDialog = (type: SiteType, entity: Filiale | Succursale) => {
-    setDialogState({
-      open: true,
-      type,
-      entityId: entity.id,
-      name: entity.name,
-      active: entity.active,
-    });
-    setError(null);
+  const handleCloseDialog = () => {
+    if (saving) return;
+    setDialogOpen(false);
+    setCurrentSite(null);
+  };
+
+  const handleFormChange = <K extends keyof SiteFormState>(
+    key: K,
+    value: SiteFormState[K]
+  ) => {
+    setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSave = async () => {
-    if (!dialogState.type) {
-      return;
-    }
-
-    if (!dialogState.name.trim()) {
-      setError('Le nom est requis.');
+    if (!formState.name.trim()) {
+      setError("Le nom est requis.");
       return;
     }
 
     try {
       setSaving(true);
       const payload = {
-        name: dialogState.name.trim(),
-        active: dialogState.active,
+        name: formState.name.trim(),
+        active: formState.active,
       };
 
-      if (dialogState.type === 'filiale') {
-        if (dialogState.entityId) {
-          await filialeApi.updateFiliale(dialogState.entityId, payload);
+      if (activeTab === "filiale") {
+        if (dialogMode === "edit" && currentSite) {
+          await filialeApi.updateFiliale(currentSite.id, payload);
         } else {
-          await filialeApi.createFiliale(payload);
+          await filialeApi.createFiliale(payload); // ✅ Creates new filiale
+          setPageState((prev) => ({ ...prev, page: 1 }));
         }
-        await loadFiliales();
       } else {
-        if (dialogState.entityId) {
-          await succursaleApi.updateSuccursale(dialogState.entityId, payload);
+        if (dialogMode === "edit" && currentSite) {
+          await succursaleApi.updateSuccursale(currentSite.id, payload);
         } else {
           await succursaleApi.createSuccursale(payload);
+          setPageState((prev) => ({ ...prev, page: 1 }));
         }
-        await loadSuccursales();
       }
 
-      closeDialog();
+      setDialogOpen(false);
+      setReloadToken((value) => value + 1);
     } catch (err: any) {
-      console.error('Failed to persist site', err);
-      setError(err?.response?.data?.error ?? 'Impossible de sauvegarder les changements.');
+      console.error("Failed to save site", err);
+      setError(
+        err?.response?.data?.error ??
+          "Impossible de sauvegarder les changements."
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleToggle = async (type: SiteType, entity: Filiale | Succursale) => {
+  const handleToggleActive = async (site: Filiale | Succursale) => {
     try {
-      setTogglingId({ type, id: entity.id });
-
-      if (type === 'filiale') {
-        if (entity.active) {
-          await filialeApi.deactivateFiliale(entity.id);
+      setTogglingId(site.id);
+      if (activeTab === "filiale") {
+        if (site.active) {
+          await filialeApi.deactivateFiliale(site.id);
         } else {
-          await filialeApi.activateFiliale(entity.id);
+          await filialeApi.activateFiliale(site.id);
         }
-        await loadFiliales();
       } else {
-        if (entity.active) {
-          await succursaleApi.deactivateSuccursale(entity.id);
+        if (site.active) {
+          await succursaleApi.deactivateSuccursale(site.id);
         } else {
-          await succursaleApi.activateSuccursale(entity.id);
+          await succursaleApi.activateSuccursale(site.id);
         }
-        await loadSuccursales();
       }
+      setReloadToken((value) => value + 1);
     } catch (err: any) {
-      console.error('Failed to toggle site', err);
-      setError(err?.response?.data?.error ?? "Impossible de mettre a jour l'etat du site.");
+      console.error("Failed to toggle site", err);
+      setError(
+        err?.response?.data?.error ??
+          "Impossible de mettre a jour l'etat du site."
+      );
     } finally {
       setTogglingId(null);
     }
   };
 
-  const renderSiteList = (
-    type: SiteType,
-    items: (Filiale | Succursale)[],
-    loading: boolean
-  ) => {
-    if (loading) {
-      return (
-        <Box display="flex" justifyContent="center" py={6}>
-          <CircularProgress />
-        </Box>
-      );
-    }
+  const hasCreate =
+    activeTab === "filiale" ? hasCreateFiliale : hasCreateSuccursale;
+  const hasUpdate =
+    activeTab === "filiale" ? hasUpdateFiliale : hasUpdateSuccursale;
 
-    if (!items.length) {
-      return (
-        <Alert severity="info" sx={{ borderRadius: 2 }}>
-          Aucun site {type === 'filiale' ? 'filiale' : 'succursale'} pour le moment.
-        </Alert>
-      );
-    }
+  const columns = useSiteColumns({
+    siteType: activeTab,
+    hasUpdate,
+    togglingId,
+    onEdit: (site) => handleOpenDialog("edit", site),
+    onToggleActive: handleToggleActive,
+  });
 
-    return (
-      <Stack spacing={1.5}>
-        {items.map((item) => {
-          const isToggling =
-            togglingId?.type === type && togglingId.id === item.id;
+  const isFormValid = formState.name.trim().length > 0;
 
-          return (
-            <Paper
-              key={`${type}-${item.id}`}
-              elevation={0}
-              sx={{
-                p: 2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: alpha('#94a3b8', 0.3),
-                backgroundColor: alpha('#0f172a', 0.02),
-              }}
-            >
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  {item.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Identifiant #{item.id}
-                </Typography>
-              </Box>
-              <Chip
-                label={item.active ? 'Active' : 'Inactive'}
-                color={item.active ? 'success' : 'default'}
-                size="small"
-                sx={{ fontWeight: 600 }}
-              />
-              <Stack direction="row" spacing={1}>
-                <IconButton
-                  aria-label="Modifier"
-                  onClick={() => openEditDialog(type, item)}
-                  size="small"
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  aria-label={item.active ? 'Desactiver' : 'Activer'}
-                  onClick={() => handleToggle(type, item)}
-                  size="small"
-                  disabled={isToggling}
-                  color={item.active ? 'error' : 'success'}
-                >
-                  {isToggling ? (
-                    <CircularProgress size={18} />
-                  ) : item.active ? (
-                    <CancelIcon fontSize="small" />
-                  ) : (
-                    <CheckCircleIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Stack>
-            </Paper>
-          );
-        })}
-      </Stack>
-    );
+  const handleTabChange = (_: React.SyntheticEvent, newValue: SiteType) => {
+    setActiveTab(newValue);
+    setPageState({ page: 1, pageSize: 10 });
+    setReloadToken((prev) => prev + 1);
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <Box
+      sx={{
+        p: 4,
+        background: (theme) =>
+          theme.palette.mode === "dark"
+            ? "linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))"
+            : "linear-gradient(135deg, rgba(248,250,252,0.9), rgba(226,232,240,0.7))",
+        borderRadius: 4,
+        minHeight: "100%",
+      }}
+    >
       <Stack spacing={3}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
-            Sites Management
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Administrez vos filiales et succursales, ajoutez de nouveaux sites et
-            activez ou desactivez ceux existants.
-          </Typography>
-        </Box>
-
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          alignItems={{ xs: 'flex-start', md: 'center' }}
-        >
-          <Chip
-            label={`Filiales actives: ${stats.filialesActive}/${stats.filialesTotal}`}
-            color="primary"
-          />
-          <Chip
-            label={`Succursales actives: ${stats.succursalesActive}/${stats.succursalesTotal}`}
-            color="primary"
-          />
-        </Stack>
-
-        {error && (
-          <Alert severity="error" onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
-        <Stack spacing={3}>
-          <Paper
-            elevation={0}
+        <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden" }}>
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
             sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 3,
-              p: { xs: 2.5, md: 3 },
+              borderBottom: 1,
+              borderColor: "divider",
+              "& .MuiTab-root": {
+                textTransform: "none",
+                fontWeight: 700,
+                fontSize: "1rem",
+              },
             }}
           >
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={2}
-              alignItems={{ xs: 'flex-start', md: 'center' }}
-              justifyContent="space-between"
-              mb={3}
-            >
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Filiales
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Gerez vos filiales et leur statut.
-                </Typography>
-              </Box>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => openCreateDialog('filiale')}
-                sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}
-              >
-                Ajouter une filiale
-              </Button>
-            </Stack>
-            {renderSiteList('filiale', filiales, loadingFiliales)}
-          </Paper>
+            <Tab label="Filiales" value="filiale" />
+            <Tab label="Succursales" value="succursale" />
+          </Tabs>
+        </Paper>
 
-          <Paper
-            elevation={0}
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 3,
-              p: { xs: 2.5, md: 3 },
-            }}
-          >
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={2}
-              alignItems={{ xs: 'flex-start', md: 'center' }}
-              justifyContent="space-between"
-              mb={3}
-            >
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Succursales
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Gerez vos succursales et leur statut.
-                </Typography>
-              </Box>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => openCreateDialog('succursale')}
-                sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}
-              >
-                Ajouter une succursale
-              </Button>
-            </Stack>
-            {renderSiteList('succursale', succursales, loadingSuccursales)}
-          </Paper>
-        </Stack>
+        <SiteFilters
+          siteType={activeTab}
+          totalRecords={pagination.totalRecords}
+          hasCreate={hasCreate}
+          error={error}
+          onClearError={() => setError(null)}
+          onCreate={() => handleOpenDialog("create")}
+        />
+
+        <SiteTable
+          rows={sites}
+          columns={columns}
+          loading={loading}
+          pagination={pagination}
+          onPaginationChange={handlePaginationModelChange}
+          error={error}
+          onClearError={() => setError(null)}
+        />
+
+        <SiteDialog
+          open={dialogOpen}
+          dialogMode={dialogMode}
+          siteType={activeTab}
+          formState={formState}
+          saving={saving}
+          isFormValid={isFormValid}
+          onClose={handleCloseDialog}
+          onSave={handleSave}
+          onChangeField={handleFormChange}
+        />
       </Stack>
-
-      <Dialog
-        open={dialogState.open}
-        onClose={closeDialog}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          {dialogState.entityId
-            ? `Modifier ${dialogState.type === 'filiale' ? 'la filiale' : 'la succursale'}`
-            : `Nouvelle ${dialogState.type === 'filiale' ? 'filiale' : 'succursale'}`}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-          {error && (
-            <Alert severity="error" onClose={() => setError(null)}>
-              {error}
-            </Alert>
-          )}
-          <TextField
-            label={dialogState.type === 'filiale' ? 'Nom de la filiale' : 'Nom de la succursale'}
-            value={dialogState.name}
-            onChange={(event) =>
-              setDialogState((prev) => ({ ...prev, name: event.target.value }))
-            }
-            fullWidth
-            required
-            autoFocus
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={dialogState.active}
-                onChange={(event) =>
-                  setDialogState((prev) => ({ ...prev, active: event.target.checked }))
-                }
-              />
-            }
-            label="Active"
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={closeDialog} disabled={saving}>
-            Annuler
-          </Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            startIcon={saving ? <CircularProgress size={16} /> : undefined}
-            disabled={saving}
-          >
-            {dialogState.entityId ? 'Mettre a jour' : 'Creer'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

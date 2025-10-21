@@ -1,4 +1,4 @@
-// src/features/modeles/ModeleTable.tsx
+// src/features/sites/SiteTable.tsx
 
 import React from 'react';
 import { Alert, Paper } from '@mui/material';
@@ -8,11 +8,12 @@ import {
   type GridColDef,
   type GridPaginationModel,
 } from '@mui/x-data-grid';
-import type { Modele } from '../../api/endpoints/modele.api';
-import type { PaginationState } from './modeleTypes';
+import type { Filiale } from '../../api/endpoints/filiale.api';
+import type { Succursale } from '../../api/endpoints/succursale.api';
+import type { PaginationState } from './siteTypes';
 
-interface ModeleTableProps {
-  rows: Modele[];
+interface SiteTableProps {
+  rows: (Filiale | Succursale)[];
   columns: GridColDef[];
   loading: boolean;
   pagination: PaginationState;
@@ -21,7 +22,7 @@ interface ModeleTableProps {
   onClearError: () => void;
 }
 
-export const ModeleTable: React.FC<ModeleTableProps> = ({
+export const SiteTable: React.FC<SiteTableProps> = ({
   rows,
   columns,
   loading,
