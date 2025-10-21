@@ -162,7 +162,7 @@ export const modeleApi = {
    */
   deactivate: async (id: number): Promise<Modele> => {
     const response = await apiClient.post<ApiResponse<Modele>>(
-      `/api/modeles/${id}/deactivate`
+      `/api/modeles/${id}/deactivate`,{}
     );
     return response.data.data;
   },

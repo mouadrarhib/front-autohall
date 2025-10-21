@@ -2,6 +2,7 @@
 import React from 'react';
 import { AppBar, Box, IconButton, Toolbar, Typography } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
@@ -12,6 +13,7 @@ interface NavbarProps {
   drawerWidth: number;
   isDesktop: boolean;
   title?: string;
+  sidebarOpen: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,7 +22,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   drawerWidth,
   isDesktop,
   title,
+  sidebarOpen,
 }) => {
+  const shouldShowToggle = showMenuButton || isDesktop;
+  const ToggleIcon = isDesktop && sidebarOpen ? MenuOpenIcon : MenuIcon;
+
   return (
     <AppBar
       position="fixed"
@@ -46,14 +52,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           color: 'inherit',
         }}
       >
-        {showMenuButton && (
+        {shouldShowToggle && (
           <IconButton
             edge="start"
             color="inherit"
             onClick={onMenuToggle}
             sx={{ mr: 1 }}
           >
-            <MenuIcon />
+            <ToggleIcon />
           </IconButton>
         )}
         <Box sx={{ flexGrow: 1 }}>

@@ -11,10 +11,17 @@ export const DashboardLayout: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+    if (isMobile) {
+      setMobileOpen((prev) => !prev);
+    } else {
+      setSidebarOpen((prev) => !prev);
+    }
   };
+
+  const drawerWidth = !isMobile && sidebarOpen ? DRAWER_WIDTH : 0;
 
   return (
     <Box
@@ -27,13 +34,20 @@ export const DashboardLayout: React.FC = () => {
       <Navbar
         onMenuToggle={handleDrawerToggle}
         showMenuButton={isMobile}
-        drawerWidth={DRAWER_WIDTH}
+        drawerWidth={drawerWidth}
         isDesktop={!isMobile}
+        sidebarOpen={sidebarOpen}
       />
 
       <Box
         component="nav"
-        sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
+        sx={{
+          width: { md: drawerWidth },
+          flexShrink: { md: 0 },
+          transition: theme.transitions.create('width', {
+            duration: theme.transitions.duration.shorter,
+          }),
+        }}
       >
         {isMobile ? (
           <Drawer
@@ -54,7 +68,10 @@ export const DashboardLayout: React.FC = () => {
           </Drawer>
         ) : (
           <Drawer
-            variant="permanent"
+            variant="persistent"
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            ModalProps={{ keepMounted: true }}
             sx={{
               '& .MuiDrawer-paper': {
                 boxSizing: 'border-box',
@@ -62,9 +79,11 @@ export const DashboardLayout: React.FC = () => {
                 background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 45%, #1d4ed8 100%)',
                 color: 'common.white',
                 borderRight: '1px solid rgba(255, 255, 255, 0.12)',
+                transition: theme.transitions.create('transform', {
+                  duration: theme.transitions.duration.shorter,
+                }),
               },
             }}
-            open
           >
             <Sidebar />
           </Drawer>
@@ -76,7 +95,7 @@ export const DashboardLayout: React.FC = () => {
         sx={{
           flexGrow: 1,
           p: { xs: 3, md: 4 },
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { md: `calc(100% - ${drawerWidth}px)` },
           mt: { xs: '72px', md: '88px' },
           display: 'flex',
           justifyContent: 'center',

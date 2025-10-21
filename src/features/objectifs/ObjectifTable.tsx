@@ -100,6 +100,9 @@ export const ObjectifTable: React.FC<ObjectifTableProps> = ({
               textTransform: 'uppercase',
               color: '#0f172a',
             },
+            '& .bold-header .MuiDataGrid-columnHeaderTitle': {
+              fontWeight: 700,
+            },
             '& .body-cell': {
               fontWeight: 500,
               color: '#1f2937',
