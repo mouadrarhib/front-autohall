@@ -32,6 +32,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TimeToLeaveIcon from "@mui/icons-material/TimeToLeave";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import logo from "../../assets/logo.png";
 import { useAuthStore } from "../../store/authStore";
 
@@ -72,6 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         { title: "Versions", icon: <LayersIcon />, path: "/versions" },
       ],
     },
+    { title: "Périodes", icon: <CalendarTodayIcon />, path: "/periodes" },
     { title: "Objectifs", icon: <TrackChangesIcon />, path: "/objectifs" },
   ];
 
@@ -117,18 +119,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        background:
-          "linear-gradient(180deg, rgba(15,23,42,1) 0%, rgba(30,41,59,1) 100%)",
+        background: "linear-gradient(180deg, rgba(15,23,42,1) 0%, rgba(30,41,59,1) 100%)",
         borderRight: "1px solid rgba(148, 163, 184, 0.2)",
         boxShadow: "0 12px 40px rgba(15, 23, 42, 0.35)",
       }}
     >
-      <Toolbar
-        sx={{
-          justifyContent: isCompact ? "space-between" : "flex-start",
-          px: 2,
-        }}
-      >
+      <Toolbar sx={{ justifyContent: isCompact ? "space-between" : "flex-start", px: 2 }}>
         {!isCompact && (
           <Box
             component="img"
@@ -171,11 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           };
 
           return (
-            <ListItem
-              key={item.title}
-              disablePadding
-              sx={{ display: "block", mb: 0.5 }}
-            >
+            <ListItem key={item.title} disablePadding sx={{ display: "block", mb: 0.5 }}>
               <ListItemButton
                 onClick={handleItemClick}
                 selected={active && !hasChildren}
@@ -195,9 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                   },
                 }}
               >
-                <ListItemIcon
-                  sx={{ minWidth: 40, color: active ? "#3b82f6" : "#94a3b8" }}
-                >
+                <ListItemIcon sx={{ minWidth: 40, color: active ? "#3b82f6" : "#94a3b8" }}>
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
@@ -241,12 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                             },
                           }}
                         >
-                          <ListItemIcon
-                            sx={{
-                              minWidth: 36,
-                              color: childActive ? "#3b82f6" : "#94a3b8",
-                            }}
-                          >
+                          <ListItemIcon sx={{ minWidth: 36, color: childActive ? "#3b82f6" : "#94a3b8" }}>
                             {child.icon}
                           </ListItemIcon>
                           <ListItemText
@@ -317,10 +302,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           </Avatar>
           {!isCompact && (
             <Box sx={{ flex: 1 }}>
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: 600, color: "#f1f5f9" }}
-              >
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "#f1f5f9" }}>
                 {user?.full_name || user?.username || "Utilisateur"}
               </Typography>
               <Typography variant="caption" sx={{ color: "#94a3b8" }}>
@@ -360,12 +342,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         {!isCompact && (
           <Typography
             variant="caption"
-            sx={{
-              display: "block",
-              textAlign: "center",
-              color: "#64748b",
-              mt: 2,
-            }}
+            sx={{ display: "block", textAlign: "center", color: "#64748b", mt: 2 }}
           >
             Version 1.0.0
           </Typography>
