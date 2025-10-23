@@ -1,11 +1,9 @@
 // src/features/versions/useVersionColumns.tsx
-
 import { useMemo } from 'react';
 import { Box, Button, Chip, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
 import type { GridColDef } from '@mui/x-data-grid';
-
 import type { Version } from '../../api/endpoints/version.api';
 
 interface UseVersionColumnsArgs {
@@ -20,7 +18,7 @@ export const useVersionColumns = ({
   togglingId,
   onEdit,
   onToggleActive,
-}: UseVersionColumnsArgs): GridColDef<Version>[] => {
+}: UseVersionColumnsArgs): GridColDef[] => {
   const currencyFormatter = useMemo(
     () =>
       new Intl.NumberFormat('fr-FR', {
@@ -31,11 +29,19 @@ export const useVersionColumns = ({
     []
   );
 
-  return useMemo<GridColDef<Version>[]>(() => {
+  return useMemo<GridColDef[]>(() => {
     const alignCell = {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+    } as const;
+
+    const alignCellLeft = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
       width: '100%',
       height: '100%',
     } as const;
@@ -47,7 +53,7 @@ export const useVersionColumns = ({
 
     return [
       {
-        field: 'name',
+        field: 'nom',
         headerName: 'Version',
         flex: 1.2,
         minWidth: 220,
@@ -55,15 +61,15 @@ export const useVersionColumns = ({
         headerAlign: 'left',
         sortable: false,
         renderCell: ({ row }) => (
-          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1 }}>
-              {row.name}
+          <Box sx={alignCellLeft}>
+            <Typography variant="body2" fontWeight={600}>
+              {row.nom}
             </Typography>
           </Box>
         ),
       },
       {
-        field: 'modeleName',
+        field: 'nomModele',
         headerName: 'Modele',
         flex: 1,
         minWidth: 160,
@@ -72,20 +78,17 @@ export const useVersionColumns = ({
         renderCell: ({ row }) => (
           <Box sx={alignCell}>
             <Chip
-              label={row.modeleName ?? 'N/A'}
+              label={row.nomModele ?? 'N/A'}
               size="small"
-              sx={{
-                fontWeight: 600,
-                borderRadius: 2,
-                bgcolor: alpha('#2563eb', 0.15),
-                color: '#1d4ed8',
-              }}
+              color="primary"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
             />
           </Box>
         ),
       },
       {
-        field: 'marqueName',
+        field: 'nomMarque',
         headerName: 'Marque',
         flex: 1,
         minWidth: 160,
@@ -94,70 +97,53 @@ export const useVersionColumns = ({
         renderCell: ({ row }) => (
           <Box sx={alignCell}>
             <Chip
-              label={row.marqueName ?? 'N/A'}
+              label={row.nomMarque ?? 'N/A'}
               size="small"
-              sx={{
-                fontWeight: 600,
-                borderRadius: 2,
-                bgcolor: alpha('#7c3aed', 0.12),
-                color: '#5b21b6',
-              }}
+              color="secondary"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
             />
           </Box>
         ),
       },
       {
-        field: 'price',
+        field: 'prixDeVente',
         headerName: 'Prix',
         width: 140,
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
           <Box sx={alignCell}>
-            <Typography variant="body2" sx={numericTextStyle}>
-              {currencyFormatter.format(row.price ?? 0)}
+            <Typography sx={numericTextStyle}>
+              {currencyFormatter.format(row.prixDeVente ?? 0)}
             </Typography>
           </Box>
         ),
       },
       {
-        field: 'volume',
-        headerName: 'Volume',
-        width: 120,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Typography variant="body2" sx={numericTextStyle}>
-              {row.volume}
-            </Typography>
-          </Box>
-        ),
-      },
-      {
-        field: 'tm',
+        field: 'tmDirect',
         headerName: 'TM (%)',
         width: 120,
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
           <Box sx={alignCell}>
-            <Typography variant="body2" sx={numericTextStyle}>
-              {`${((row.tm ?? 0) * 100).toFixed(1)}%`}
+            <Typography sx={numericTextStyle}>
+              {`${(row.tmDirect ?? 0).toFixed(1)}%`}
             </Typography>
           </Box>
         ),
       },
       {
-        field: 'margin',
+        field: 'tmInterGroupe',
         headerName: 'Marge (%)',
         width: 140,
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
           <Box sx={alignCell}>
-            <Typography variant="body2" sx={numericTextStyle}>
-              {`${((row.margin ?? 0) * 100).toFixed(1)}%`}
+            <Typography sx={numericTextStyle}>
+              {`${(row.tmInterGroupe ?? 0).toFixed(1)}%`}
             </Typography>
           </Box>
         ),
@@ -172,14 +158,10 @@ export const useVersionColumns = ({
         renderCell: ({ row }) => (
           <Box sx={alignCell}>
             <Chip
-              label={row.active ? 'Active' : 'Inactive'}
+              label={row.active ? 'Actif' : 'Inactif'}
+              color={row.active ? 'success' : 'default'}
               size="small"
-              sx={{
-                fontWeight: 600,
-                borderRadius: 2,
-                bgcolor: row.active ? alpha('#22c55e', 0.15) : alpha('#94a3b8', 0.2),
-                color: row.active ? '#15803d' : '#475569',
-              }}
+              sx={{ fontWeight: 700, minWidth: 80 }}
             />
           </Box>
         ),
@@ -193,35 +175,33 @@ export const useVersionColumns = ({
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
-            sx={{ width: '100%', justifyContent: 'center', alignItems: 'center' }}
-          >
-            {hasUpdate && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<EditIcon fontSize="small" />}
-                onClick={() => onEdit(row)}
-                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-              >
-                Modifier
-              </Button>
-            )}
-            {hasUpdate && (
-              <Button
-                variant="contained"
-                size="small"
-                color={row.active ? 'error' : 'success'}
-                onClick={() => onToggleActive(row)}
-                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, minWidth: 110 }}
-                disabled={togglingId === row.id}
-              >
-                {togglingId === row.id ? 'Patientez...' : row.active ? 'Desactiver' : 'Activer'}
-              </Button>
-            )}
-          </Stack>
+          <Box sx={alignCell}>
+            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+              {hasUpdate && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<EditIcon />}
+                  onClick={() => onEdit(row)}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                >
+                  Modifier
+                </Button>
+              )}
+              {hasUpdate && (
+                <Button
+                  variant={row.active ? 'outlined' : 'contained'}
+                  size="small"
+                  color={row.active ? 'error' : 'success'}
+                  onClick={() => onToggleActive(row)}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, minWidth: 110 }}
+                  disabled={togglingId === row.id}
+                >
+                  {togglingId === row.id ? 'Patientez...' : row.active ? 'Desactiver' : 'Activer'}
+                </Button>
+              )}
+            </Stack>
+          </Box>
         ),
       },
     ];
