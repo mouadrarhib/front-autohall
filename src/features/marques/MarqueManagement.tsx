@@ -1,9 +1,7 @@
 // src/features/marques/MarqueManagement.tsx
-
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Stack } from '@mui/material';
 import type { GridPaginationModel } from '@mui/x-data-grid';
-
 import { filialeApi, type Filiale } from '../../api/endpoints/filiale.api';
 import { marqueApi, type Marque } from '../../api/endpoints/marque.api';
 import { useAuthStore } from '../../store/authStore';
@@ -33,7 +31,10 @@ export const MarqueManagement: React.FC = () => {
   const [marquesError, setMarquesError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationState>(DEFAULT_PAGINATION);
   const [pageState, setPageState] = useState({ page: 1, pageSize: 10 });
+
   const [filterFilialeId, setFilterFilialeId] = useState<number | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
@@ -48,11 +49,25 @@ export const MarqueManagement: React.FC = () => {
   });
   const [saving, setSaving] = useState(false);
 
+  // Debounce search query (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPageState((prev) => ({ ...prev, page: 1 }));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const loadFiliales = useCallback(async () => {
     try {
       setFilialesLoading(true);
       setFilialesError(null);
-      const response = await filialeApi.listFiliales({ active: true, page: 1, pageSize: 500 });
+      const response = await filialeApi.listFiliales({
+        active: true,
+        page: 1,
+        pageSize: 1000,
+      });
       setFiliales(response.data ?? []);
     } catch (err: any) {
       console.error('Failed to load filiales', err);
@@ -62,39 +77,54 @@ export const MarqueManagement: React.FC = () => {
     }
   }, []);
 
-  const filialeNameMap = useMemo(
-    () =>
-      filiales.reduce<Record<number, string>>((map, filiale) => {
-        map[filiale.id] = filiale.name;
-        return map;
-      }, {}),
-    [filiales]
-  );
-
   const loadMarques = useCallback(async () => {
     try {
       setMarquesLoading(true);
       setMarquesError(null);
 
-      const response = await marqueApi.list({
-        page: pageState.page,
-        pageSize: pageState.pageSize,
-        onlyActive: false,
-        idFiliale: filterFilialeId === 'all' ? undefined : filterFilialeId,
-      });
+      // Use search if query exists, otherwise use list
+      if (debouncedSearch.trim()) {
+        const response = await marqueApi.search({
+          search: debouncedSearch.trim(),
+          idFiliale: filterFilialeId === 'all' ? undefined : filterFilialeId,
+          onlyActive: false,
+          page: pageState.page,
+          pageSize: pageState.pageSize,
+        });
 
-      const enriched = (response.data ?? []).map((marque) => ({
-        ...marque,
-        filialeName: marque.filialeName ?? filialeNameMap[marque.idFiliale] ?? 'N/A',
-      }));
+        const enriched = (response.data ?? []).map((marque) => ({
+          ...marque,
+          filialeName: marque.filialeName ?? filiales.find((f) => f.id === marque.idFiliale)?.name ?? 'N/A',
+        }));
 
-      setMarques(enriched);
-      setPagination({
-        page: response.pagination?.page ?? pageState.page,
-        pageSize: response.pagination?.pageSize ?? pageState.pageSize,
-        totalRecords: response.pagination?.totalRecords ?? enriched.length,
-        totalPages: response.pagination?.totalPages ?? 1,
-      });
+        setMarques(enriched);
+        setPagination({
+          page: response.pagination?.page ?? pageState.page,
+          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
+          totalRecords: response.pagination?.totalRecords ?? 0,
+          totalPages: response.pagination?.totalPages ?? 1,
+        });
+      } else {
+        const response = await marqueApi.list({
+          idFiliale: filterFilialeId === 'all' ? undefined : filterFilialeId,
+          onlyActive: false,
+          page: pageState.page,
+          pageSize: pageState.pageSize,
+        });
+
+        const enriched = (response.data ?? []).map((marque) => ({
+          ...marque,
+          filialeName: marque.filialeName ?? filiales.find((f) => f.id === marque.idFiliale)?.name ?? 'N/A',
+        }));
+
+        setMarques(enriched);
+        setPagination({
+          page: response.pagination?.page ?? pageState.page,
+          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
+          totalRecords: response.pagination?.totalRecords ?? 0,
+          totalPages: response.pagination?.totalPages ?? 1,
+        });
+      }
     } catch (err: any) {
       console.error('Failed to load marques', err);
       setMarquesError(err?.response?.data?.error ?? 'Impossible de charger les marques.');
@@ -103,7 +133,7 @@ export const MarqueManagement: React.FC = () => {
     } finally {
       setMarquesLoading(false);
     }
-  }, [filialeNameMap, filterFilialeId, pageState.page, pageState.pageSize, reloadToken]);
+  }, [filterFilialeId, filiales, debouncedSearch, pageState.page, pageState.pageSize, reloadToken]);
 
   useEffect(() => {
     loadFiliales();
@@ -123,7 +153,7 @@ export const MarqueManagement: React.FC = () => {
   const handleOpenDialog = (mode: DialogMode, marque?: Marque) => {
     setDialogMode(mode);
     setCurrentMarque(marque ?? null);
-
+    
     if (mode === 'edit' && marque) {
       setFormState({
         name: marque.name,
@@ -150,7 +180,10 @@ export const MarqueManagement: React.FC = () => {
     setCurrentMarque(null);
   };
 
-  const handleFormChange = <K extends keyof MarqueFormState>(key: K, value: MarqueFormState[K]) => {
+  const handleFormChange = <K extends keyof MarqueFormState>(
+    key: K,
+    value: MarqueFormState[K]
+  ) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -159,6 +192,7 @@ export const MarqueManagement: React.FC = () => {
       setMarquesError('Le nom de la marque est requis.');
       return;
     }
+
     if (formState.idFiliale === null) {
       setMarquesError('Veuillez selectionner une filiale.');
       return;
@@ -198,6 +232,7 @@ export const MarqueManagement: React.FC = () => {
       } else {
         await marqueApi.activate(marque.id);
       }
+
       setReloadToken((value) => value + 1);
     } catch (err: any) {
       console.error('Failed to update marque', err);
@@ -225,7 +260,7 @@ export const MarqueManagement: React.FC = () => {
   return (
     <Box
       sx={{
-        p: { xs: 2, md: 4 },
+        p: 4,
         background: (theme) =>
           theme.palette.mode === 'dark'
             ? 'linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))'
@@ -238,12 +273,14 @@ export const MarqueManagement: React.FC = () => {
         <MarqueFilters
           filiales={filiales}
           filterFilialeId={filterFilialeId}
+          searchQuery={searchQuery}
           filialesLoading={filialesLoading}
           totalRecords={pagination.totalRecords}
           hasCreate={hasCreate}
           error={filialesError}
           onClearError={() => setFilialesError(null)}
           onChangeFiliale={handleFilterChange}
+          onSearchChange={setSearchQuery}
           onCreate={() => handleOpenDialog('create')}
         />
 
@@ -256,20 +293,19 @@ export const MarqueManagement: React.FC = () => {
           error={marquesError}
           onClearError={() => setMarquesError(null)}
         />
-      </Stack>
 
-      <MarqueDialog
-        open={dialogOpen}
-        dialogMode={dialogMode}
-        formState={formState}
-        filiales={filiales}
-        filialesLoading={filialesLoading}
-        saving={saving}
-        isFormValid={isFormValid}
-        onClose={handleCloseDialog}
-        onSave={handleSave}
-        onChangeField={handleFormChange}
-      />
+        <MarqueDialog
+          open={dialogOpen}
+          dialogMode={dialogMode}
+          formState={formState}
+          filiales={filiales}
+          saving={saving}
+          isFormValid={isFormValid}
+          onClose={handleCloseDialog}
+          onSave={handleSave}
+          onChangeField={handleFormChange}
+        />
+      </Stack>
     </Box>
   );
 };
