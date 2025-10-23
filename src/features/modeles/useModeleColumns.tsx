@@ -1,11 +1,9 @@
 // src/features/modeles/useModeleColumns.tsx
-
 import { useMemo } from 'react';
 import { alpha } from '@mui/material/styles';
 import { Box, Button, Chip, Stack, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import type { GridColDef } from '@mui/x-data-grid';
-
 import type { Modele } from '../../api/endpoints/modele.api';
 
 interface UseModeleColumnsArgs {
@@ -20,8 +18,8 @@ export const useModeleColumns = ({
   togglingId,
   onEdit,
   onToggleActive,
-}: UseModeleColumnsArgs): GridColDef<Modele>[] => {
-  return useMemo<GridColDef<Modele>[]>(() => {
+}: UseModeleColumnsArgs): GridColDef[] => {
+  return useMemo<GridColDef[]>(() => {
     const alignCell = {
       display: 'flex',
       alignItems: 'center',
@@ -30,65 +28,89 @@ export const useModeleColumns = ({
       height: '100%',
     } as const;
 
+    const alignCellLeft = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      width: '100%',
+      height: '100%',
+    } as const;
+
     return [
       {
         field: 'modele',
         headerName: 'Modele',
-        flex: 1.4,
-        minWidth: 220,
+        flex: 1.5,
+        minWidth: 300,
         align: 'left',
         headerAlign: 'left',
         sortable: false,
         renderCell: ({ row }) => (
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-            sx={{ minWidth: 0, width: '100%', justifyContent: 'flex-start' }}
-          >
-            <Box
-              component="img"
-              src={row.imageUrl ?? ''}
-              alt={row.name}
-              onError={({ currentTarget }) => {
-                currentTarget.onerror = null;
-                currentTarget.src = '';
-              }}
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: 2,
-                objectFit: 'contain',
-                border: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-                p: 0.5,
-              }}
-            />
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
-              {row.name}
-            </Typography>
-          </Stack>
+          <Box sx={alignCellLeft}>
+            <Stack direction="row" spacing={2.5} alignItems="center">
+              <Box
+                sx={{
+                  position: 'relative',
+                  width: 150,
+                  height: 96,
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                  boxShadow: '0 12px 28px rgba(15, 35, 95, 0.15)',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: alpha('#0A1F44', 0.04),
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(135deg, rgba(10,31,68,0.35), rgba(10,31,68,0))',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease',
+                  },
+                  '&:hover::after': {
+                    opacity: 1,
+                  },
+                }}
+              >
+                <Box
+                  component="img"
+                  src={row.imageUrl || '/placeholder-car.png'}
+                  alt={row.name}
+                  onError={(e) => {
+                    const img = e.currentTarget as HTMLImageElement;
+                    img.onerror = null;
+                    img.src = '/placeholder-car.png';
+                  }}
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              </Box>
+              <Typography variant="subtitle1" fontWeight={600}>
+                {row.name}
+              </Typography>
+            </Stack>
+          </Box>
         ),
       },
       {
         field: 'marqueName',
         headerName: 'Marque',
         flex: 1,
-        minWidth: 160,
+        minWidth: 180,
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
           <Box sx={alignCell}>
             <Chip
               label={row.marqueName ?? 'N/A'}
-              size="small"
-              sx={{
-                fontWeight: 600,
-                borderRadius: 2,
-                bgcolor: alpha('#2563eb', 0.15),
-                color: '#1d4ed8',
-              }}
+              size="medium"
+              color="primary"
+              variant="outlined"
+              sx={{ fontWeight: 600, fontSize: '0.9rem' }}
             />
           </Box>
         ),
@@ -96,21 +118,17 @@ export const useModeleColumns = ({
       {
         field: 'active',
         headerName: 'Statut',
-        width: 140,
+        width: 150,
         sortable: false,
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
           <Box sx={alignCell}>
             <Chip
-              label={row.active ? 'Active' : 'Inactive'}
-              size="small"
-              sx={{
-                fontWeight: 600,
-                borderRadius: 2,
-                bgcolor: row.active ? alpha('#22c55e', 0.15) : alpha('#94a3b8', 0.2),
-                color: row.active ? '#15803d' : '#475569',
-              }}
+              label={row.active ? 'Actif' : 'Inactif'}
+              color={row.active ? 'success' : 'default'}
+              size="medium"
+              sx={{ fontWeight: 700, minWidth: 90, fontSize: '0.85rem' }}
             />
           </Box>
         ),
@@ -118,41 +136,50 @@ export const useModeleColumns = ({
       {
         field: 'actions',
         headerName: 'Actions',
-        width: 240,
+        width: 280,
         sortable: false,
         filterable: false,
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
-            sx={{ width: '100%', justifyContent: 'center', alignItems: 'center' }}
-          >
-            {hasUpdate && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<EditIcon fontSize="small" />}
-                onClick={() => onEdit(row)}
-                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-              >
-                Modifier
-              </Button>
-            )}
-            {hasUpdate && (
-              <Button
-                variant="contained"
-                size="small"
-                color={row.active ? 'error' : 'success'}
-                onClick={() => onToggleActive(row)}
-                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, minWidth: 110 }}
-                disabled={togglingId === row.id}
-              >
-                {togglingId === row.id ? 'Patientez...' : row.active ? 'Desactiver' : 'Activer'}
-              </Button>
-            )}
-          </Stack>
+          <Box sx={alignCell}>
+            <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="center">
+              {hasUpdate && (
+                <Button
+                  variant="contained"
+                  size="medium"
+                  startIcon={<EditIcon />}
+                  onClick={() => onEdit(row)}
+                  sx={{ 
+                    borderRadius: 2, 
+                    textTransform: 'none', 
+                    fontWeight: 600,
+                    px: 2.5,
+                  }}
+                >
+                  Modifier
+                </Button>
+              )}
+              {hasUpdate && (
+                <Button
+                  variant={row.active ? 'outlined' : 'contained'}
+                  size="medium"
+                  color={row.active ? 'error' : 'success'}
+                  onClick={() => onToggleActive(row)}
+                  sx={{ 
+                    borderRadius: 2, 
+                    textTransform: 'none', 
+                    fontWeight: 600, 
+                    minWidth: 120,
+                    px: 2.5,
+                  }}
+                  disabled={togglingId === row.id}
+                >
+                  {togglingId === row.id ? 'Patientez...' : row.active ? 'Desactiver' : 'Activer'}
+                </Button>
+              )}
+            </Stack>
+          </Box>
         ),
       },
     ];
