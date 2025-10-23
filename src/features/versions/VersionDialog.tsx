@@ -173,7 +173,7 @@ export const VersionDialog: React.FC<VersionDialogProps> = ({
             </Typography>
             
             <Stack spacing={2}>
-              <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+              <FormControl fullWidth size={isMobile ? 'small' : 'medium'} required>
                 <InputLabel>Marque</InputLabel>
                 <Select
                   value={formState.idMarque ?? ''}

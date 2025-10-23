@@ -1,9 +1,7 @@
 // src/features/versions/VersionManagement.tsx
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Stack } from '@mui/material';
 import type { GridPaginationModel } from '@mui/x-data-grid';
-
 import { marqueApi, type Marque } from '../../api/endpoints/marque.api';
 import { modeleApi, type Modele } from '../../api/endpoints/modele.api';
 import { versionApi, type Version } from '../../api/endpoints/version.api';
@@ -30,15 +28,20 @@ export const VersionManagement: React.FC = () => {
   const [marquesLoading, setMarquesLoading] = useState(false);
   const [modelesLoading, setModelesLoading] = useState(false);
   const [filtersError, setFiltersError] = useState<string | null>(null);
+
   const [versions, setVersions] = useState<Version[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [versionsError, setVersionsError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationState>(DEFAULT_PAGINATION);
   const [pageState, setPageState] = useState({ page: 1, pageSize: 10 });
+
   const [filterMarqueId, setFilterMarqueId] = useState<number | 'all'>('all');
   const [filterModeleId, setFilterModeleId] = useState<number | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>('create');
   const [currentVersion, setCurrentVersion] = useState<Version | null>(null);
@@ -53,6 +56,16 @@ export const VersionManagement: React.FC = () => {
     active: true,
   });
   const [saving, setSaving] = useState(false);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPageState((prev) => ({ ...prev, page: 1 }));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadMarques = useCallback(async () => {
     try {
@@ -75,6 +88,7 @@ export const VersionManagement: React.FC = () => {
         setFilterModeleId('all');
         return;
       }
+
       try {
         setModelesLoading(true);
         setFiltersError(null);
@@ -106,29 +120,37 @@ export const VersionManagement: React.FC = () => {
     try {
       setVersionsLoading(true);
       setVersionsError(null);
-      const response = await versionApi.list({
-        idModele: filterModeleId === 'all' ? undefined : filterModeleId,
-        onlyActive: false,
-        page: pageState.page,
-        pageSize: pageState.pageSize,
-      });
-
-      const enriched = (response.data ?? []).map((version) => ({
-        ...version,
-        modeleName: version.modeleName ?? modeles.find((m) => m.id === version.idModele)?.name ?? 'N/A',
-        marqueName:
-          version.marqueName ??
-          marques.find((marque) => marque.id === modeles.find((m) => m.id === version.idModele)?.idMarque)?.name ??
-          'N/A',
-      }));
-
-      setVersions(enriched);
-      setPagination({
-        page: response.pagination?.page ?? pageState.page,
-        pageSize: response.pagination?.pageSize ?? pageState.pageSize,
-        totalRecords: response.pagination?.totalRecords ?? enriched.length,
-        totalPages: response.pagination?.totalPages ?? 1,
-      });
+      // Use search if query exists, otherwise use list
+      if (debouncedSearch.trim()) {
+        const response = await versionApi.search({
+          q: debouncedSearch.trim(),
+          idModele: filterModeleId === 'all' ? undefined : filterModeleId,
+          onlyActive: false,
+          page: pageState.page,
+          pageSize: pageState.pageSize,
+        });
+        setVersions(response.data ?? []);
+        setPagination({
+          page: response.pagination?.page ?? pageState.page,
+          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
+          totalRecords: response.pagination?.totalRecords ?? 0,
+          totalPages: response.pagination?.totalPages ?? 1,
+        });
+      } else {
+        const response = await versionApi.list({
+          idModele: filterModeleId === 'all' ? undefined : filterModeleId,
+          onlyActive: false,
+          page: pageState.page,
+          pageSize: pageState.pageSize,
+        });
+        setVersions(response.data ?? []);
+        setPagination({
+          page: response.pagination?.page ?? pageState.page,
+          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
+          totalRecords: response.pagination?.totalRecords ?? 0,
+          totalPages: response.pagination?.totalPages ?? 1,
+        });
+      }
     } catch (err: any) {
       console.error('Failed to load versions', err);
       setVersionsError(err?.response?.data?.error ?? 'Impossible de charger les versions.');
@@ -137,7 +159,7 @@ export const VersionManagement: React.FC = () => {
     } finally {
       setVersionsLoading(false);
     }
-  }, [filterModeleId, modeles, marques, pageState.page, pageState.pageSize, reloadToken]);
+  }, [filterModeleId, debouncedSearch, pageState.page, pageState.pageSize, reloadToken]);
 
   useEffect(() => {
     loadMarques();
@@ -165,39 +187,52 @@ export const VersionManagement: React.FC = () => {
   };
 
   const openDialog = (mode: DialogMode, version?: Version) => {
-    setDialogMode(mode);
-    setCurrentVersion(version ?? null);
-    if (mode === 'edit' && version) {
-      const associatedModele = modeles.find((m) => m.id === version.idModele);
-      setFormState({
-        name: version.name,
-        idMarque: associatedModele?.idMarque ?? null,
-        idModele: version.idModele,
-        volume: version.volume,
-        price: version.price,
-        tmPercent: Math.round(version.tm * 1000) / 10,
-        marginPercent: Math.round(version.margin * 1000) / 10,
-        active: version.active,
-      });
-      if (associatedModele) {
-        setFilterMarqueId(associatedModele.idMarque);
-        setFilterModeleId(associatedModele.id);
-      }
-    } else {
-      setFormState({
-        name: '',
-        idMarque: filterMarqueId === 'all' ? null : filterMarqueId,
-        idModele: filterModeleId === 'all' ? null : filterModeleId,
-        volume: 1,
-        price: 0,
-        tmPercent: 0,
-        marginPercent: 0,
-        active: true,
-      });
+  setDialogMode(mode);
+  setCurrentVersion(version ?? null);
+
+  if (mode === 'edit' && version) {
+    const associatedModele = modeles.find((m) => m.id === version.idModele);
+    const marqueIdToUse = associatedModele?.idMarque ?? version.idMarque ?? null;
+    
+    setFormState({
+      name: version.nom,
+      idMarque: marqueIdToUse,
+      idModele: version.idModele,
+      volume: version.volume,
+      price: version.prixDeVente,
+      tmPercent: version.tmDirect,
+      marginPercent: version.tmInterGroupe,
+      active: version.active,
+    });
+
+    // Load modeles for this marque when editing
+    if (marqueIdToUse) {
+      loadModeles(marqueIdToUse);
     }
-    setVersionsError(null);
-    setDialogOpen(true);
-  };
+  } else {
+    setFormState({
+      name: '',
+      idMarque: filterMarqueId === 'all' ? null : filterMarqueId,
+      idModele: filterModeleId === 'all' ? null : filterModeleId,
+      volume: 1,
+      price: 0,
+      tmPercent: 0,
+      marginPercent: 0,
+      active: true,
+    });
+    
+    // Load modeles if creating with a pre-selected marque
+    if (filterMarqueId !== 'all') {
+      loadModeles(filterMarqueId);
+    } else {
+      setModeles([]);
+    }
+  }
+
+  setVersionsError(null);
+  setDialogOpen(true);
+};
+
 
   const closeDialog = () => {
     if (saving) return;
@@ -205,7 +240,10 @@ export const VersionManagement: React.FC = () => {
     setCurrentVersion(null);
   };
 
-  const handleFormChange = <K extends keyof VersionFormState>(key: K, value: VersionFormState[K]) => {
+  const handleFormChange = <K extends keyof VersionFormState>(
+    key: K,
+    value: VersionFormState[K]
+  ) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -214,23 +252,26 @@ export const VersionManagement: React.FC = () => {
       setVersionsError('Le nom de la version est requis.');
       return;
     }
+
     if (!formState.idModele) {
       setVersionsError('Veuillez selectionner un modele.');
       return;
     }
+
     if (formState.volume <= 0 || formState.price <= 0) {
       setVersionsError('Veuillez saisir un volume et un prix valides.');
       return;
     }
+
     try {
       setSaving(true);
       const payload = {
         name: formState.name.trim(),
         idModele: formState.idModele,
         volume: formState.volume,
-        price: formState.price,
-        tm: formState.tmPercent / 100,
-        margin: formState.marginPercent / 100,
+        salePrice: formState.price,
+        tmDirect: formState.tmPercent,
+        tmInterGroupe: formState.marginPercent,
       };
 
       if (dialogMode === 'edit' && currentVersion) {
@@ -239,6 +280,7 @@ export const VersionManagement: React.FC = () => {
         await versionApi.create(payload);
         setPageState((prev) => ({ ...prev, page: 1 }));
       }
+
       setDialogOpen(false);
       setReloadToken((value) => value + 1);
     } catch (err: any) {
@@ -257,6 +299,7 @@ export const VersionManagement: React.FC = () => {
       } else {
         await versionApi.activate(version.id);
       }
+
       setReloadToken((value) => value + 1);
     } catch (err: any) {
       console.error('Failed to toggle version', err);
@@ -280,14 +323,17 @@ export const VersionManagement: React.FC = () => {
     formState.price > 0;
 
   const handleSelectMarque = (value: number | null) => {
-    handleFormChange('idMarque', value);
-    if (value !== null) {
-      loadModeles(value);
-    } else {
-      setModeles([]);
-    }
-    handleFormChange('idModele', null);
+  handleFormChange('idMarque', value);
+  handleFormChange('idModele', null); // Clear modele selection
+  
+  if (value !== null) {
+    // Load modeles for the selected marque
+    loadModeles(value);
+  } else {
+    setModeles([]);
+  }
   };
+
 
   const handleFilterMarqueChange = (value: number | 'all') => {
     setFilterMarqueId(value);
@@ -303,7 +349,7 @@ export const VersionManagement: React.FC = () => {
   return (
     <Box
       sx={{
-        p: { xs: 2, md: 4 },
+        p: 4,
         background: (theme) =>
           theme.palette.mode === 'dark'
             ? 'linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))'
@@ -318,6 +364,7 @@ export const VersionManagement: React.FC = () => {
           modeles={modeles}
           filterMarqueId={filterMarqueId}
           filterModeleId={filterModeleId}
+          searchQuery={searchQuery}
           marquesLoading={marquesLoading}
           modelesLoading={modelesLoading}
           totalRecords={pagination.totalRecords}
@@ -326,6 +373,7 @@ export const VersionManagement: React.FC = () => {
           onClearFiltersError={() => setFiltersError(null)}
           onChangeMarque={handleFilterMarqueChange}
           onChangeModele={handleFilterModeleChange}
+          onSearchChange={setSearchQuery}
           onCreate={() => openDialog('create')}
         />
 
@@ -338,21 +386,21 @@ export const VersionManagement: React.FC = () => {
           error={versionsError}
           onClearError={() => setVersionsError(null)}
         />
-      </Stack>
 
-      <VersionDialog
-        open={dialogOpen}
-        dialogMode={dialogMode}
-        formState={formState}
-        marques={marques}
-        modeles={modeles}
-        saving={saving}
-        isFormValid={isFormValid}
-        onClose={closeDialog}
-        onSave={handleSave}
-        onChangeField={handleFormChange}
-        onSelectMarque={handleSelectMarque}
-      />
+        <VersionDialog
+          open={dialogOpen}
+          dialogMode={dialogMode}
+          formState={formState}
+          marques={marques}
+          modeles={modeles}
+          saving={saving}
+          isFormValid={isFormValid}
+          onClose={closeDialog}
+          onSave={handleSave}
+          onChangeField={handleFormChange}
+          onSelectMarque={handleSelectMarque}
+        />
+      </Stack>
     </Box>
   );
 };
