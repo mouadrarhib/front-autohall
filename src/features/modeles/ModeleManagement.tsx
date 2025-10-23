@@ -1,9 +1,7 @@
 // src/features/modeles/ModeleManagement.tsx
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Stack } from '@mui/material';
 import type { GridPaginationModel } from '@mui/x-data-grid';
-
 import { marqueApi, type Marque } from '../../api/endpoints/marque.api';
 import { modeleApi, type Modele } from '../../api/endpoints/modele.api';
 import { useAuthStore } from '../../store/authStore';
@@ -33,7 +31,10 @@ export const ModeleManagement: React.FC = () => {
   const [modelesError, setModelesError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationState>(DEFAULT_PAGINATION);
   const [pageState, setPageState] = useState({ page: 1, pageSize: 10 });
+
   const [filterMarqueId, setFilterMarqueId] = useState<number | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
@@ -47,6 +48,16 @@ export const ModeleManagement: React.FC = () => {
     active: true,
   });
   const [saving, setSaving] = useState(false);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPageState((prev) => ({ ...prev, page: 1 }));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadMarques = useCallback(async () => {
     try {
@@ -70,25 +81,50 @@ export const ModeleManagement: React.FC = () => {
     try {
       setModelesLoading(true);
       setModelesError(null);
-      const response = await modeleApi.list({
-        idMarque: filterMarqueId === 'all' ? undefined : filterMarqueId,
-        onlyActive: false,
-        page: pageState.page,
-        pageSize: pageState.pageSize,
-      });
 
-      const enriched = (response.data ?? []).map((modele) => ({
-        ...modele,
-        marqueName: modele.marqueName ?? marques.find((m) => m.id === modele.idMarque)?.name ?? 'N/A',
-      }));
+      // Use search if query exists, otherwise use list
+      if (debouncedSearch.trim()) {
+        const response = await modeleApi.search({
+          q: debouncedSearch.trim(),
+          idMarque: filterMarqueId === 'all' ? undefined : filterMarqueId,
+          onlyActive: false,
+          page: pageState.page,
+          pageSize: pageState.pageSize,
+        });
 
-      setModeles(enriched);
-      setPagination({
-        page: response.pagination?.page ?? pageState.page,
-        pageSize: response.pagination?.pageSize ?? pageState.pageSize,
-        totalRecords: response.pagination?.totalRecords ?? enriched.length,
-        totalPages: response.pagination?.totalPages ?? 1,
-      });
+        const enriched = (response.data ?? []).map((modele) => ({
+          ...modele,
+          marqueName: modele.marqueName ?? marques.find((m) => m.id === modele.idMarque)?.name ?? 'N/A',
+        }));
+
+        setModeles(enriched);
+        setPagination({
+          page: response.pagination?.page ?? pageState.page,
+          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
+          totalRecords: response.pagination?.totalRecords ?? 0,
+          totalPages: response.pagination?.totalPages ?? 1,
+        });
+      } else {
+        const response = await modeleApi.list({
+          idMarque: filterMarqueId === 'all' ? undefined : filterMarqueId,
+          onlyActive: false,
+          page: pageState.page,
+          pageSize: pageState.pageSize,
+        });
+
+        const enriched = (response.data ?? []).map((modele) => ({
+          ...modele,
+          marqueName: modele.marqueName ?? marques.find((m) => m.id === modele.idMarque)?.name ?? 'N/A',
+        }));
+
+        setModeles(enriched);
+        setPagination({
+          page: response.pagination?.page ?? pageState.page,
+          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
+          totalRecords: response.pagination?.totalRecords ?? 0,
+          totalPages: response.pagination?.totalPages ?? 1,
+        });
+      }
     } catch (err: any) {
       console.error('Failed to load modeles', err);
       setModelesError(err?.response?.data?.error ?? 'Impossible de charger les modeles.');
@@ -97,7 +133,7 @@ export const ModeleManagement: React.FC = () => {
     } finally {
       setModelesLoading(false);
     }
-  }, [filterMarqueId, marques, pageState.page, pageState.pageSize, reloadToken]);
+  }, [filterMarqueId, marques, debouncedSearch, pageState.page, pageState.pageSize, reloadToken]);
 
   useEffect(() => {
     loadMarques();
@@ -117,7 +153,7 @@ export const ModeleManagement: React.FC = () => {
   const handleOpenDialog = (mode: DialogMode, modele?: Modele) => {
     setDialogMode(mode);
     setCurrentModele(modele ?? null);
-
+    
     if (mode === 'edit' && modele) {
       setFormState({
         name: modele.name,
@@ -144,7 +180,10 @@ export const ModeleManagement: React.FC = () => {
     setCurrentModele(null);
   };
 
-  const handleFormChange = <K extends keyof ModeleFormState>(key: K, value: ModeleFormState[K]) => {
+  const handleFormChange = <K extends keyof ModeleFormState>(
+    key: K,
+    value: ModeleFormState[K]
+  ) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -153,6 +192,7 @@ export const ModeleManagement: React.FC = () => {
       setModelesError('Le nom du modele est requis.');
       return;
     }
+
     if (formState.idMarque === null) {
       setModelesError('Veuillez selectionner une marque.');
       return;
@@ -192,6 +232,7 @@ export const ModeleManagement: React.FC = () => {
       } else {
         await modeleApi.activate(modele.id);
       }
+
       setReloadToken((value) => value + 1);
     } catch (err: any) {
       console.error('Failed to update modele', err);
@@ -219,7 +260,7 @@ export const ModeleManagement: React.FC = () => {
   return (
     <Box
       sx={{
-        p: { xs: 2, md: 4 },
+        p: 4,
         background: (theme) =>
           theme.palette.mode === 'dark'
             ? 'linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))'
@@ -232,12 +273,14 @@ export const ModeleManagement: React.FC = () => {
         <ModeleFilters
           marques={marques}
           filterMarqueId={filterMarqueId}
+          searchQuery={searchQuery}
           marquesLoading={marquesLoading}
           totalRecords={pagination.totalRecords}
           hasCreate={hasCreate}
           error={marquesError}
           onClearError={() => setMarquesError(null)}
           onChangeMarque={handleFilterChange}
+          onSearchChange={setSearchQuery}
           onCreate={() => handleOpenDialog('create')}
         />
 
@@ -250,19 +293,19 @@ export const ModeleManagement: React.FC = () => {
           error={modelesError}
           onClearError={() => setModelesError(null)}
         />
-      </Stack>
 
-      <ModeleDialog
-        open={dialogOpen}
-        dialogMode={dialogMode}
-        formState={formState}
-        marques={marques}
-        saving={saving}
-        isFormValid={isFormValid}
-        onClose={handleCloseDialog}
-        onSave={handleSave}
-        onChangeField={handleFormChange}
-      />
+        <ModeleDialog
+          open={dialogOpen}
+          dialogMode={dialogMode}
+          formState={formState}
+          marques={marques}
+          saving={saving}
+          isFormValid={isFormValid}
+          onClose={handleCloseDialog}
+          onSave={handleSave}
+          onChangeField={handleFormChange}
+        />
+      </Stack>
     </Box>
   );
 };
