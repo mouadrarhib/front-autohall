@@ -84,8 +84,8 @@ export const MarqueFilters: React.FC<MarqueFiltersProps> = ({
             </Typography>
           </Box>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={6}>
+          <Grid container spacing={2} columns={{ xs: 12, md: 18 }}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 size="small"
@@ -109,7 +109,7 @@ export const MarqueFilters: React.FC<MarqueFiltersProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6} md={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth size="small">
                 <InputLabel>Filiale (optionnel)</InputLabel>
                 <Select
@@ -130,32 +130,40 @@ export const MarqueFilters: React.FC<MarqueFiltersProps> = ({
                 </Select>
               </FormControl>
             </Grid>
-          </Grid>
 
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Chip
-              label={`${totalRecords} marque${totalRecords !== 1 ? 's' : ''} trouvee${totalRecords !== 1 ? 's' : ''}`}
-              color="primary"
-              size="small"
-              variant="outlined"
-              sx={{ fontWeight: 600 }}
-            />
-            {hasCreate && (
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={onCreate}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
-                }}
+            <Grid item xs={12} md={6}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
+                justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                sx={{ height: '100%' }}
               >
-                Nouvelle marque
-              </Button>
-            )}
-          </Box>
+                <Chip
+                  label={`${totalRecords} marque${totalRecords !== 1 ? 's' : ''} trouvee${totalRecords !== 1 ? 's' : ''}`}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontWeight: 600 }}
+                />
+                {hasCreate && (
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={onCreate}
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
+                    }}
+                  >
+                    Nouvelle marque
+                  </Button>
+                )}
+              </Stack>
+            </Grid>
+          </Grid>
         </Stack>
       </Paper>
 
