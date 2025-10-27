@@ -82,49 +82,34 @@ export const ModeleManagement: React.FC = () => {
       setModelesLoading(true);
       setModelesError(null);
 
-      // Use search if query exists, otherwise use list
-      if (debouncedSearch.trim()) {
-        const response = await modeleApi.search({
-          q: debouncedSearch.trim(),
-          idMarque: filterMarqueId === 'all' ? undefined : filterMarqueId,
-          onlyActive: false,
+      const hasSearch = Boolean(debouncedSearch.trim());
+      const commonParams = {
+        onlyActive: false,
+        page: pageState.page,
+        pageSize: pageState.pageSize,
+      };
+      const marqueFilter = filterMarqueId === 'all' ? undefined : filterMarqueId;
+
+      const response = hasSearch
+        ? await modeleApi.search({
+            q: debouncedSearch.trim(),
+            idMarque: marqueFilter,
+            ...commonParams,
+          })
+        : await modeleApi.list({
+            idMarque: marqueFilter,
+            ...commonParams,
+          });
+
+      setModeles(response.data ?? []);
+      setPagination(
+        response.pagination ?? {
           page: pageState.page,
           pageSize: pageState.pageSize,
-        });
-
-        const enriched = (response.data ?? []).map((modele) => ({
-          ...modele,
-          marqueName: modele.marqueName ?? marques.find((m) => m.id === modele.idMarque)?.name ?? 'N/A',
-        }));
-
-        setModeles(enriched);
-        setPagination({
-          page: response.pagination?.page ?? pageState.page,
-          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
-          totalRecords: response.pagination?.totalRecords ?? 0,
-          totalPages: response.pagination?.totalPages ?? 1,
-        });
-      } else {
-        const response = await modeleApi.list({
-          idMarque: filterMarqueId === 'all' ? undefined : filterMarqueId,
-          onlyActive: false,
-          page: pageState.page,
-          pageSize: pageState.pageSize,
-        });
-
-        const enriched = (response.data ?? []).map((modele) => ({
-          ...modele,
-          marqueName: modele.marqueName ?? marques.find((m) => m.id === modele.idMarque)?.name ?? 'N/A',
-        }));
-
-        setModeles(enriched);
-        setPagination({
-          page: response.pagination?.page ?? pageState.page,
-          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
-          totalRecords: response.pagination?.totalRecords ?? 0,
-          totalPages: response.pagination?.totalPages ?? 1,
-        });
-      }
+          totalRecords: 0,
+          totalPages: 0,
+        }
+      );
     } catch (err: any) {
       console.error('Failed to load modeles', err);
       setModelesError(err?.response?.data?.error ?? 'Impossible de charger les modeles.');
@@ -133,7 +118,7 @@ export const ModeleManagement: React.FC = () => {
     } finally {
       setModelesLoading(false);
     }
-  }, [filterMarqueId, marques, debouncedSearch, pageState.page, pageState.pageSize, reloadToken]);
+  }, [debouncedSearch, filterMarqueId, pageState.page, pageState.pageSize, reloadToken]);
 
   useEffect(() => {
     loadMarques();

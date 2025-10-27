@@ -82,49 +82,39 @@ export const MarqueManagement: React.FC = () => {
       setMarquesLoading(true);
       setMarquesError(null);
 
-      // Use search if query exists, otherwise use list
-      if (debouncedSearch.trim()) {
-        const response = await marqueApi.search({
-          search: debouncedSearch.trim(),
-          idFiliale: filterFilialeId === 'all' ? undefined : filterFilialeId,
-          onlyActive: false,
+      const hasSearch = Boolean(debouncedSearch.trim());
+      const commonParams = {
+        onlyActive: false,
+        page: pageState.page,
+        pageSize: pageState.pageSize,
+      };
+      const filialeFilter = filterFilialeId === 'all' ? undefined : filterFilialeId;
+
+      const response = hasSearch
+        ? await marqueApi.search({
+            search: debouncedSearch.trim(),
+            idFiliale: filialeFilter,
+            ...commonParams,
+          })
+        : await marqueApi.list({
+            idFiliale: filialeFilter,
+            ...commonParams,
+          });
+
+      const enriched = (response.data ?? []).map((marque) => ({
+        ...marque,
+        filialeName: marque.filialeName ?? filiales.find((f) => f.id === marque.idFiliale)?.name ?? 'N/A',
+      }));
+
+      setMarques(enriched);
+      setPagination(
+        response.pagination ?? {
           page: pageState.page,
           pageSize: pageState.pageSize,
-        });
-
-        const enriched = (response.data ?? []).map((marque) => ({
-          ...marque,
-          filialeName: marque.filialeName ?? filiales.find((f) => f.id === marque.idFiliale)?.name ?? 'N/A',
-        }));
-
-        setMarques(enriched);
-        setPagination({
-          page: response.pagination?.page ?? pageState.page,
-          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
-          totalRecords: response.pagination?.totalRecords ?? 0,
-          totalPages: response.pagination?.totalPages ?? 1,
-        });
-      } else {
-        const response = await marqueApi.list({
-          idFiliale: filterFilialeId === 'all' ? undefined : filterFilialeId,
-          onlyActive: false,
-          page: pageState.page,
-          pageSize: pageState.pageSize,
-        });
-
-        const enriched = (response.data ?? []).map((marque) => ({
-          ...marque,
-          filialeName: marque.filialeName ?? filiales.find((f) => f.id === marque.idFiliale)?.name ?? 'N/A',
-        }));
-
-        setMarques(enriched);
-        setPagination({
-          page: response.pagination?.page ?? pageState.page,
-          pageSize: response.pagination?.pageSize ?? pageState.pageSize,
-          totalRecords: response.pagination?.totalRecords ?? 0,
-          totalPages: response.pagination?.totalPages ?? 1,
-        });
-      }
+          totalRecords: 0,
+          totalPages: 0,
+        }
+      );
     } catch (err: any) {
       console.error('Failed to load marques', err);
       setMarquesError(err?.response?.data?.error ?? 'Impossible de charger les marques.');
@@ -133,7 +123,7 @@ export const MarqueManagement: React.FC = () => {
     } finally {
       setMarquesLoading(false);
     }
-  }, [filterFilialeId, filiales, debouncedSearch, pageState.page, pageState.pageSize, reloadToken]);
+  }, [debouncedSearch, filterFilialeId, filiales, pageState.page, pageState.pageSize, reloadToken]);
 
   useEffect(() => {
     loadFiliales();
