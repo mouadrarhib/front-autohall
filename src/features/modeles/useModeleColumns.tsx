@@ -19,6 +19,16 @@ export const useModeleColumns = ({
   onEdit,
   onToggleActive,
 }: UseModeleColumnsArgs): GridColDef[] => {
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'MAD',
+        maximumFractionDigits: 0,
+      }),
+    []
+  );
+
   return useMemo<GridColDef[]>(() => {
     const alignCell = {
       display: 'flex',
@@ -35,6 +45,19 @@ export const useModeleColumns = ({
       width: '100%',
       height: '100%',
     } as const;
+
+    const numericTextStyle = {
+      fontWeight: 600,
+      lineHeight: 1,
+    } as const;
+
+    const formatPercent = (value?: number | null) => {
+      if (value === null || value === undefined) {
+        return '—';
+      }
+
+      return `${value.toFixed(1)}%`;
+    };
 
     return [
       {
@@ -116,6 +139,46 @@ export const useModeleColumns = ({
         ),
       },
       {
+        field: 'averageSalePrice',
+        headerName: 'Prix de vente',
+        width: 170,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: ({ row }) => (
+          <Box sx={alignCell}>
+            <Typography sx={numericTextStyle}>
+              {row.averageSalePrice !== undefined && row.averageSalePrice !== null
+                ? currencyFormatter.format(row.averageSalePrice)
+                : '—'}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'tmDirect',
+        headerName: 'TM Direct',
+        width: 140,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: ({ row }) => (
+          <Box sx={alignCell}>
+            <Typography sx={numericTextStyle}>{formatPercent(row.tmDirect)}</Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'tmInterGroupe',
+        headerName: 'TM InterGroupe',
+        width: 160,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: ({ row }) => (
+          <Box sx={alignCell}>
+            <Typography sx={numericTextStyle}>{formatPercent(row.tmInterGroupe)}</Typography>
+          </Box>
+        ),
+      },
+      {
         field: 'active',
         headerName: 'Statut',
         width: 150,
@@ -150,9 +213,9 @@ export const useModeleColumns = ({
                   size="medium"
                   startIcon={<EditIcon />}
                   onClick={() => onEdit(row)}
-                  sx={{ 
-                    borderRadius: 2, 
-                    textTransform: 'none', 
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
                     fontWeight: 600,
                     px: 2.5,
                   }}
@@ -166,10 +229,10 @@ export const useModeleColumns = ({
                   size="medium"
                   color={row.active ? 'error' : 'success'}
                   onClick={() => onToggleActive(row)}
-                  sx={{ 
-                    borderRadius: 2, 
-                    textTransform: 'none', 
-                    fontWeight: 600, 
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
                     minWidth: 120,
                     px: 2.5,
                   }}
@@ -183,5 +246,5 @@ export const useModeleColumns = ({
         ),
       },
     ];
-  }, [hasUpdate, onEdit, onToggleActive, togglingId]);
+  }, [currencyFormatter, hasUpdate, onEdit, onToggleActive, togglingId]);
 };

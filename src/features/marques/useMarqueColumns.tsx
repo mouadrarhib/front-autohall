@@ -1,6 +1,5 @@
 // src/features/marques/useMarqueColumns.tsx
 import { useMemo } from 'react';
-import { alpha } from '@mui/material/styles';
 import { Box, Button, Chip, Stack, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import type { GridColDef } from '@mui/x-data-grid';
@@ -19,6 +18,16 @@ export const useMarqueColumns = ({
   onEdit,
   onToggleActive,
 }: UseMarqueColumnsArgs): GridColDef[] => {
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'MAD',
+        maximumFractionDigits: 0,
+      }),
+    []
+  );
+
   return useMemo<GridColDef[]>(() => {
     const alignCell = {
       display: 'flex',
@@ -36,12 +45,25 @@ export const useMarqueColumns = ({
       height: '100%',
     } as const;
 
+    const numericTextStyle = {
+      fontWeight: 600,
+      lineHeight: 1,
+    } as const;
+
+    const formatPercent = (value?: number | null) => {
+      if (value === null || value === undefined) {
+        return '—';
+      }
+
+      return `${value.toFixed(1)}%`;
+    };
+
     return [
       {
         field: 'marque',
         headerName: 'Marque',
-        flex: 1.5,
-        minWidth: 250,
+        flex: 1.4,
+        minWidth: 260,
         align: 'left',
         headerAlign: 'left',
         sortable: false,
@@ -91,6 +113,46 @@ export const useMarqueColumns = ({
               variant="outlined"
               sx={{ fontWeight: 600 }}
             />
+          </Box>
+        ),
+      },
+      {
+        field: 'averageSalePrice',
+        headerName: 'Prix de vente',
+        width: 170,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: ({ row }) => (
+          <Box sx={alignCell}>
+            <Typography sx={numericTextStyle}>
+              {row.averageSalePrice !== undefined && row.averageSalePrice !== null
+                ? currencyFormatter.format(row.averageSalePrice)
+                : '—'}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'tmDirect',
+        headerName: 'TM Direct',
+        width: 140,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: ({ row }) => (
+          <Box sx={alignCell}>
+            <Typography sx={numericTextStyle}>{formatPercent(row.tmDirect)}</Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'tmInterGroupe',
+        headerName: 'TM InterGroupe',
+        width: 160,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: ({ row }) => (
+          <Box sx={alignCell}>
+            <Typography sx={numericTextStyle}>{formatPercent(row.tmInterGroupe)}</Typography>
           </Box>
         ),
       },
@@ -151,5 +213,5 @@ export const useMarqueColumns = ({
         ),
       },
     ];
-  }, [hasUpdate, onEdit, onToggleActive, togglingId]);
+  }, [currencyFormatter, hasUpdate, onEdit, onToggleActive, togglingId]);
 };
