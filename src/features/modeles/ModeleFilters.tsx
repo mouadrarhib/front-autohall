@@ -112,7 +112,7 @@ export const ModeleFilters: React.FC<ModeleFiltersProps> = ({
 
             <Grid item xs={12} md={6}>
               <FormControl fullWidth size="small">
-                <InputLabel>Marque (optionnel)</InputLabel>
+                <InputLabel>Marque</InputLabel>
                 <Select
                   value={filterMarqueId === 'all' ? '' : filterMarqueId}
                   label="Marque (optionnel)"

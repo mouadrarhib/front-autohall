@@ -1,6 +1,4 @@
-// src/features/objectifs/ObjectifDialog.tsx
-
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   Alert,
   Box,
@@ -12,13 +10,17 @@ import {
   DialogTitle,
   Divider,
   FormControl,
+  FormHelperText,
   Grid,
   IconButton,
   InputLabel,
   MenuItem,
+  Paper,
   Select,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
   useMediaQuery,
   useTheme,
@@ -51,6 +53,9 @@ interface ObjectifDialogProps {
   marques: Marque[];
   modeles: Modele[];
   versions: Version[];
+  marquesCount: number;
+  modelesCount: number;
+  versionsCount: number;
   groupements: Groupement[];
   sites: Array<Filiale | Succursale>;
   onClose: () => void;
@@ -71,6 +76,9 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
   marques,
   modeles,
   versions,
+  marquesCount,
+  modelesCount,
+  versionsCount,
   groupements,
   sites,
   onClose,
@@ -82,11 +90,148 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
 
+  const selectedMarque = useMemo(
+    () => marques.find((marque) => marque.id === formState.marqueId),
+    [marques, formState.marqueId]
+  );
+
+  const selectedModele = useMemo(
+    () => modeles.find((modele) => modele.id === formState.modeleId),
+    [modeles, formState.modeleId]
+  );
+
+  const selectedVersion = useMemo(
+    () => versions.find((version) => version.id === formState.versionId),
+    [versions, formState.versionId]
+  );
+
+  const formatCurrency = useMemo(
+    () =>
+      new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'MAD',
+        maximumFractionDigits: 0,
+      }),
+    []
+  );
+
+  const formatCurrencyValue = useCallback(
+    (value?: number | null) => {
+      if (value === null || value === undefined) {
+        return 'N/A';
+      }
+      return formatCurrency.format(value);
+    },
+    [formatCurrency]
+  );
+
+  const formatPercentValue = useCallback((value?: number | null) => {
+    if (value === null || value === undefined) {
+      return 'N/A';
+    }
+    return `${(value * 100).toFixed(2)}%`;
+  }, []);
+
+  const formatPeriodeLabel = useCallback((periode: Periode) => {
+    if (periode.name && periode.name.trim().length > 0) {
+      return periode.name;
+    }
+
+    const start = periode.startedDate ?? '';
+    const end = periode.endDate ?? '';
+    const yearPart = periode.year ? ` (${periode.year})` : '';
+
+    if (start && end) {
+      return `${start} - ${end}${yearPart}`;
+    }
+
+    if (start || end) {
+      return `${start || end}${yearPart}`;
+    }
+
+    return `Periode ${periode.id}`;
+  }, []);
+
+  const selectedPeriodeOption = useMemo(
+    () => periodes.find((periode) => periode.id === formState.periodeId) ?? null,
+    [periodes, formState.periodeId]
+  );
+
+  const selectedPeriodeLabel = useMemo(() => {
+    if (!selectedPeriodeOption) {
+      return 'Aucune periode selectionnee';
+    }
+    return formatPeriodeLabel(selectedPeriodeOption);
+  }, [selectedPeriodeOption, formatPeriodeLabel]);
+
+  const targetSummary = useMemo(() => {
+    if (formState.targetType === 'marque' && selectedMarque) {
+      return {
+        title: selectedMarque.name,
+        subtitle: selectedMarque.filialeName ?? null,
+        rows: [
+          { label: 'Prix moyen', value: formatCurrencyValue(selectedMarque.averageSalePrice ?? 0) },
+          { label: 'TM direct', value: formatPercentValue(selectedMarque.tmDirect ?? 0) },
+          { label: 'TM inter groupe', value: formatPercentValue(selectedMarque.tmInterGroupe ?? 0) },
+        ],
+      };
+    }
+
+    if (formState.targetType === 'modele' && selectedModele) {
+      return {
+        title: selectedModele.name,
+        subtitle: selectedModele.marqueName ?? selectedMarque?.name ?? null,
+        rows: [
+          { label: 'Prix moyen', value: formatCurrencyValue(selectedModele.averageSalePrice ?? 0) },
+          { label: 'TM direct', value: formatPercentValue(selectedModele.tmDirect ?? 0) },
+          { label: 'TM inter groupe', value: formatPercentValue(selectedModele.tmInterGroupe ?? 0) },
+        ],
+      };
+    }
+
+    if (formState.targetType === 'version' && selectedVersion) {
+      return {
+        title: selectedVersion.nom,
+        subtitle:
+          selectedVersion.nomModele && selectedVersion.nomMarque
+            ? `${selectedVersion.nomMarque} / ${selectedVersion.nomModele}`
+            : selectedVersion.nomModele ?? selectedVersion.nomMarque ?? null,
+        rows: [
+          { label: 'Prix moyen', value: formatCurrencyValue(selectedVersion.prixDeVente ?? 0) },
+          { label: 'TM direct', value: formatPercentValue(selectedVersion.tmDirect ?? 0) },
+          { label: 'TM inter groupe', value: formatPercentValue(selectedVersion.tmInterGroupe ?? 0) },
+        ],
+      };
+    }
+
+    return null;
+  }, [
+    formState.targetType,
+    selectedMarque,
+    selectedModele,
+    selectedVersion,
+    formatCurrencyValue,
+    formatPercentValue,
+  ]);
+
+  const handleTargetTypeChange = (
+    _: React.MouseEvent<HTMLElement>,
+    value: ObjectifFormState['targetType'] | null
+  ) => {
+    if (!value || value === formState.targetType) {
+      return;
+    }
+    onChangeField('targetType', value);
+  };
+
+  const isModeleStep = formState.targetType === 'modele' || formState.targetType === 'version';
+  const isVersionStep = formState.targetType === 'version';
+
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="lg" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
       fullWidth
       fullScreen={fullScreen}
       PaperProps={{
@@ -102,121 +247,80 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           pb: 2,
-          background: (theme) =>
-            theme.palette.mode === 'dark'
+          background: (muiTheme) =>
+            muiTheme.palette.mode === 'dark'
               ? alpha('#1e293b', 0.4)
               : alpha('#f8fafc', 0.8),
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {!isEdit ? (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 40,
-                height: 40,
-                borderRadius: 2,
-                bgcolor: 'primary.main',
-                color: 'white',
-              }}
-            >
-              <AddIcon />
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 40,
-                height: 40,
-                borderRadius: 2,
-                bgcolor: 'warning.main',
-                color: 'white',
-              }}
-            >
-              <SaveIcon />
-            </Box>
-          )}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: 'primary.main',
+              color: 'white',
+            }}
+          >
+            {isEdit ? <TrackChangesIcon /> : <AddIcon />}
+          </Box>
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: isMobile ? '1.1rem' : '1.25rem' }}>
-              {isEdit ? 'Modifier Objectif' : 'Nouveau Objectif'}
+            <Typography variant="h5" fontWeight={700}>
+              {isEdit ? 'Modifier un objectif' : 'Nouvel objectif'}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {isEdit 
-                ? "Modifiez les informations de l'objectif"
-                : 'Remplissez les informations pour créer un nouveau objectif'}
+            <Typography variant="body2" color="text.secondary">
+              {isEdit
+                ? "Mettez a jour les parametres de l'objectif selectionne."
+                : 'Definissez la cible et les parametres de votre nouvel objectif.'}
             </Typography>
           </Box>
         </Box>
-        <IconButton
-          onClick={onClose}
-          disabled={saving}
-          sx={{
-            color: 'text.secondary',
-            '&:hover': {
-              backgroundColor: alpha('#ef4444', 0.1),
-              color: 'error.main',
-            },
-          }}
-        >
+
+        <IconButton onClick={onClose} aria-label="Fermer la fenetre">
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
-      <Divider />
-
-      <DialogContent sx={{ pt: 3, pb: 2 }}>
-        {error && (
-          <Alert 
-            severity="error" 
-            onClose={onClearError} 
-            sx={{ 
-              mb: 3,
-              borderRadius: 2,
-            }}
-          >
-            {error}
-          </Alert>
-        )}
-
+      <DialogContent
+        dividers
+        sx={{
+          p: isMobile ? 2 : 4,
+          background: (muiTheme) =>
+            muiTheme.palette.mode === 'dark'
+              ? alpha(muiTheme.palette.background.default, 0.9)
+              : alpha('#f8fafc', 0.9),
+        }}
+      >
         <Stack spacing={3}>
-          {/* Site & Period Information */}
+          {error && (
+            <Alert severity="error" onClose={onClearError}>
+              {error}
+            </Alert>
+          )}
+
           <Box>
-            <Typography 
-              variant="subtitle2" 
-              sx={{ 
-                mb: 2, 
-                fontWeight: 700,
-                color: 'primary.main',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                fontSize: '0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-              }}
-            >
-              <TrackChangesIcon sx={{ fontSize: '1rem' }} />
-              Localisation et période
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: 'primary.main' }}>
+              Identification
             </Typography>
 
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
+                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
                   <InputLabel>Groupement</InputLabel>
                   <Select
                     value={formState.groupementId || ''}
                     label="Groupement"
-                    onChange={(e) => onChangeField('groupementId', Number(e.target.value))}
+                    onChange={(event) => onChangeField('groupementId', Number(event.target.value))}
                     disabled={saving}
                     sx={{ borderRadius: 2 }}
                   >
-                    {groupements.map((g) => (
-                      <MenuItem key={g.id} value={g.id}>
-                        {g.name}
+                    {groupements.map((groupement) => (
+                      <MenuItem key={groupement.id} value={groupement.id}>
+                        {groupement.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -224,37 +328,21 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
+                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
                   <InputLabel>Site</InputLabel>
                   <Select
                     value={formState.siteId || ''}
                     label="Site"
-                    onChange={(e) => onChangeField('siteId', Number(e.target.value))}
-                    disabled={saving || !formState.groupementId}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    {sites.map((s) => (
-                      <MenuItem key={s.id} value={s.id}>
-                        {s.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Période</InputLabel>
-                  <Select
-                    value={formState.periodeId || ''}
-                    label="Période"
-                    onChange={(e) => onChangeField('periodeId', Number(e.target.value))}
+                    onChange={(event) => onChangeField('siteId', Number(event.target.value))}
                     disabled={saving}
                     sx={{ borderRadius: 2 }}
                   >
-                    {periodes.map((p) => (
-                      <MenuItem key={p.id} value={p.id}>
-                        {`${p.startedDate} - ${p.endDate}`}
+                    <MenuItem value="">
+                      <em>Non specifie</em>
+                    </MenuItem>
+                    {sites.map((site) => (
+                      <MenuItem key={site.id} value={site.id}>
+                        {'name' in site && typeof site.name === 'string' ? site.name : ''}
                       </MenuItem>
                     ))}
                   </Select>
@@ -263,36 +351,59 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
             </Grid>
           </Box>
 
-          {/* Type Information */}
           <Box>
-            <Typography 
-              variant="subtitle2" 
-              sx={{ 
-                mb: 2, 
-                fontWeight: 700,
-                color: 'primary.main',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                fontSize: '0.75rem',
-              }}
-            >
-              Type d'objectif
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: 'primary.main' }}>
+              Metadonnees
             </Typography>
 
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
+                {isEdit ? (
+                  <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
+                    <InputLabel>Periode</InputLabel>
+                    <Select
+                      value={formState.periodeId || ''}
+                      label="Periode"
+                      onChange={(event) => onChangeField('periodeId', Number(event.target.value))}
+                      disabled={saving}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      {periodes.map((periode) => (
+                        <MenuItem key={periode.id} value={periode.id}>
+                          {formatPeriodeLabel(periode)}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                ) : (
+                  <TextField
+                    label="Periode"
+                    value={selectedPeriodeLabel}
+                    fullWidth
+                    size={isMobile ? 'small' : 'medium'}
+                    InputProps={{ readOnly: true }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                      },
+                    }}
+                  />
+                )}
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Type Vente</InputLabel>
+                  <InputLabel>Type vente</InputLabel>
                   <Select
                     value={formState.typeVenteId || ''}
-                    label="Type Vente"
-                    onChange={(e) => onChangeField('typeVenteId', Number(e.target.value))}
+                    label="Type vente"
+                    onChange={(event) => onChangeField('typeVenteId', Number(event.target.value))}
                     disabled={saving}
                     sx={{ borderRadius: 2 }}
                   >
-                    {typeVentes.map((tv) => (
-                      <MenuItem key={tv.id} value={tv.id}>
-                        {tv.name}
+                    {typeVentes.map((typeVente) => (
+                      <MenuItem key={typeVente.id} value={typeVente.id}>
+                        {typeVente.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -301,17 +412,17 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
 
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Type Objectif</InputLabel>
+                  <InputLabel>Type objectif</InputLabel>
                   <Select
                     value={formState.typeObjectifId || ''}
-                    label="Type Objectif"
-                    onChange={(e) => onChangeField('typeObjectifId', Number(e.target.value))}
+                    label="Type objectif"
+                    onChange={(event) => onChangeField('typeObjectifId', Number(event.target.value))}
                     disabled={saving}
                     sx={{ borderRadius: 2 }}
                   >
-                    {typeObjectifs.map((to) => (
-                      <MenuItem key={to.id} value={to.id}>
-                        {to.name}
+                    {typeObjectifs.map((typeObjectif) => (
+                      <MenuItem key={typeObjectif.id} value={typeObjectif.id}>
+                        {typeObjectif.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -320,105 +431,168 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
             </Grid>
           </Box>
 
-          {/* Vehicle Selection */}
-          <Box>
-            <Typography 
-              variant="subtitle2" 
-              sx={{ 
-                mb: 2, 
-                fontWeight: 700,
-                color: 'primary.main',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                fontSize: '0.75rem',
-              }}
-            >
-              Véhicule (optionnel)
-            </Typography>
+          <Box
+            sx={{
+              p: 2.5,
+              borderRadius: 3,
+              background: alpha(theme.palette.primary.light, theme.palette.mode === 'dark' ? 0.08 : 0.12),
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.25)}`,
+            }}
+          >
+            <Stack spacing={2}>
+              <Box display="flex" flexWrap="wrap" alignItems="center" justifyContent="space-between" gap={1.5}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                  Cible de l'objectif
+                </Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  color="primary"
+                  value={formState.targetType}
+                  onChange={handleTargetTypeChange}
+                  size={isMobile ? 'small' : 'medium'}
+                  sx={{
+                    '& .MuiToggleButton-root': {
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      px: 2.5,
+                    },
+                  }}
+                >
+                  <ToggleButton value="marque">Par marque</ToggleButton>
+                  <ToggleButton value="modele">Par modele</ToggleButton>
+                  <ToggleButton value="version">Par version</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Marque (Optionnel)</InputLabel>
-                  <Select
-                    value={formState.marqueId || ''}
-                    label="Marque (Optionnel)"
-                    onChange={(e) => onChangeField('marqueId', Number(e.target.value))}
-                    disabled={saving}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    <MenuItem value="">
-                      <em>Aucune</em>
-                    </MenuItem>
-                    {marques.map((m) => (
-                      <MenuItem key={m.id} value={m.id}>
-                        {m.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5}>
+                <Box flex={1}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={formState.targetType === 'marque' ? 12 : 6}>
+                      <FormControl fullWidth size={isMobile ? 'small' : 'medium'} required>
+                        <InputLabel>Marque</InputLabel>
+                        <Select
+                          value={formState.marqueId || ''}
+                          label="Marque"
+                          onChange={(event) => onChangeField('marqueId', Number(event.target.value))}
+                          disabled={saving}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="">
+                            <em>Aucune</em>
+                          </MenuItem>
+                          {marques.map((marque) => (
+                            <MenuItem key={marque.id} value={marque.id}>
+                              {marque.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        <FormHelperText sx={{ ml: 0.5 }}>
+                          {marquesCount} marque{marquesCount !== 1 ? 's' : ''} disponibles
+                        </FormHelperText>
+                      </FormControl>
+                    </Grid>
 
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Modèle (Optionnel)</InputLabel>
-                  <Select
-                    value={formState.modeleId || ''}
-                    label="Modèle (Optionnel)"
-                    onChange={(e) => onChangeField('modeleId', Number(e.target.value))}
-                    disabled={saving || !formState.marqueId}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    <MenuItem value="">
-                      <em>Aucun</em>
-                    </MenuItem>
-                    {modeles.map((m) => (
-                      <MenuItem key={m.id} value={m.id}>
-                        {m.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+                    {isModeleStep && (
+                      <Grid item xs={12} sm={formState.targetType === 'version' ? 6 : 6}>
+                        <FormControl fullWidth size={isMobile ? 'small' : 'medium'} required={formState.targetType !== 'marque'}>
+                          <InputLabel>Modele</InputLabel>
+                          <Select
+                            value={formState.modeleId || ''}
+                            label="Modele"
+                            onChange={(event) => onChangeField('modeleId', Number(event.target.value))}
+                            disabled={saving || !formState.marqueId}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            <MenuItem value="">
+                              <em>Aucun</em>
+                            </MenuItem>
+                            {modeles.map((modele) => (
+                              <MenuItem key={modele.id} value={modele.id}>
+                                {modele.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          <FormHelperText sx={{ ml: 0.5 }}>
+                            {modelesCount} modele{modelesCount !== 1 ? 's' : ''} disponibles
+                          </FormHelperText>
+                        </FormControl>
+                      </Grid>
+                    )}
 
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Version (Optionnel)</InputLabel>
-                  <Select
-                    value={formState.versionId || ''}
-                    label="Version (Optionnel)"
-                    onChange={(e) => onChangeField('versionId', Number(e.target.value))}
-                    disabled={saving || !formState.modeleId}
-                    sx={{ borderRadius: 2 }}
+                    {isVersionStep && (
+                      <Grid item xs={12} sm={6}>
+                        <FormControl fullWidth size={isMobile ? 'small' : 'medium'} required>
+                          <InputLabel>Version</InputLabel>
+                          <Select
+                            value={formState.versionId || ''}
+                            label="Version"
+                            onChange={(event) => onChangeField('versionId', Number(event.target.value))}
+                            disabled={saving || !formState.modeleId}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            <MenuItem value="">
+                              <em>Aucune</em>
+                            </MenuItem>
+                            {versions.map((version) => (
+                              <MenuItem key={version.id} value={version.id}>
+                                {version.nom}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          <FormHelperText sx={{ ml: 0.5 }}>
+                            {versionsCount} version{versionsCount !== 1 ? 's' : ''} disponibles
+                          </FormHelperText>
+                        </FormControl>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Box>
+
+                {targetSummary && (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      minWidth: { xs: '100%', md: 260 },
+                      p: 2.5,
+                      borderRadius: 3,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      background: alpha(theme.palette.primary.light, theme.palette.mode === 'dark' ? 0.16 : 0.1),
+                    }}
                   >
-                    <MenuItem value="">
-                      <em>Aucune</em>
-                    </MenuItem>
-                    {versions.map((v) => (
-                      <MenuItem key={v.id} value={v.id}>
-                        {v.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+                    <Typography variant="subtitle1" fontWeight={700}>
+                      {targetSummary.title}
+                    </Typography>
+                    {targetSummary.subtitle && (
+                      <Typography variant="body2" color="text.secondary">
+                        {targetSummary.subtitle}
+                      </Typography>
+                    )}
+                    <Stack spacing={1.25} sx={{ mt: 2 }}>
+                      {targetSummary.rows.map((row) => (
+                        <Box key={row.label}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ textTransform: 'uppercase', letterSpacing: 0.4 }}
+                          >
+                            {row.label}
+                          </Typography>
+                          <Typography variant="body2" fontWeight={600}>
+                            {row.value}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Paper>
+                )}
+              </Stack>
+            </Stack>
           </Box>
 
-          {/* Metrics */}
           <Box>
-            <Typography 
-              variant="subtitle2" 
-              sx={{ 
-                mb: 2, 
-                fontWeight: 700,
-                color: 'primary.main',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                fontSize: '0.75rem',
-              }}
-            >
-              Métriques
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: 'primary.main' }}>
+              Metriques
             </Typography>
 
             <Grid container spacing={2}>
@@ -427,7 +601,7 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
                   label="Volume"
                   type="number"
                   value={formState.volume}
-                  onChange={(e) => onChangeField('volume', e.target.value)}
+                  onChange={(event) => onChangeField('volume', event.target.value)}
                   fullWidth
                   required
                   disabled={saving}
@@ -443,10 +617,9 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
 
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Prix de vente"
+                  label="Prix unitaire actuel"
                   type="number"
                   value={formState.salePrice}
-                  onChange={(e) => onChangeField('salePrice', e.target.value)}
                   fullWidth
                   required
                   disabled={saving}
@@ -457,15 +630,15 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
                       borderRadius: 2,
                     },
                   }}
+                  InputProps={{ readOnly: true }}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="TM Direct (%)"
+                  label="TM direct actuel (%)"
                   type="number"
                   value={formState.tmDirect}
-                  onChange={(e) => onChangeField('tmDirect', e.target.value)}
                   fullWidth
                   required
                   disabled={saving}
@@ -476,15 +649,15 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
                       borderRadius: 2,
                     },
                   }}
+                  InputProps={{ readOnly: true }}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Marge Inter Groupe (%)"
+                  label="Marge inter groupe actuelle (%)"
                   type="number"
                   value={formState.margeInterGroupe}
-                  onChange={(e) => onChangeField('margeInterGroupe', e.target.value)}
                   fullWidth
                   required
                   disabled={saving}
@@ -495,6 +668,7 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
                       borderRadius: 2,
                     },
                   }}
+                  InputProps={{ readOnly: true }}
                 />
               </Grid>
             </Grid>
@@ -527,7 +701,7 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
         <Button
           onClick={onSave}
           variant="contained"
-          startIcon={saving ? <CircularProgress size={20} color="inherit" /> : !isEdit ? <AddIcon /> : <SaveIcon />}
+          startIcon={saving ? <CircularProgress size={20} color="inherit" /> : isEdit ? <SaveIcon /> : <AddIcon />}
           disabled={saving}
           sx={{
             borderRadius: 2,
@@ -540,7 +714,7 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
             },
           }}
         >
-          {saving ? 'En cours...' : isEdit ? 'Mettre à jour' : 'Créer'}
+          {saving ? 'En cours...' : isEdit ? 'Mettre a jour' : 'Creer'}
         </Button>
       </DialogActions>
     </Dialog>

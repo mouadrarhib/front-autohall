@@ -43,14 +43,21 @@ export const ObjectifManagement: React.FC = () => {
   const [modeles, setModeles] = useState<Modele[]>([]);
   const [versions, setVersions] = useState<Version[]>([]);
   const [groupements, setGroupements] = useState<Groupement[]>([]);
+  const [marquesTotal, setMarquesTotal] = useState(0);
+  const [modelesTotal, setModelesTotal] = useState(0);
+  const [versionsTotal, setVersionsTotal] = useState(0);
   const [sites, setSites] = useState<Array<Filiale | Succursale>>([]);
+
+  const allMarquesRef = useRef<Marque[]>([]);
+  const allModelesRef = useRef<Modele[]>([]);
+  const allVersionsRef = useRef<Version[]>([]);
 
   const siteCache = useRef<{
     filiale?: Array<Filiale>;
     succursale?: Array<Succursale>;
   }>({});
-  const modeleCache = useRef<Record<number, Modele[]>>({});
-  const versionCache = useRef<Record<number, Version[]>>({});
+  const modeleCache = useRef<Record<number, { items: Modele[]; total: number }>>({});
+  const versionCache = useRef<Record<number, { items: Version[]; total: number }>>({});
   const objectifsCache = useRef<Record<number, ObjectifView[]>>({});
 
   const [selectedPeriode, setSelectedPeriode] = useState<number | null>(null);
@@ -67,6 +74,7 @@ export const ObjectifManagement: React.FC = () => {
   const [editingObjectif, setEditingObjectif] = useState<ObjectifView | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<ObjectifFormState>({
+    targetType: 'marque',
     groupementId: 0,
     siteId: 0,
     periodeId: 0,
@@ -84,23 +92,51 @@ export const ObjectifManagement: React.FC = () => {
   const loadAllDropdownData = useCallback(async () => {
     try {
       setLoading(true);
-      const [periodesRes, typeVentesRes, typeObjectifsRes, marquesRes, groupementsRes] =
+      const [
+        periodesRes,
+        typeVentesRes,
+        typeObjectifsRes,
+        marquesRes,
+        modelesRes,
+        versionsRes,
+        groupementsRes,
+      ] =
         await Promise.all([
           periodeApi.listActivePeriodes({ pageSize: 1000 }),
           typeventeApi.listActiveTypeVentes(),
           typeobjectifApi.listActiveTypeObjectifs(),
           marqueApi.list({ onlyActive: true, pageSize: 1000 }),
+          modeleApi.list({ onlyActive: true, pageSize: 1000 }),
+          versionApi.list({ onlyActive: true, pageSize: 1000 }),
           groupementApi.listGroupements(),
         ]);
 
       setPeriodes(extractArray<Periode>(periodesRes.data));
       setTypeVentes(extractArray<TypeVente>(typeVentesRes.data));
       setTypeObjectifs(extractArray<TypeObjectif>(typeObjectifsRes.data));
-      setMarques(extractArray<Marque>(marquesRes.data));
+      const marqueList = extractArray<Marque>(marquesRes.data);
+      setMarques(marqueList);
+      allMarquesRef.current = marqueList;
+      const totalMarques = marquesRes.pagination?.totalRecords ?? marqueList.length;
+      setMarquesTotal(totalMarques);
+
+      const allModeles = extractArray<Modele>(modelesRes.data);
+      allModelesRef.current = allModeles;
+      const totalModeles = modelesRes.pagination?.totalRecords ?? allModeles.length;
+      setModelesTotal(totalModeles);
+
+      const allVersions = extractArray<Version>(versionsRes.data);
+      allVersionsRef.current = allVersions;
+      const totalVersions = versionsRes.pagination?.totalRecords ?? allVersions.length;
+      setVersionsTotal(totalVersions);
+
       setGroupements(extractArray<Groupement>(groupementsRes));
     } catch (err: any) {
       console.error('Failed to load dropdown data:', err);
       setError(err.response?.data?.error || 'Failed to load data');
+      setMarquesTotal(0);
+      setModelesTotal(0);
+      setVersionsTotal(0);
     } finally {
       setLoading(false);
     }
@@ -155,35 +191,58 @@ export const ObjectifManagement: React.FC = () => {
 
   const loadModelesByMarque = useCallback(async (marqueId: number) => {
     try {
-      if (modeleCache.current[marqueId]) {
-        const cachedModeles = modeleCache.current[marqueId];
-        startTransition(() => setModeles(cachedModeles));
+      const cached = modeleCache.current[marqueId];
+      if (cached) {
+        startTransition(() => setModeles(cached.items));
+        setModelesTotal(cached.total);
         return;
       }
 
-      const response = await modeleApi.listByMarque(marqueId, { pageSize: 1000 });
-      const modelesList = extractArray<Modele>(response.data);
-      modeleCache.current[marqueId] = modelesList;
-      startTransition(() => setModeles(modelesList));
+      startTransition(() => setModeles([]));
+      const response = await modeleApi.listByMarque(marqueId, {
+        onlyActive: true,
+        pageSize: 1000,
+      });
+
+      const items = response.data ?? [];
+      const total = response.pagination?.totalRecords ?? items.length;
+      modeleCache.current[marqueId] = { items, total };
+
+      startTransition(() => setModeles(items));
+      setModelesTotal(total);
     } catch (err: any) {
       console.error('Failed to load modeles:', err);
+      startTransition(() => setModeles([]));
+      setModelesTotal(0);
     }
   }, []);
 
   const loadVersionsByModele = useCallback(async (modeleId: number) => {
     try {
-      if (versionCache.current[modeleId]) {
-        const cachedVersions = versionCache.current[modeleId];
-        startTransition(() => setVersions(cachedVersions));
+      const cached = versionCache.current[modeleId];
+      if (cached) {
+        startTransition(() => setVersions(cached.items));
+        setVersionsTotal(cached.total);
         return;
       }
 
-      const response = await versionApi.listByModele({ idModele: modeleId, pageSize: 1000 });
-      const versionList = extractArray<Version>(response.data);
-      versionCache.current[modeleId] = versionList;
-      startTransition(() => setVersions(versionList));
+      startTransition(() => setVersions([]));
+      const response = await versionApi.listByModele({
+        idModele: modeleId,
+        onlyActive: true,
+        pageSize: 1000,
+      });
+
+      const items = response.data ?? [];
+      const total = response.pagination?.totalRecords ?? items.length;
+      versionCache.current[modeleId] = { items, total };
+
+      startTransition(() => setVersions(items));
+      setVersionsTotal(total);
     } catch (err: any) {
       console.error('Failed to load versions:', err);
+      startTransition(() => setVersions([]));
+      setVersionsTotal(0);
     }
   }, []);
 
@@ -241,20 +300,30 @@ export const ObjectifManagement: React.FC = () => {
   }, [formData.groupementId, loadSitesByGroupement]);
 
   useEffect(() => {
-    if (formData.marqueId) {
-      loadModelesByMarque(formData.marqueId);
-    } else {
+    if (!formData.marqueId) {
       setModeles([]);
+      setModelesTotal(allModelesRef.current.length);
+      return;
     }
-  }, [formData.marqueId, loadModelesByMarque]);
+
+    if (formData.targetType === 'marque') {
+      setModeles([]);
+      setModelesTotal(allModelesRef.current.length);
+      return;
+    }
+
+    loadModelesByMarque(formData.marqueId);
+  }, [formData.marqueId, formData.targetType, loadModelesByMarque]);
 
   useEffect(() => {
-    if (formData.modeleId) {
-      loadVersionsByModele(formData.modeleId);
-    } else {
+    if (!formData.modeleId || formData.targetType !== 'version') {
       setVersions([]);
+      setVersionsTotal(allVersionsRef.current.length);
+      return;
     }
-  }, [formData.modeleId, loadVersionsByModele]);
+
+    loadVersionsByModele(formData.modeleId);
+  }, [formData.modeleId, formData.targetType, loadVersionsByModele]);
 
   useEffect(() => {
     setPagination((prev) => {
@@ -306,8 +375,16 @@ export const ObjectifManagement: React.FC = () => {
   const handleOpenDialog = useCallback(
     (objectif?: ObjectifView) => {
       if (objectif) {
+        const inferredTargetType =
+          objectif.versionID && objectif.versionID > 0
+            ? 'version'
+            : objectif.modeleID && objectif.modeleID > 0
+            ? 'modele'
+            : 'marque';
+
         setEditingObjectif(objectif);
         setFormData({
+          targetType: inferredTargetType,
           groupementId: objectif.groupementID,
           siteId: objectif.SiteID,
           periodeId: objectif.periodeID,
@@ -338,20 +415,29 @@ export const ObjectifManagement: React.FC = () => {
         if (typeof objectifMarqueId === 'number' && objectifMarqueId > 0) {
           const cachedModeles = modeleCache.current[objectifMarqueId];
           if (cachedModeles) {
-            startTransition(() => setModeles(cachedModeles));
+            startTransition(() => setModeles(cachedModeles.items));
+            setModelesTotal(cachedModeles.total);
+          }
+          if (!cachedModeles) {
+            void loadModelesByMarque(objectifMarqueId);
           }
 
           const objectifModeleId = objectif.modeleID;
           if (typeof objectifModeleId === 'number' && objectifModeleId > 0) {
             const cachedVersions = versionCache.current[objectifModeleId];
             if (cachedVersions) {
-              startTransition(() => setVersions(cachedVersions));
+              startTransition(() => setVersions(cachedVersions.items));
+              setVersionsTotal(cachedVersions.total);
+            }
+            if (!cachedVersions) {
+              void loadVersionsByModele(objectifModeleId);
             }
           }
         }
       } else {
         setEditingObjectif(null);
         setFormData({
+          targetType: 'marque',
           groupementId: 0,
           siteId: 0,
           periodeId: selectedPeriode || 0,
@@ -370,11 +456,13 @@ export const ObjectifManagement: React.FC = () => {
           setModeles([]);
           setVersions([]);
         });
+        setModelesTotal(allModelesRef.current.length);
+        setVersionsTotal(allVersionsRef.current.length);
       }
 
       setOpenDialog(true);
     },
-    [selectedPeriode]
+    [selectedPeriode, loadModelesByMarque, loadVersionsByModele]
   );
 
   const handleCloseDialog = useCallback(() => {
@@ -385,8 +473,38 @@ export const ObjectifManagement: React.FC = () => {
 
   const handleSave = async () => {
     try {
+      if (formData.targetType === 'marque' && !formData.marqueId) {
+        setError('Veuillez selectionner une marque.');
+        return;
+      }
+
+      if (formData.targetType === 'modele') {
+        if (!formData.marqueId) {
+          setError('Veuillez selectionner une marque afin de choisir un modele.');
+          return;
+        }
+        if (!formData.modeleId) {
+          setError('Veuillez selectionner un modele.');
+          return;
+        }
+      }
+
+      if (formData.targetType === 'version') {
+        if (!formData.marqueId || !formData.modeleId || !formData.versionId) {
+          setError('Veuillez selectionner une marque, un modele et une version.');
+          return;
+        }
+      }
+
       setSaving(true);
       setError(null);
+
+      const marqueIdPayload = formData.marqueId ? formData.marqueId : null;
+      const modeleIdPayload =
+        formData.targetType === 'modele' || formData.targetType === 'version'
+          ? formData.modeleId || null
+          : null;
+      const versionIdPayload = formData.targetType === 'version' ? formData.versionId || null : null;
 
       const apiData = {
         userId: currentUser?.id || 0,
@@ -395,9 +513,9 @@ export const ObjectifManagement: React.FC = () => {
         periodeId: formData.periodeId,
         typeVenteId: formData.typeVenteId,
         typeObjectifId: formData.typeObjectifId,
-        marqueId: formData.marqueId || null,
-        modeleId: formData.modeleId || null,
-        versionId: formData.versionId || null,
+        marqueId: marqueIdPayload,
+        modeleId: modeleIdPayload,
+        versionId: versionIdPayload,
         volume: parseInt(formData.volume) || 0,
         salePrice: parseFloat(formData.salePrice) || 0,
         tmDirect: (parseFloat(formData.tmDirect) || 0) / 100,
@@ -428,12 +546,138 @@ export const ObjectifManagement: React.FC = () => {
     }
   };
 
-  const handleFormChange = <K extends keyof ObjectifFormState>(
-    key: K,
-    value: ObjectifFormState[K]
-  ) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
+  const getUnitMetrics = useCallback(
+    (nextState: ObjectifFormState): {
+      unitPrice: number;
+      unitTmDirect: number;
+      unitTmInter: number;
+    } => {
+      const findById = <T extends { id: number }>(collections: T[][], id: number): T | undefined => {
+        for (const collection of collections) {
+          const match = collection.find((item) => item.id === id);
+          if (match) return match;
+        }
+        return undefined;
+      };
+
+      if (nextState.versionId) {
+        const versionSources: Version[][] = [
+          versions,
+          ...Object.values(versionCache.current).map((entry) => entry.items),
+          allVersionsRef.current,
+        ];
+
+        const selectedVersion = findById(versionSources, nextState.versionId);
+        if (selectedVersion) {
+          return {
+            unitPrice: selectedVersion.prixDeVente ?? 0,
+            unitTmDirect: selectedVersion.tmDirect ?? 0,
+            unitTmInter: selectedVersion.tmInterGroupe ?? 0,
+          };
+        }
+      }
+
+      if (nextState.modeleId) {
+        const modeleSources: Modele[][] = [
+          modeles,
+          ...Object.values(modeleCache.current).map((entry) => entry.items),
+          allModelesRef.current,
+        ];
+
+        const selectedModele = findById(modeleSources, nextState.modeleId);
+        if (selectedModele) {
+          return {
+            unitPrice: selectedModele.averageSalePrice ?? 0,
+            unitTmDirect: selectedModele.tmDirect ?? 0,
+            unitTmInter: selectedModele.tmInterGroupe ?? 0,
+          };
+        }
+      }
+
+      if (nextState.marqueId) {
+        const selectedMarque =
+          marques.find((marque) => marque.id === nextState.marqueId) ??
+          allMarquesRef.current.find((marque) => marque.id === nextState.marqueId);
+
+        if (selectedMarque) {
+          return {
+            unitPrice: selectedMarque.averageSalePrice ?? 0,
+            unitTmDirect: selectedMarque.tmDirect ?? 0,
+            unitTmInter: selectedMarque.tmInterGroupe ?? 0,
+          };
+        }
+      }
+
+      return {
+        unitPrice: 0,
+        unitTmDirect: 0,
+        unitTmInter: 0,
+      };
+    },
+    [marques, modeles, versions]
+  );
+
+  const handleFormChange = useCallback(
+    <K extends keyof ObjectifFormState>(key: K, rawValue: ObjectifFormState[K]) => {
+      setFormData((prev) => {
+        const nextState: ObjectifFormState = { ...prev };
+
+        if (key === 'targetType') {
+          const targetValue = (rawValue as ObjectifFormState['targetType']) ?? 'marque';
+          nextState.targetType = targetValue;
+          nextState.marqueId = 0;
+          nextState.modeleId = 0;
+          nextState.versionId = 0;
+          nextState.volume = '';
+        } else if (key === 'marqueId') {
+          const marqueId = Number(rawValue) || 0;
+          nextState.marqueId = marqueId;
+          if (nextState.targetType !== 'marque') {
+            nextState.modeleId = 0;
+            nextState.versionId = 0;
+          }
+          nextState.volume = '0';
+        } else if (key === 'modeleId') {
+          const modeleId = Number(rawValue) || 0;
+          nextState.modeleId = modeleId;
+          if (nextState.targetType === 'version') {
+            nextState.versionId = 0;
+          }
+          nextState.volume = '0';
+        } else if (key === 'versionId') {
+          const versionId = Number(rawValue) || 0;
+          nextState.versionId = versionId;
+          nextState.volume = '0';
+        } else if (key === 'volume') {
+          const numericVolume = Number(rawValue);
+          nextState.volume = Number.isFinite(numericVolume) && numericVolume >= 0 ? (rawValue as string) : '0';
+        } else {
+          nextState[key] = rawValue;
+        }
+
+        const { unitPrice, unitTmDirect, unitTmInter } = getUnitMetrics(nextState);
+        const parsedVolume = Number(nextState.volume) || 0;
+        const hasUnitMetrics = unitPrice > 0 || unitTmDirect > 0 || unitTmInter > 0;
+        const effectiveVolume = parsedVolume > 0 ? parsedVolume : hasUnitMetrics ? 1 : 0;
+
+        const computedSalePrice =
+          unitPrice > 0 && effectiveVolume > 0 ? unitPrice * effectiveVolume : unitPrice > 0 ? unitPrice : 0;
+        nextState.salePrice =
+          computedSalePrice > 0 ? computedSalePrice.toFixed(2) : hasUnitMetrics && unitPrice > 0 ? unitPrice.toFixed(2) : '0';
+
+        const computedTmDirect =
+          unitTmDirect > 0 && effectiveVolume > 0 ? unitTmDirect * effectiveVolume : unitTmDirect > 0 ? unitTmDirect : 0;
+        nextState.tmDirect = computedTmDirect > 0 ? (computedTmDirect * 100).toFixed(2) : '0';
+
+        const computedTmInter =
+          unitTmInter > 0 && effectiveVolume > 0 ? unitTmInter * effectiveVolume : unitTmInter > 0 ? unitTmInter : 0;
+        nextState.margeInterGroupe = computedTmInter > 0 ? (computedTmInter * 100).toFixed(2) : '0';
+
+        return nextState;
+      });
+    },
+    [getUnitMetrics]
+  );
 
   const columns = useObjectifColumns({
     hasUpdate: hasUpdatePermission,
@@ -493,6 +737,9 @@ export const ObjectifManagement: React.FC = () => {
           marques={marques}
           modeles={modeles}
           versions={versions}
+          marquesCount={marquesTotal}
+          modelesCount={modelesTotal}
+          versionsCount={versionsTotal}
           groupements={groupements}
           sites={sites}
           onClose={handleCloseDialog}

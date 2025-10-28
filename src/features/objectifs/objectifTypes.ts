@@ -1,6 +1,7 @@
 // src/features/objectifs/objectifTypes.ts
 
 export interface ObjectifFormState {
+  targetType: 'marque' | 'modele' | 'version';
   groupementId: number;
   siteId: number;
   periodeId: number;

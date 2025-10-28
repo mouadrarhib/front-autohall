@@ -1,4 +1,5 @@
 // src/features/users/EditUser.tsx
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -25,6 +26,7 @@ import {
   DialogActions,
   IconButton,
   InputAdornment,
+  Stack,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
@@ -43,13 +45,15 @@ interface Site {
 export const EditUser: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  
+
   const [user, setUser] = useState<any>(null);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Password dialog states
   const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -80,7 +84,7 @@ export const EditUser: React.FC = () => {
       const userData = await authApi.getUserCompleteInfo(Number(userId));
       setUser(userData);
 
-      // Set form data
+      // Set form data with proper field mapping
       setFormData({
         username: userData.Username || userData.username || '',
         fullName: userData.FullName || userData.full_name || '',
@@ -102,13 +106,20 @@ export const EditUser: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!userId) return;
 
     try {
       setSaving(true);
       setError(null);
       setSuccessMessage(null);
+
+      console.log('Updating user with data:', {
+        username: formData.username,
+        fullName: formData.fullName,
+        email: formData.email,
+        idUserSite: formData.idUserSite,
+        actif: formData.actif,
+      });
 
       // Update user information
       await authApi.updateUser(Number(userId), {
@@ -120,14 +131,14 @@ export const EditUser: React.FC = () => {
       });
 
       setSuccessMessage('User updated successfully!');
-      
-      // Reload user data
+
+      // Reload user data to show updated information
       await loadData();
-      
-      // Navigate back after 2 seconds
+
+      // Navigate back to users list after showing success message
       setTimeout(() => {
-        navigate(`/users/${userId}`);
-      }, 2000);
+        navigate('/users'); // Fixed: navigate to /users instead of /users/${userId}
+      }, 1500);
     } catch (err: any) {
       console.error('Failed to update user:', err);
       setError(err.response?.data?.error || 'Failed to update user');
@@ -160,7 +171,7 @@ export const EditUser: React.FC = () => {
       setPasswordError(null);
 
       await authApi.updateUserPassword(Number(userId), newPassword);
-
+      
       setSuccessMessage('Password updated successfully!');
       setOpenPasswordDialog(false);
       setNewPassword('');
@@ -201,18 +212,29 @@ export const EditUser: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Skeleton variant="rectangular" height={400} />
+      <Box>
+        <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+          <Skeleton variant="circular" width={40} height={40} />
+          <Skeleton variant="text" width={200} height={40} />
+        </Stack>
+        <Card>
+          <CardContent>
+            <Skeleton variant="text" width="100%" height={60} />
+            <Skeleton variant="rectangular" width="100%" height={200} sx={{ mt: 2 }} />
+          </CardContent>
+        </Card>
       </Box>
     );
   }
 
   if (!user) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">User not found</Alert>
+      <Box>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          User not found
+        </Alert>
         <Button
-          startIcon={<ArrowBackIcon />}
+          variant="contained"
           onClick={() => navigate('/users')}
           sx={{ mt: 2 }}
         >
@@ -223,16 +245,16 @@ export const EditUser: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-        <Box display="flex" alignItems="center" gap={2}>
+    <Box>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
+        <Stack direction="row" alignItems="center" spacing={2}>
           <IconButton onClick={() => navigate('/users')}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" fontWeight={600}>
+          <Typography variant="h5" fontWeight={700}>
             Edit User: {formData.username}
           </Typography>
-        </Box>
+        </Stack>
         <Button
           variant="outlined"
           startIcon={<LockResetIcon />}
@@ -245,33 +267,31 @@ export const EditUser: React.FC = () => {
         >
           Change Password
         </Button>
-      </Box>
+      </Stack>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3, borderRadius: 2 }}>
           {error}
         </Alert>
       )}
 
       {successMessage && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage(null)}>
+        <Alert severity="success" onClose={() => setSuccessMessage(null)} sx={{ mb: 3, borderRadius: 2 }}>
           {successMessage}
         </Alert>
       )}
 
-      <Card>
-        <CardContent>
+      <Card elevation={0} sx={{ borderRadius: 3 }}>
+        <CardContent sx={{ p: 3 }}>
           <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              {/* Basic Information */}
-              <Grid item xs={12}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Basic Information
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-              </Grid>
+            {/* Basic Information */}
+            <Typography variant="h6" fontWeight={700} gutterBottom>
+              Basic Information
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
 
-              <Grid item xs={12} md={6}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
                   label="Username"
@@ -279,10 +299,11 @@ export const EditUser: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   required
                   disabled={saving}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
                   label="Full Name"
@@ -290,10 +311,11 @@ export const EditUser: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
                   disabled={saving}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
                   label="Email"
@@ -302,17 +324,29 @@ export const EditUser: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                   disabled={saving}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               </Grid>
+            </Grid>
 
+            {/* Site Assignment */}
+            <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mt: 4 }}>
+              Site Assignment
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
+
+            <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth required disabled={saving}>
-                  <InputLabel>Site Assignment</InputLabel>
+                <FormControl fullWidth>
+                  <InputLabel>Site</InputLabel>
                   <Select
                     value={formData.idUserSite}
-                    label="Site Assignment"
+                    label="Site"
                     onChange={(e) => setFormData({ ...formData, idUserSite: Number(e.target.value) })}
+                    disabled={saving}
+                    sx={{ borderRadius: 2 }}
                   >
+                    <MenuItem value={0}>Select Site</MenuItem>
                     {sites.map((site) => (
                       <MenuItem key={site.id} value={site.id}>
                         {site.name} ({site.type})
@@ -321,82 +355,91 @@ export const EditUser: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-
-              {/* Status */}
-              <Grid item xs={12}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Status
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={formData.actif}
-                      onChange={handleToggleActive}
-                      disabled={saving}
-                      color="success"
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1" fontWeight={600}>
-                        {formData.actif ? 'Active' : 'Inactive'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {formData.actif
-                          ? 'User can log in and access the system'
-                          : 'User cannot log in or access the system'}
-                      </Typography>
-                    </Box>
-                  }
-                />
-              </Grid>
-
-              {/* Action Buttons */}
-              <Grid item xs={12}>
-                <Divider sx={{ my: 2 }} />
-                <Box display="flex" gap={2} justifyContent="flex-end">
-                  <Button
-                    variant="outlined"
-                    onClick={() => navigate(`/users/${userId}`)}
-                    disabled={saving}
-                    sx={{ borderRadius: 2, textTransform: 'none' }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
-                    disabled={saving}
-                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-                  >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </Box>
-              </Grid>
             </Grid>
+
+            {/* Status */}
+            <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mt: 4 }}>
+              Status
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.actif}
+                  onChange={handleToggleActive}
+                  disabled={saving}
+                  color="success"
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body1" fontWeight={600}>
+                    {formData.actif ? 'Active' : 'Inactive'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {formData.actif
+                      ? 'User can log in and access the system'
+                      : 'User cannot log in or access the system'}
+                  </Typography>
+                </Box>
+              }
+            />
+
+            {/* Action Buttons */}
+            <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/users')}
+                disabled={saving}
+                sx={{ borderRadius: 2, textTransform: 'none' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+                disabled={saving}
+                sx={{ 
+                  borderRadius: 2, 
+                  textTransform: 'none', 
+                  fontWeight: 600,
+                  boxShadow: '0 8px 16px rgba(37, 99, 235, 0.3)',
+                  '&:hover': {
+                    boxShadow: '0 12px 24px rgba(37, 99, 235, 0.4)',
+                  },
+                }}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </Box>
           </form>
         </CardContent>
       </Card>
 
       {/* Change Password Dialog */}
-      <Dialog 
-        open={openPasswordDialog} 
+      <Dialog
+        open={openPasswordDialog}
         onClose={() => !changingPassword && setOpenPasswordDialog(false)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}
       >
-        <DialogTitle>Change Password</DialogTitle>
+        <DialogTitle>
+          <Typography variant="h6" fontWeight={700}>
+            Change Password
+          </Typography>
+        </DialogTitle>
         <DialogContent>
           {passwordError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
               {passwordError}
             </Alert>
           )}
+
           <TextField
             fullWidth
             label="New Password"
@@ -405,6 +448,7 @@ export const EditUser: React.FC = () => {
             onChange={(e) => setNewPassword(e.target.value)}
             disabled={changingPassword}
             margin="normal"
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -418,18 +462,20 @@ export const EditUser: React.FC = () => {
               ),
             }}
           />
+
           <TextField
             fullWidth
-            label="Confirm New Password"
+            label="Confirm Password"
             type={showPassword ? 'text' : 'password'}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={changingPassword}
             margin="normal"
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button 
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button
             onClick={() => {
               setOpenPasswordDialog(false);
               setNewPassword('');
@@ -437,6 +483,7 @@ export const EditUser: React.FC = () => {
               setPasswordError(null);
             }}
             disabled={changingPassword}
+            sx={{ borderRadius: 2, textTransform: 'none' }}
           >
             Cancel
           </Button>
@@ -445,6 +492,11 @@ export const EditUser: React.FC = () => {
             variant="contained"
             disabled={changingPassword}
             startIcon={changingPassword ? <CircularProgress size={20} /> : <LockResetIcon />}
+            sx={{ 
+              borderRadius: 2, 
+              textTransform: 'none', 
+              fontWeight: 600 
+            }}
           >
             {changingPassword ? 'Updating...' : 'Update Password'}
           </Button>

@@ -121,7 +121,7 @@ export const VersionFilters: React.FC<VersionFiltersProps> = ({
 
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="small">
-                <InputLabel>Marque (optionnel)</InputLabel>
+                <InputLabel>Marque</InputLabel>
                 <Select
                   value={filterMarqueId === 'all' ? '' : filterMarqueId}
                   label="Marque (optionnel)"
@@ -143,7 +143,7 @@ export const VersionFilters: React.FC<VersionFiltersProps> = ({
 
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="small">
-                <InputLabel>Modele (optionnel)</InputLabel>
+                <InputLabel>Modele</InputLabel>
                 <Select
                   value={filterModeleId === 'all' ? '' : filterModeleId}
                   label="Modele (optionnel)"
