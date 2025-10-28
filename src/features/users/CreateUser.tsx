@@ -40,8 +40,8 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { authApi } from '../../api/endpoints/auth.api';
 import { groupementApi } from '../../api/endpoints/groupement.api';
-import { permissionsApi } from '../../api/endpoints/permissions.api';
 import { roleApi } from '../../api/endpoints/role.api';
+import { rolePermissionApi } from '../../api/endpoints/rolePermission.api';
 import type { Groupement } from '../../types/usersite.types';
 import type { Permission } from '../../types/permission.types';
 import type { Role } from '../../types/role.types';
@@ -58,6 +58,37 @@ interface CreateUserFormData {
   actif: boolean;
 }
 
+const normalizeRolePermission = (raw: any): Permission | null => {
+  const id =
+    raw?.idPermission ??
+    raw?.permissionId ??
+    raw?.IdPermission ??
+    raw?.permission_id ??
+    raw?.id ??
+    null;
+
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    name:
+      raw?.permissionName ??
+      raw?.PermissionName ??
+      raw?.name ??
+      raw?.permission_name ??
+      '',
+    active: Boolean(
+      raw?.permissionActive ??
+        raw?.PermissionActive ??
+        raw?.active ??
+        raw?.Active ??
+        true
+    ),
+  };
+};
+
 const steps = ['User Information', 'Site Assignment', 'Roles & Permissions'];
 
 export const CreateUser: React.FC = () => {
@@ -72,6 +103,11 @@ export const CreateUser: React.FC = () => {
   const [sites, setSites] = useState<any[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [rolePermissionsCache, setRolePermissionsCache] = useState<
+    Record<number, Permission[]>
+  >({});
+  const [isLoadingRolePermissions, setIsLoadingRolePermissions] = useState(false);
+  const [permissionsError, setPermissionsError] = useState<string | null>(null);
 
   // Selection states
   const [selectedGroupement, setSelectedGroupement] = useState<Groupement | null>(null);
@@ -99,22 +135,20 @@ export const CreateUser: React.FC = () => {
         setLoadingData(true);
         setError(null);
 
-        // Load groupements, roles, and permissions in parallel
-        const [groupementsData, rolesData, permissionsData] = await Promise.all([
+        // Load groupements and roles in parallel
+        const [groupementsData, rolesData] = await Promise.all([
           groupementApi.listGroupements(),
           roleApi.listRoles(),
-          permissionsApi.listPermissions({ active: true, pageSize: 1000 }),
         ]);
 
         console.log('Loaded data:', {
           groupements: groupementsData,
           roles: rolesData,
-          permissions: permissionsData,
         });
 
         setGroupements(groupementsData.filter((g) => g.active));
         setRoles(rolesData.filter((r: Role) => r.active));
-        setPermissions(permissionsData.data || []);
+        setPermissions([]);
       } catch (err: any) {
         console.error('Failed to load initial data:', err);
         setError('Failed to load form data. Please refresh the page.');
@@ -125,6 +159,127 @@ export const CreateUser: React.FC = () => {
 
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    if (loadingData) {
+      return;
+    }
+
+    if (selectedRoles.length === 0) {
+      setPermissions([]);
+      setSelectedPermissions([]);
+      setPermissionsError(null);
+      setIsLoadingRolePermissions(false);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const updatePermissionsForRoles = async () => {
+      const aggregated = new Map<number, Permission>();
+
+      selectedRoles.forEach((roleId) => {
+        const cachedPermissions = rolePermissionsCache[roleId] || [];
+        cachedPermissions.forEach((permission) => {
+          aggregated.set(permission.id, permission);
+        });
+      });
+
+      const missingRoleIds = selectedRoles.filter(
+        (roleId) => !rolePermissionsCache[roleId]
+      );
+
+      if (missingRoleIds.length === 0) {
+        const sortedPermissions = Array.from(aggregated.values()).sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+        setPermissions(sortedPermissions);
+        setSelectedPermissions((prev) =>
+          prev.filter((id) => aggregated.has(id))
+        );
+        setPermissionsError(null);
+        return;
+      }
+
+      setIsLoadingRolePermissions(true);
+      setPermissionsError(null);
+
+      try {
+        const fetched = await Promise.all(
+          missingRoleIds.map(async (roleId) => {
+            const response = await rolePermissionApi.getPermissionsByRole(
+              roleId,
+              true
+            );
+            const normalized = response
+              .map(normalizeRolePermission)
+              .filter(
+                (permission): permission is Permission => Boolean(permission)
+              );
+
+            normalized.forEach((permission) => {
+              aggregated.set(permission.id, permission);
+            });
+
+            return { roleId, permissions: normalized };
+          })
+        );
+
+        if (isCancelled) {
+          return;
+        }
+
+        if (fetched.length > 0) {
+          setRolePermissionsCache((prev) => {
+            const updated = { ...prev };
+            fetched.forEach(({ roleId, permissions }) => {
+              updated[roleId] = permissions;
+            });
+            return updated;
+          });
+        }
+
+        const sortedPermissions = Array.from(aggregated.values()).sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+
+        setPermissions(sortedPermissions);
+        setSelectedPermissions((prev) =>
+          prev.filter((id) => aggregated.has(id))
+        );
+      } catch (err) {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error('Failed to load permissions for selected roles:', err);
+        setPermissionsError(
+          'Unable to load permissions for the selected roles.'
+        );
+
+        const fallbackPermissions = Array.from(aggregated.values()).sort(
+          (a, b) => a.name.localeCompare(b.name)
+        );
+        setPermissions(fallbackPermissions);
+
+        if (aggregated.size > 0) {
+          setSelectedPermissions((prev) =>
+            prev.filter((id) => aggregated.has(id))
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingRolePermissions(false);
+        }
+      }
+    };
+
+    updatePermissionsForRoles();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedRoles, rolePermissionsCache, loadingData]);
 
   const handleGroupementChange = async (groupementId: number) => {
     if (!groupementId) {
@@ -678,48 +833,89 @@ export const CreateUser: React.FC = () => {
                       </Typography>
                       <Divider sx={{ my: 2 }} />
                       
-                      <Box
-                        sx={{
-                          maxHeight: 300,
-                          overflow: 'auto',
-                          border: (theme) => `1px solid ${theme.palette.divider}`,
-                          borderRadius: 1,
-                        }}
-                      >
-                        <List dense>
-                          {permissions.length === 0 ? (
-                            <ListItem>
-                              <ListItemText 
-                                primary="No permissions available" 
-                                secondary="Contact administrator"
-                              />
-                            </ListItem>
+                        <Box
+                          sx={{
+                            maxHeight: 300,
+                            overflow: 'auto',
+                            border: (theme) => `1px solid ${theme.palette.divider}`,
+                            borderRadius: 1,
+                          }}
+                        >
+                          {isLoadingRolePermissions ? (
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                py: 4,
+                                gap: 1,
+                              }}
+                            >
+                              <CircularProgress size={24} color="secondary" />
+                              <Typography variant="body2" color="text.secondary">
+                                Loading permissions for the selected role(s)...
+                              </Typography>
+                            </Box>
                           ) : (
-                            permissions.map((permission) => (
-                              <ListItem
-                                key={permission.id}
-                                button
-                                onClick={() => handlePermissionToggle(permission.id)}
-                                sx={{
-                                  '&:hover': {
-                                    backgroundColor: (theme) => alpha(theme.palette.secondary.main, 0.08),
-                                  },
-                                }}
-                              >
-                                <ListItemText primary={permission.name} />
-                                <ListItemSecondaryAction>
-                                  <Checkbox
-                                    edge="end"
-                                    checked={selectedPermissions.includes(permission.id)}
-                                    onChange={() => handlePermissionToggle(permission.id)}
-                                    color="secondary"
-                                  />
-                                </ListItemSecondaryAction>
-                              </ListItem>
-                            ))
+                            <>
+                              {permissionsError && (
+                                <Alert severity="error" sx={{ m: 2, borderRadius: 1 }}>
+                                  {permissionsError}
+                                </Alert>
+                              )}
+                              <List dense>
+                                {selectedRoles.length === 0 ? (
+                                  <ListItem>
+                                    <ListItemText
+                                      primary="Select at least one role to view permissions"
+                                      secondary="Permissions are loaded automatically based on the selected role(s)"
+                                    />
+                                  </ListItem>
+                                ) : permissions.length === 0 ? (
+                                  <ListItem>
+                                    <ListItemText
+                                      primary={
+                                        selectedRoles.length > 0
+                                          ? 'No permissions found for the selected role(s)'
+                                          : 'No permissions available'
+                                      }
+                                      secondary={
+                                        selectedRoles.length > 0
+                                          ? 'Review the selected role configuration or pick a different role'
+                                          : 'Contact administrator'
+                                      }
+                                    />
+                                  </ListItem>
+                                ) : (
+                                  permissions.map((permission) => (
+                                    <ListItem
+                                      key={permission.id}
+                                      button
+                                      onClick={() => handlePermissionToggle(permission.id)}
+                                      sx={{
+                                        '&:hover': {
+                                          backgroundColor: (theme) =>
+                                            alpha(theme.palette.secondary.main, 0.08),
+                                        },
+                                      }}
+                                    >
+                                      <ListItemText primary={permission.name} />
+                                      <ListItemSecondaryAction>
+                                        <Checkbox
+                                          edge="end"
+                                          checked={selectedPermissions.includes(permission.id)}
+                                          onChange={() => handlePermissionToggle(permission.id)}
+                                          color="secondary"
+                                        />
+                                      </ListItemSecondaryAction>
+                                    </ListItem>
+                                  ))
+                                )}
+                              </List>
+                            </>
                           )}
-                        </List>
-                      </Box>
+                        </Box>
                       
                       <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                         {selectedPermissions.length > 0 && <CheckCircleIcon color="success" fontSize="small" />}
