@@ -136,7 +136,7 @@ export const UserList: React.FC = () => {
     isMediumScreen,
     onView: handleViewClick,
     onEdit: handleEditClick,
-    onPermissions: handlePermissionsClick,
+    //onPermissions: handlePermissionsClick,
   });
 
   const handlePaginationChange = (model: GridPaginationModel) => {

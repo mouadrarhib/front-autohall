@@ -23,6 +23,12 @@ export interface ObjectifView {
   versionName: string | null;
   volume: number;
   price: number;
+  SalePrice?: number;
+  salePrice?: number;
+  TMDirect?: number;
+  tmDirect?: number;
+  MargeInterGroupe?: number;
+  margeInterGroupe?: number;
   TauxMarge: number;
   ChiffreDaffaire: number;
   Marge: number;

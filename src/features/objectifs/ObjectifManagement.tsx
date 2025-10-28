@@ -1,25 +1,36 @@
 // src/features/objectifs/ObjectifManagement.tsx
 
-import React, { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Box, Stack } from '@mui/material';
-import type { GridPaginationModel } from '@mui/x-data-grid';
-import { objectifApi, ObjectifView } from '../../api/endpoints/objectif.api';
-import { periodeApi, Periode } from '../../api/endpoints/periode.api';
-import { typeventeApi, TypeVente } from '../../api/endpoints/typevente.api';
-import { typeobjectifApi, TypeObjectif } from '../../api/endpoints/typeobjectif.api';
-import { marqueApi, Marque } from '../../api/endpoints/marque.api';
-import { modeleApi, Modele } from '../../api/endpoints/modele.api';
-import { versionApi, Version } from '../../api/endpoints/version.api';
-import { groupementApi } from '../../api/endpoints/groupement.api';
-import { filialeApi, Filiale } from '../../api/endpoints/filiale.api';
-import { succursaleApi, Succursale } from '../../api/endpoints/succursale.api';
-import { useAuthStore } from '../../store/authStore';
-import type { Groupement } from '../../types/usersite.types';
-import { ObjectifFilters } from './ObjectifFilters';
-import { ObjectifTable } from './ObjectifTable';
-import { ObjectifDialog } from './ObjectifDialog';
-import { useObjectifColumns } from './useObjectifColumns';
-import type { ObjectifFormState, PaginationState } from './objectifTypes';
+import React, {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Box, Stack } from "@mui/material";
+import type { GridPaginationModel } from "@mui/x-data-grid";
+import { objectifApi, ObjectifView } from "../../api/endpoints/objectif.api";
+import { periodeApi, Periode } from "../../api/endpoints/periode.api";
+import { typeventeApi, TypeVente } from "../../api/endpoints/typevente.api";
+import {
+  typeobjectifApi,
+  TypeObjectif,
+} from "../../api/endpoints/typeobjectif.api";
+import { marqueApi, Marque } from "../../api/endpoints/marque.api";
+import { modeleApi, Modele } from "../../api/endpoints/modele.api";
+import { versionApi, Version } from "../../api/endpoints/version.api";
+import { groupementApi } from "../../api/endpoints/groupement.api";
+import { filialeApi, Filiale } from "../../api/endpoints/filiale.api";
+import { succursaleApi, Succursale } from "../../api/endpoints/succursale.api";
+import { useAuthStore } from "../../store/authStore";
+import type { Groupement } from "../../types/usersite.types";
+import { ObjectifFilters } from "./ObjectifFilters";
+import { ObjectifTable } from "./ObjectifTable";
+import { ObjectifDialog } from "./ObjectifDialog";
+import { ObjectifDetailsDialog } from "./ObjectifDetailsDialog"; // NEW
+import { useObjectifColumns } from "./useObjectifColumns";
+import type { ObjectifFormState, PaginationState } from "./objectifTypes";
 
 const extractArray = <T,>(payload: any): T[] => {
   if (!payload) return [];
@@ -32,8 +43,12 @@ const extractArray = <T,>(payload: any): T[] => {
 
 export const ObjectifManagement: React.FC = () => {
   const currentUser = useAuthStore((state) => state.user);
-  const hasCreatePermission = useAuthStore((state) => state.hasPermission('OBJECTIF_CREATE'));
-  const hasUpdatePermission = useAuthStore((state) => state.hasPermission('OBJECTIF_UPDATE'));
+  const hasCreatePermission = useAuthStore((state) =>
+    state.hasPermission("OBJECTIF_CREATE")
+  );
+  const hasUpdatePermission = useAuthStore((state) =>
+    state.hasPermission("OBJECTIF_UPDATE")
+  );
 
   const [objectifs, setObjectifs] = useState<ObjectifView[]>([]);
   const [periodes, setPeriodes] = useState<Periode[]>([]);
@@ -51,14 +66,17 @@ export const ObjectifManagement: React.FC = () => {
   const allMarquesRef = useRef<Marque[]>([]);
   const allModelesRef = useRef<Modele[]>([]);
   const allVersionsRef = useRef<Version[]>([]);
-
   const siteCache = useRef<{
     filiale?: Array<Filiale>;
     succursale?: Array<Succursale>;
   }>({});
-  const modeleCache = useRef<Record<number, { items: Modele[]; total: number }>>({});
-  const versionCache = useRef<Record<number, { items: Version[]; total: number }>>({});
-  const objectifsCache = useRef<Record<number, ObjectifView[]>>({});
+  const modeleCache = useRef<
+    Record<number, { items: Modele[]; total: number }>
+  >({});
+  const versionCache = useRef<
+    Record<number, { items: Version[]; total: number }>
+  >({});
+  const objectifsCache = useRef<Record<string, ObjectifView[]>>({});
 
   const [selectedPeriode, setSelectedPeriode] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -71,10 +89,12 @@ export const ObjectifManagement: React.FC = () => {
   });
 
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingObjectif, setEditingObjectif] = useState<ObjectifView | null>(null);
+  const [editingObjectif, setEditingObjectif] = useState<ObjectifView | null>(
+    null
+  );
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<ObjectifFormState>({
-    targetType: 'marque',
+    targetType: "marque",
     groupementId: 0,
     siteId: 0,
     periodeId: 0,
@@ -83,11 +103,16 @@ export const ObjectifManagement: React.FC = () => {
     marqueId: 0,
     modeleId: 0,
     versionId: 0,
-    volume: '',
-    salePrice: '',
-    tmDirect: '',
-    margeInterGroupe: '',
+    volume: "",
+    salePrice: "0",
+    chiffreAffaire: "0",
+    tmDirect: "",
+    margeInterGroupe: "",
   });
+
+  // View Details Dialog State (NEW)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewObjectif, setViewObjectif] = useState<ObjectifView | null>(null);
 
   const loadAllDropdownData = useCallback(async () => {
     try {
@@ -100,40 +125,43 @@ export const ObjectifManagement: React.FC = () => {
         modelesRes,
         versionsRes,
         groupementsRes,
-      ] =
-        await Promise.all([
-          periodeApi.listActivePeriodes({ pageSize: 1000 }),
-          typeventeApi.listActiveTypeVentes(),
-          typeobjectifApi.listActiveTypeObjectifs(),
-          marqueApi.list({ onlyActive: true, pageSize: 1000 }),
-          modeleApi.list({ onlyActive: true, pageSize: 1000 }),
-          versionApi.list({ onlyActive: true, pageSize: 1000 }),
-          groupementApi.listGroupements(),
-        ]);
+      ] = await Promise.all([
+        periodeApi.listActivePeriodes({ pageSize: 1000 }),
+        typeventeApi.listActiveTypeVentes(),
+        typeobjectifApi.listActiveTypeObjectifs(),
+        marqueApi.list({ onlyActive: true, pageSize: 1000 }),
+        modeleApi.list({ onlyActive: true, pageSize: 1000 }),
+        versionApi.list({ onlyActive: true, pageSize: 1000 }),
+        groupementApi.listGroupements(),
+      ]);
 
       setPeriodes(extractArray<Periode>(periodesRes.data));
       setTypeVentes(extractArray<TypeVente>(typeVentesRes.data));
       setTypeObjectifs(extractArray<TypeObjectif>(typeObjectifsRes.data));
+
       const marqueList = extractArray<Marque>(marquesRes.data);
       setMarques(marqueList);
       allMarquesRef.current = marqueList;
-      const totalMarques = marquesRes.pagination?.totalRecords ?? marqueList.length;
+      const totalMarques =
+        marquesRes.pagination?.totalRecords ?? marqueList.length;
       setMarquesTotal(totalMarques);
 
       const allModeles = extractArray<Modele>(modelesRes.data);
       allModelesRef.current = allModeles;
-      const totalModeles = modelesRes.pagination?.totalRecords ?? allModeles.length;
+      const totalModeles =
+        modelesRes.pagination?.totalRecords ?? allModeles.length;
       setModelesTotal(totalModeles);
 
       const allVersions = extractArray<Version>(versionsRes.data);
       allVersionsRef.current = allVersions;
-      const totalVersions = versionsRes.pagination?.totalRecords ?? allVersions.length;
+      const totalVersions =
+        versionsRes.pagination?.totalRecords ?? allVersions.length;
       setVersionsTotal(totalVersions);
 
       setGroupements(extractArray<Groupement>(groupementsRes));
     } catch (err: any) {
-      console.error('Failed to load dropdown data:', err);
-      setError(err.response?.data?.error || 'Failed to load data');
+      console.error("Failed to load dropdown data:", err);
+      setError(err.response?.data?.error || "Failed to load data");
       setMarquesTotal(0);
       setModelesTotal(0);
       setVersionsTotal(0);
@@ -153,10 +181,10 @@ export const ObjectifManagement: React.FC = () => {
 
         const normalizedName = groupement.name?.toLowerCase();
         const cacheKey =
-          normalizedName === 'filiale'
-            ? 'filiale'
-            : normalizedName === 'succursale'
-            ? 'succursale'
+          normalizedName === "filiale"
+            ? "filiale"
+            : normalizedName === "succursale"
+            ? "succursale"
             : undefined;
 
         if (cacheKey && siteCache.current[cacheKey]) {
@@ -166,11 +194,13 @@ export const ObjectifManagement: React.FC = () => {
         }
 
         let siteList: Array<Filiale | Succursale> = [];
-        if (normalizedName === 'filiale') {
+        if (normalizedName === "filiale") {
           const response = await filialeApi.listFiliales({ pageSize: 1000 });
           siteList = extractArray<Filiale>(response.data);
-        } else if (normalizedName === 'succursale') {
-          const response = await succursaleApi.listSuccursales({ pageSize: 1000 });
+        } else if (normalizedName === "succursale") {
+          const response = await succursaleApi.listSuccursales({
+            pageSize: 1000,
+          });
           siteList = extractArray<Succursale>(response.data);
         } else {
           setSites([]);
@@ -183,7 +213,7 @@ export const ObjectifManagement: React.FC = () => {
 
         startTransition(() => setSites(siteList));
       } catch (err: any) {
-        console.error('Failed to load sites:', err);
+        console.error("Failed to load sites:", err);
       }
     },
     [groupements]
@@ -206,12 +236,12 @@ export const ObjectifManagement: React.FC = () => {
 
       const items = response.data ?? [];
       const total = response.pagination?.totalRecords ?? items.length;
-      modeleCache.current[marqueId] = { items, total };
 
+      modeleCache.current[marqueId] = { items, total };
       startTransition(() => setModeles(items));
       setModelesTotal(total);
     } catch (err: any) {
-      console.error('Failed to load modeles:', err);
+      console.error("Failed to load modeles:", err);
       startTransition(() => setModeles([]));
       setModelesTotal(0);
     }
@@ -235,12 +265,12 @@ export const ObjectifManagement: React.FC = () => {
 
       const items = response.data ?? [];
       const total = response.pagination?.totalRecords ?? items.length;
-      versionCache.current[modeleId] = { items, total };
 
+      versionCache.current[modeleId] = { items, total };
       startTransition(() => setVersions(items));
       setVersionsTotal(total);
     } catch (err: any) {
-      console.error('Failed to load versions:', err);
+      console.error("Failed to load versions:", err);
       startTransition(() => setVersions([]));
       setVersionsTotal(0);
     }
@@ -248,14 +278,19 @@ export const ObjectifManagement: React.FC = () => {
 
   const loadObjectifs = useCallback(
     async (options: { force?: boolean } = {}) => {
-      if (!selectedPeriode) return;
-
       const { force = false } = options;
-      const cached = objectifsCache.current[selectedPeriode];
+
+      if (force) {
+        objectifsCache.current = {};
+      }
+
+      const cacheKey = selectedPeriode ? selectedPeriode.toString() : "all";
+      const cached = objectifsCache.current[cacheKey];
       const shouldShowLoader = !cached || force;
 
       if (cached && !force) {
         startTransition(() => setObjectifs(cached));
+        return;
       }
 
       try {
@@ -264,16 +299,16 @@ export const ObjectifManagement: React.FC = () => {
         }
 
         setError(null);
-        const response = await objectifApi.listObjectifsView({
-          periodeId: selectedPeriode,
-        });
+        const response = await objectifApi.listObjectifsView(
+          selectedPeriode ? { periodeId: selectedPeriode } : undefined
+        );
 
         const objectifsData = extractArray<ObjectifView>(response.data);
-        objectifsCache.current[selectedPeriode] = objectifsData;
+        objectifsCache.current[cacheKey] = objectifsData;
         startTransition(() => setObjectifs(objectifsData));
       } catch (err: any) {
-        console.error('Failed to load objectifs:', err);
-        setError(err.response?.data?.error || 'Failed to load objectifs');
+        console.error("Failed to load objectifs:", err);
+        setError(err.response?.data?.error || "Failed to load objectifs");
       } finally {
         if (shouldShowLoader) {
           setLoading(false);
@@ -288,9 +323,7 @@ export const ObjectifManagement: React.FC = () => {
   }, [loadAllDropdownData]);
 
   useEffect(() => {
-    if (selectedPeriode) {
-      loadObjectifs();
-    }
+    loadObjectifs();
   }, [selectedPeriode, loadObjectifs]);
 
   useEffect(() => {
@@ -300,13 +333,89 @@ export const ObjectifManagement: React.FC = () => {
   }, [formData.groupementId, loadSitesByGroupement]);
 
   useEffect(() => {
+    const selectedGroupement = groupements.find(
+      (groupement) => groupement.id === formData.groupementId
+    );
+    const normalizedGroupementName =
+      selectedGroupement?.name?.trim().toLowerCase() ?? "";
+
+    if (normalizedGroupementName === "filiale") {
+      if (!formData.siteId) {
+        startTransition(() => setMarques([]));
+        setMarquesTotal(0);
+        setFormData((prev) => {
+          if (
+            prev.marqueId === 0 &&
+            prev.modeleId === 0 &&
+            prev.versionId === 0
+          ) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            marqueId: 0,
+            modeleId: 0,
+            versionId: 0,
+            volume: "",
+            salePrice: "0",
+            chiffreAffaire: "0",
+            tmDirect: "",
+            margeInterGroupe: "",
+          };
+        });
+        return;
+      }
+
+      const filteredMarques = allMarquesRef.current.filter(
+        (marque) => marque.idFiliale === formData.siteId
+      );
+      startTransition(() => setMarques(filteredMarques));
+      setMarquesTotal(filteredMarques.length);
+
+      setFormData((prev) => {
+        const isCurrentMarqueValid = filteredMarques.some(
+          (marque) => marque.id === prev.marqueId
+        );
+        if (isCurrentMarqueValid) {
+          return prev;
+        }
+
+        if (
+          prev.marqueId === 0 &&
+          prev.modeleId === 0 &&
+          prev.versionId === 0
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          marqueId: 0,
+          modeleId: 0,
+          versionId: 0,
+          volume: "",
+          salePrice: "0",
+          chiffreAffaire: "0",
+          tmDirect: "",
+          margeInterGroupe: "",
+        };
+      });
+      return;
+    }
+
+    startTransition(() => setMarques(allMarquesRef.current));
+    setMarquesTotal(allMarquesRef.current.length);
+  }, [formData.groupementId, formData.siteId, groupements]);
+
+  useEffect(() => {
     if (!formData.marqueId) {
       setModeles([]);
       setModelesTotal(allModelesRef.current.length);
       return;
     }
 
-    if (formData.targetType === 'marque') {
+    if (formData.targetType === "marque") {
       setModeles([]);
       setModelesTotal(allModelesRef.current.length);
       return;
@@ -316,7 +425,7 @@ export const ObjectifManagement: React.FC = () => {
   }, [formData.marqueId, formData.targetType, loadModelesByMarque]);
 
   useEffect(() => {
-    if (!formData.modeleId || formData.targetType !== 'version') {
+    if (!formData.modeleId || formData.targetType !== "version") {
       setVersions([]);
       setVersionsTotal(allVersionsRef.current.length);
       return;
@@ -328,7 +437,8 @@ export const ObjectifManagement: React.FC = () => {
   useEffect(() => {
     setPagination((prev) => {
       const totalRecords = objectifs.length;
-      const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / prev.pageSize) : 1;
+      const totalPages =
+        totalRecords > 0 ? Math.ceil(totalRecords / prev.pageSize) : 1;
       const nextPage = Math.min(Math.max(prev.page, 1), totalPages);
 
       if (
@@ -353,7 +463,8 @@ export const ObjectifManagement: React.FC = () => {
       setPagination(() => {
         const nextPageSize = Math.max(model.pageSize, 1);
         const totalRecords = objectifs.length;
-        const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / nextPageSize) : 1;
+        const totalPages =
+          totalRecords > 0 ? Math.ceil(totalRecords / nextPageSize) : 1;
         const requestedPage = Math.min(Math.max(model.page + 1, 1), totalPages);
 
         return {
@@ -372,17 +483,49 @@ export const ObjectifManagement: React.FC = () => {
     return objectifs.slice(startIndex, startIndex + pagination.pageSize);
   }, [objectifs, pagination.page, pagination.pageSize]);
 
+  // Handle View Details (NEW)
+  const handleViewObjectif = useCallback((objectif: ObjectifView) => {
+    setViewObjectif(objectif);
+    setViewDialogOpen(true);
+  }, []);
+
+  const handleCloseViewDialog = useCallback(() => {
+    setViewDialogOpen(false);
+    setViewObjectif(null);
+  }, []);
+
   const handleOpenDialog = useCallback(
     (objectif?: ObjectifView) => {
       if (objectif) {
+        const toNumber = (value: unknown): number => {
+          if (typeof value === "number" && Number.isFinite(value)) {
+            return value;
+          }
+          if (typeof value === "string") {
+            const parsed = Number.parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+          }
+          return 0;
+        };
+
         const inferredTargetType =
           objectif.versionID && objectif.versionID > 0
-            ? 'version'
+            ? "version"
             : objectif.modeleID && objectif.modeleID > 0
-            ? 'modele'
-            : 'marque';
+            ? "modele"
+            : "marque";
 
         setEditingObjectif(objectif);
+
+        const salePriceValue = toNumber(objectif.price);
+        const tmDirectValue = toNumber(
+          objectif.TMDirect ?? objectif.tmDirect ?? objectif.TauxMarge
+        );
+        const tmInterValue = toNumber(
+          objectif.MargeInterGroupe ?? objectif.margeInterGroupe
+        );
+        const chiffreAffaireValue = toNumber(objectif.ChiffreDaffaire);
+
         setFormData({
           targetType: inferredTargetType,
           groupementId: objectif.groupementID,
@@ -394,50 +537,56 @@ export const ObjectifManagement: React.FC = () => {
           modeleId: objectif.modeleID || 0,
           versionId: objectif.versionID || 0,
           volume: objectif.volume.toString(),
-          salePrice: objectif.price.toString(),
-          tmDirect: (objectif.TauxMarge * 100).toFixed(2),
-          margeInterGroupe: '0',
+          salePrice: salePriceValue > 0 ? salePriceValue.toFixed(2) : "0",
+          chiffreAffaire:
+            chiffreAffaireValue > 0 ? chiffreAffaireValue.toFixed(2) : "0",
+          tmDirect: (tmDirectValue * 100).toFixed(2),
+          margeInterGroupe: (tmInterValue * 100).toFixed(2),
         });
 
         const normalizedGroupement = objectif.groupementName?.toLowerCase();
         const siteCacheKey =
-          normalizedGroupement === 'filiale'
-            ? 'filiale'
-            : normalizedGroupement === 'succursale'
-            ? 'succursale'
+          normalizedGroupement === "filiale"
+            ? "filiale"
+            : normalizedGroupement === "succursale"
+            ? "succursale"
             : undefined;
 
         if (siteCacheKey && siteCache.current[siteCacheKey]) {
-          startTransition(() => setSites(siteCache.current[siteCacheKey] ?? []));
+          startTransition(() =>
+            setSites(siteCache.current[siteCacheKey] ?? [])
+          );
         }
 
         const objectifMarqueId = objectif.marqueID;
-        if (typeof objectifMarqueId === 'number' && objectifMarqueId > 0) {
+        if (typeof objectifMarqueId === "number" && objectifMarqueId > 0) {
           const cachedModeles = modeleCache.current[objectifMarqueId];
           if (cachedModeles) {
             startTransition(() => setModeles(cachedModeles.items));
             setModelesTotal(cachedModeles.total);
           }
+
           if (!cachedModeles) {
             void loadModelesByMarque(objectifMarqueId);
           }
+        }
 
-          const objectifModeleId = objectif.modeleID;
-          if (typeof objectifModeleId === 'number' && objectifModeleId > 0) {
-            const cachedVersions = versionCache.current[objectifModeleId];
-            if (cachedVersions) {
-              startTransition(() => setVersions(cachedVersions.items));
-              setVersionsTotal(cachedVersions.total);
-            }
-            if (!cachedVersions) {
-              void loadVersionsByModele(objectifModeleId);
-            }
+        const objectifModeleId = objectif.modeleID;
+        if (typeof objectifModeleId === "number" && objectifModeleId > 0) {
+          const cachedVersions = versionCache.current[objectifModeleId];
+          if (cachedVersions) {
+            startTransition(() => setVersions(cachedVersions.items));
+            setVersionsTotal(cachedVersions.total);
+          }
+
+          if (!cachedVersions) {
+            void loadVersionsByModele(objectifModeleId);
           }
         }
       } else {
         setEditingObjectif(null);
         setFormData({
-          targetType: 'marque',
+          targetType: "marque",
           groupementId: 0,
           siteId: 0,
           periodeId: selectedPeriode || 0,
@@ -446,16 +595,19 @@ export const ObjectifManagement: React.FC = () => {
           marqueId: 0,
           modeleId: 0,
           versionId: 0,
-          volume: '',
-          salePrice: '',
-          tmDirect: '',
-          margeInterGroupe: '',
+          volume: "",
+          salePrice: "0",
+          chiffreAffaire: "0",
+          tmDirect: "",
+          margeInterGroupe: "",
         });
+
         startTransition(() => {
           setSites([]);
           setModeles([]);
           setVersions([]);
         });
+
         setModelesTotal(allModelesRef.current.length);
         setVersionsTotal(allVersionsRef.current.length);
       }
@@ -473,25 +625,29 @@ export const ObjectifManagement: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      if (formData.targetType === 'marque' && !formData.marqueId) {
-        setError('Veuillez selectionner une marque.');
+      if (formData.targetType === "marque" && !formData.marqueId) {
+        setError("Veuillez selectionner une marque.");
         return;
       }
 
-      if (formData.targetType === 'modele') {
+      if (formData.targetType === "modele") {
         if (!formData.marqueId) {
-          setError('Veuillez selectionner une marque afin de choisir un modele.');
+          setError(
+            "Veuillez selectionner une marque afin de choisir un modele."
+          );
           return;
         }
         if (!formData.modeleId) {
-          setError('Veuillez selectionner un modele.');
+          setError("Veuillez selectionner un modele.");
           return;
         }
       }
 
-      if (formData.targetType === 'version') {
+      if (formData.targetType === "version") {
         if (!formData.marqueId || !formData.modeleId || !formData.versionId) {
-          setError('Veuillez selectionner une marque, un modele et une version.');
+          setError(
+            "Veuillez selectionner une marque, un modele et une version."
+          );
           return;
         }
       }
@@ -501,10 +657,11 @@ export const ObjectifManagement: React.FC = () => {
 
       const marqueIdPayload = formData.marqueId ? formData.marqueId : null;
       const modeleIdPayload =
-        formData.targetType === 'modele' || formData.targetType === 'version'
+        formData.targetType === "modele" || formData.targetType === "version"
           ? formData.modeleId || null
           : null;
-      const versionIdPayload = formData.targetType === 'version' ? formData.versionId || null : null;
+      const versionIdPayload =
+        formData.targetType === "version" ? formData.versionId || null : null;
 
       const apiData = {
         userId: currentUser?.id || 0,
@@ -531,15 +688,16 @@ export const ObjectifManagement: React.FC = () => {
       handleCloseDialog();
       await loadObjectifs({ force: true });
     } catch (err: any) {
-      console.error('Failed to save objectif:', err);
+      console.error("Failed to save objectif:", err);
       const apiError = err.response?.data;
-      if (apiError?.details && typeof apiError.details === 'object') {
+
+      if (apiError?.details && typeof apiError.details === "object") {
         const detailMessages = Object.values(apiError.details)
-          .filter((message): message is string => typeof message === 'string')
-          .join(' • ');
-        setError(detailMessages || apiError.error || 'Failed to save objectif');
+          .filter((message): message is string => typeof message === "string")
+          .join(" • ");
+        setError(detailMessages || apiError.error || "Failed to save objectif");
       } else {
-        setError(apiError?.error || err.message || 'Failed to save objectif');
+        setError(apiError?.error || err.message || "Failed to save objectif");
       }
     } finally {
       setSaving(false);
@@ -547,12 +705,17 @@ export const ObjectifManagement: React.FC = () => {
   };
 
   const getUnitMetrics = useCallback(
-    (nextState: ObjectifFormState): {
+    (
+      nextState: ObjectifFormState
+    ): {
       unitPrice: number;
       unitTmDirect: number;
       unitTmInter: number;
     } => {
-      const findById = <T extends { id: number }>(collections: T[][], id: number): T | undefined => {
+      const findById = <T extends { id: number }>(
+        collections: T[][],
+        id: number
+      ): T | undefined => {
         for (const collection of collections) {
           const match = collection.find((item) => item.id === id);
           if (match) return match;
@@ -597,7 +760,9 @@ export const ObjectifManagement: React.FC = () => {
       if (nextState.marqueId) {
         const selectedMarque =
           marques.find((marque) => marque.id === nextState.marqueId) ??
-          allMarquesRef.current.find((marque) => marque.id === nextState.marqueId);
+          allMarquesRef.current.find(
+            (marque) => marque.id === nextState.marqueId
+          );
 
         if (selectedMarque) {
           return {
@@ -618,60 +783,80 @@ export const ObjectifManagement: React.FC = () => {
   );
 
   const handleFormChange = useCallback(
-    <K extends keyof ObjectifFormState>(key: K, rawValue: ObjectifFormState[K]) => {
+    <K extends keyof ObjectifFormState>(
+      key: K,
+      rawValue: ObjectifFormState[K]
+    ) => {
       setFormData((prev) => {
         const nextState: ObjectifFormState = { ...prev };
 
-        if (key === 'targetType') {
-          const targetValue = (rawValue as ObjectifFormState['targetType']) ?? 'marque';
+        if (key === "targetType") {
+          const targetValue =
+            (rawValue as ObjectifFormState["targetType"]) ?? "marque";
           nextState.targetType = targetValue;
           nextState.marqueId = 0;
           nextState.modeleId = 0;
           nextState.versionId = 0;
-          nextState.volume = '';
-        } else if (key === 'marqueId') {
+          nextState.volume = "";
+          nextState.chiffreAffaire = "0";
+        } else if (key === "marqueId") {
           const marqueId = Number(rawValue) || 0;
           nextState.marqueId = marqueId;
-          if (nextState.targetType !== 'marque') {
+
+          if (nextState.targetType !== "marque") {
             nextState.modeleId = 0;
             nextState.versionId = 0;
           }
-          nextState.volume = '0';
-        } else if (key === 'modeleId') {
+
+          nextState.volume = "0";
+          nextState.chiffreAffaire = "0";
+        } else if (key === "modeleId") {
           const modeleId = Number(rawValue) || 0;
           nextState.modeleId = modeleId;
-          if (nextState.targetType === 'version') {
+
+          if (nextState.targetType === "version") {
             nextState.versionId = 0;
           }
-          nextState.volume = '0';
-        } else if (key === 'versionId') {
+
+          nextState.volume = "0";
+          nextState.chiffreAffaire = "0";
+        } else if (key === "versionId") {
           const versionId = Number(rawValue) || 0;
           nextState.versionId = versionId;
-          nextState.volume = '0';
-        } else if (key === 'volume') {
+          nextState.volume = "0";
+          nextState.chiffreAffaire = "0";
+        } else if (key === "volume") {
           const numericVolume = Number(rawValue);
-          nextState.volume = Number.isFinite(numericVolume) && numericVolume >= 0 ? (rawValue as string) : '0';
+          nextState.volume =
+            Number.isFinite(numericVolume) && numericVolume >= 0
+              ? (rawValue as string)
+              : "0";
         } else {
           nextState[key] = rawValue;
         }
 
-        const { unitPrice, unitTmDirect, unitTmInter } = getUnitMetrics(nextState);
+        const { unitPrice, unitTmDirect, unitTmInter } =
+          getUnitMetrics(nextState);
         const parsedVolume = Number(nextState.volume) || 0;
-        const hasUnitMetrics = unitPrice > 0 || unitTmDirect > 0 || unitTmInter > 0;
-        const effectiveVolume = parsedVolume > 0 ? parsedVolume : hasUnitMetrics ? 1 : 0;
 
-        const computedSalePrice =
-          unitPrice > 0 && effectiveVolume > 0 ? unitPrice * effectiveVolume : unitPrice > 0 ? unitPrice : 0;
+        const computedUnitPrice = unitPrice > 0 ? unitPrice : 0;
         nextState.salePrice =
-          computedSalePrice > 0 ? computedSalePrice.toFixed(2) : hasUnitMetrics && unitPrice > 0 ? unitPrice.toFixed(2) : '0';
+          computedUnitPrice > 0 ? computedUnitPrice.toFixed(2) : "0";
 
-        const computedTmDirect =
-          unitTmDirect > 0 && effectiveVolume > 0 ? unitTmDirect * effectiveVolume : unitTmDirect > 0 ? unitTmDirect : 0;
-        nextState.tmDirect = computedTmDirect > 0 ? (computedTmDirect * 100).toFixed(2) : '0';
+        const computedChiffreAffaire =
+          computedUnitPrice > 0 && parsedVolume > 0
+            ? computedUnitPrice * parsedVolume
+            : 0;
+        nextState.chiffreAffaire =
+          computedChiffreAffaire > 0 ? computedChiffreAffaire.toFixed(2) : "0";
 
-        const computedTmInter =
-          unitTmInter > 0 && effectiveVolume > 0 ? unitTmInter * effectiveVolume : unitTmInter > 0 ? unitTmInter : 0;
-        nextState.margeInterGroupe = computedTmInter > 0 ? (computedTmInter * 100).toFixed(2) : '0';
+        const computedTmDirect = unitTmDirect > 0 ? unitTmDirect : 0;
+        nextState.tmDirect =
+          computedTmDirect > 0 ? (computedTmDirect * 100).toFixed(2) : "0";
+
+        const computedTmInter = unitTmInter > 0 ? unitTmInter : 0;
+        nextState.margeInterGroupe =
+          computedTmInter > 0 ? (computedTmInter * 100).toFixed(2) : "0";
 
         return nextState;
       });
@@ -681,19 +866,20 @@ export const ObjectifManagement: React.FC = () => {
 
   const columns = useObjectifColumns({
     hasUpdate: hasUpdatePermission,
+    onView: handleViewObjectif, // NEW
     onEdit: handleOpenDialog,
   });
 
   return (
     <Box
       sx={{
-        p: 4,
+        p: 3,
         background: (theme) =>
-          theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))'
-            : 'linear-gradient(135deg, rgba(248,250,252,0.9), rgba(226,232,240,0.7))',
+          theme.palette.mode === "dark"
+            ? "linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))"
+            : "linear-gradient(135deg, rgba(248,250,252,0.9), rgba(226,232,240,0.7))",
         borderRadius: 4,
-        minHeight: '100%',
+        minHeight: "100%",
       }}
     >
       <Stack spacing={3}>
@@ -707,23 +893,15 @@ export const ObjectifManagement: React.FC = () => {
           onCreate={() => handleOpenDialog()}
         />
 
-        {!selectedPeriode && (
-          <Alert severity="info">
-            Veuillez sélectionner une période pour voir les objectifs.
-          </Alert>
-        )}
-
-        {selectedPeriode && (
-          <ObjectifTable
-            rows={paginatedObjectifs}
-            columns={columns}
-            loading={loading}
-            pagination={pagination}
-            onPaginationChange={handlePaginationChange}
-            error={error}
-            onClearError={() => setError(null)}
-          />
-        )}
+        <ObjectifTable
+          rows={paginatedObjectifs}
+          columns={columns}
+          loading={loading}
+          pagination={pagination}
+          onPaginationChange={handlePaginationChange}
+          error={error}
+          onClearError={() => setError(null)}
+        />
 
         <ObjectifDialog
           open={openDialog}
@@ -746,6 +924,13 @@ export const ObjectifManagement: React.FC = () => {
           onSave={handleSave}
           onChangeField={handleFormChange}
           onClearError={() => setError(null)}
+        />
+
+        {/* View Details Dialog */}
+        <ObjectifDetailsDialog
+          open={viewDialogOpen}
+          objectif={viewObjectif}
+          onClose={handleCloseViewDialog}
         />
       </Stack>
     </Box>

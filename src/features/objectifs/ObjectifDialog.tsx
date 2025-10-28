@@ -105,6 +105,19 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
     [versions, formState.versionId]
   );
 
+  const selectedTypeVente = useMemo(
+    () => typeVentes.find((type) => type.id === formState.typeVenteId),
+    [typeVentes, formState.typeVenteId]
+  );
+
+  const normalizedTypeVenteName = selectedTypeVente?.name?.trim().toLowerCase() ?? '';
+  const hasSelectedTypeVente = normalizedTypeVenteName.length > 0;
+  const isDirectTypeVente = normalizedTypeVenteName === 'direct';
+  const showTmDirectField = !hasSelectedTypeVente || isDirectTypeVente;
+  const showTmInterField = !hasSelectedTypeVente || !isDirectTypeVente;
+  const tmDirectEditable = isDirectTypeVente;
+  const tmInterEditable = hasSelectedTypeVente && !isDirectTypeVente;
+
   const formatCurrency = useMemo(
     () =>
       new Intl.NumberFormat('fr-FR', {
@@ -617,9 +630,9 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
 
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Prix unitaire actuel"
+                  label="Prix de vente (unitaire)"
                   type="number"
-                  value={formState.salePrice}
+                  value={formState.salePrice || '0'}
                   fullWidth
                   required
                   disabled={saving}
@@ -636,14 +649,14 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
 
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="TM direct actuel (%)"
+                  label="Chiffre d'affaire"
                   type="number"
-                  value={formState.tmDirect}
+                  value={formState.chiffreAffaire || '0'}
                   fullWidth
                   required
                   disabled={saving}
                   size={isMobile ? 'small' : 'medium'}
-                  inputProps={{ min: 0, max: 100, step: 0.01 }}
+                  inputProps={{ min: 0, step: 0.01 }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
@@ -653,24 +666,47 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Marge inter groupe actuelle (%)"
-                  type="number"
-                  value={formState.margeInterGroupe}
-                  fullWidth
-                  required
-                  disabled={saving}
-                  size={isMobile ? 'small' : 'medium'}
-                  inputProps={{ min: 0, max: 100, step: 0.01 }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                    },
-                  }}
-                  InputProps={{ readOnly: true }}
-                />
-              </Grid>
+              {showTmDirectField && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="TM direct (%)"
+                    type="number"
+                    value={formState.tmDirect}
+                    fullWidth
+                    required={tmDirectEditable}
+                    disabled={saving}
+                    size={isMobile ? 'small' : 'medium'}
+                    inputProps={{ min: 0, max: 100, step: 0.01 }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                      },
+                    }}
+                    InputProps={{ readOnly: true }}
+                  />
+                </Grid>
+              )}
+
+              {showTmInterField && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Marge inter groupe (%)"
+                    type="number"
+                    value={formState.margeInterGroupe}
+                    fullWidth
+                    required={tmInterEditable}
+                    disabled={saving}
+                    size={isMobile ? 'small' : 'medium'}
+                    inputProps={{ min: 0, max: 100, step: 0.01 }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                      },
+                    }}
+                    InputProps={{ readOnly: true }}
+                  />
+                </Grid>
+              )}
             </Grid>
           </Box>
         </Stack>
