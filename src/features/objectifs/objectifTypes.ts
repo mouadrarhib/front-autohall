@@ -12,6 +12,7 @@ export interface ObjectifFormState {
   versionId: number;
   volume: string;
   salePrice: string;
+  chiffreAffaire: string;
   tmDirect: string;
   margeInterGroupe: string;
 }

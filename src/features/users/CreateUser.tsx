@@ -1,6 +1,6 @@
 // src/features/users/CreateUser.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import {
@@ -31,17 +31,20 @@ import {
   IconButton,
   Stack,
   Paper,
+  Tooltip,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { authApi } from '../../api/endpoints/auth.api';
 import { groupementApi } from '../../api/endpoints/groupement.api';
 import { roleApi } from '../../api/endpoints/role.api';
 import { rolePermissionApi } from '../../api/endpoints/rolePermission.api';
+import { groupPermissions } from '../../utils/permissionGrouping';
 import type { Groupement } from '../../types/usersite.types';
 import type { Permission } from '../../types/permission.types';
 import type { Role } from '../../types/role.types';
@@ -108,6 +111,7 @@ export const CreateUser: React.FC = () => {
   >({});
   const [isLoadingRolePermissions, setIsLoadingRolePermissions] = useState(false);
   const [permissionsError, setPermissionsError] = useState<string | null>(null);
+  const [permissionSearch, setPermissionSearch] = useState('');
 
   // Selection states
   const [selectedGroupement, setSelectedGroupement] = useState<Groupement | null>(null);
@@ -280,6 +284,17 @@ export const CreateUser: React.FC = () => {
       isCancelled = true;
     };
   }, [selectedRoles, rolePermissionsCache, loadingData]);
+
+  useEffect(() => {
+    if (selectedRoles.length === 0 && permissionSearch) {
+      setPermissionSearch('');
+    }
+  }, [selectedRoles, permissionSearch]);
+
+  const permissionGroups = useMemo(
+    () => groupPermissions(permissions, { searchTerm: permissionSearch }),
+    [permissions, permissionSearch]
+  );
 
   const handleGroupementChange = async (groupementId: number) => {
     if (!groupementId) {
@@ -759,7 +774,6 @@ export const CreateUser: React.FC = () => {
                         Roles grant predefined sets of permissions
                       </Typography>
                       <Divider sx={{ my: 2 }} />
-                      
                       <Box
                         sx={{
                           maxHeight: 300,
@@ -832,10 +846,25 @@ export const CreateUser: React.FC = () => {
                         Grant specific permissions beyond role assignments
                       </Typography>
                       <Divider sx={{ my: 2 }} />
-                      
-                        <Box
-                          sx={{
-                            maxHeight: 300,
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Rechercher une permission..."
+                        value={permissionSearch}
+                        onChange={(e) => setPermissionSearch(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{ mb: 2 }}
+                      />
+
+                      <Box
+                        sx={{
+                          maxHeight: 300,
                             overflow: 'auto',
                             border: (theme) => `1px solid ${theme.palette.divider}`,
                             borderRadius: 1,
@@ -852,7 +881,7 @@ export const CreateUser: React.FC = () => {
                                 gap: 1,
                               }}
                             >
-                              <CircularProgress size={24} color="secondary" />
+                              <CircularProgress size={24} color="primary" />
                               <Typography variant="body2" color="text.secondary">
                                 Loading permissions for the selected role(s)...
                               </Typography>
@@ -864,55 +893,91 @@ export const CreateUser: React.FC = () => {
                                   {permissionsError}
                                 </Alert>
                               )}
-                              <List dense>
-                                {selectedRoles.length === 0 ? (
-                                  <ListItem>
-                                    <ListItemText
-                                      primary="Select at least one role to view permissions"
-                                      secondary="Permissions are loaded automatically based on the selected role(s)"
-                                    />
-                                  </ListItem>
-                                ) : permissions.length === 0 ? (
-                                  <ListItem>
-                                    <ListItemText
-                                      primary={
-                                        selectedRoles.length > 0
-                                          ? 'No permissions found for the selected role(s)'
-                                          : 'No permissions available'
-                                      }
-                                      secondary={
-                                        selectedRoles.length > 0
-                                          ? 'Review the selected role configuration or pick a different role'
-                                          : 'Contact administrator'
-                                      }
-                                    />
-                                  </ListItem>
-                                ) : (
-                                  permissions.map((permission) => (
-                                    <ListItem
-                                      key={permission.id}
-                                      button
-                                      onClick={() => handlePermissionToggle(permission.id)}
-                                      sx={{
-                                        '&:hover': {
-                                          backgroundColor: (theme) =>
-                                            alpha(theme.palette.secondary.main, 0.08),
-                                        },
-                                      }}
+                              {selectedRoles.length === 0 ? (
+                                <Box sx={{ p: 2 }}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    Select at least one role to view permissions.
+                                  </Typography>
+                                </Box>
+                              ) : permissionGroups.length === 0 ? (
+                                <Box sx={{ p: 2 }}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {permissionSearch
+                                      ? 'No permissions match your search.'
+                                      : 'No permissions found for the selected role(s).'}
+                                  </Typography>
+                                </Box>
+                              ) : (
+                                <Box sx={{ py: 1 }}>
+                                  {permissionGroups.map((group) => (
+                                    <Box
+                                      key={group.resourceKey}
+                                      sx={{ '&:not(:last-of-type)': { mb: 1.5 } }}
                                     >
-                                      <ListItemText primary={permission.name} />
-                                      <ListItemSecondaryAction>
-                                        <Checkbox
-                                          edge="end"
-                                          checked={selectedPermissions.includes(permission.id)}
-                                          onChange={() => handlePermissionToggle(permission.id)}
-                                          color="secondary"
-                                        />
-                                      </ListItemSecondaryAction>
-                                    </ListItem>
-                                  ))
-                                )}
-                              </List>
+                                      <Box
+                                        sx={{
+                                          px: 2,
+                                          py: 1,
+                                          backgroundColor: (theme) =>
+                                            alpha(theme.palette.primary.main, 0.05),
+                                        }}
+                                      >
+                                        <Typography
+                                          variant="subtitle2"
+                                          fontWeight={600}
+                                          color="text.primary"
+                                        >
+                                          {group.resourceLabel}
+                                        </Typography>
+                                      </Box>
+                                      <List dense disablePadding>
+                                        {group.items.map(
+                                          ({ permission, actionLabel, rawKey }) => (
+                                            <ListItem
+                                              key={permission.id}
+                                              button
+                                              onClick={() =>
+                                                handlePermissionToggle(permission.id)
+                                              }
+                                              sx={{
+                                                pl: 2,
+                                                pr: 1,
+                                                '&:hover': {
+                                                  backgroundColor: (theme) =>
+                                                    alpha(
+                                                      theme.palette.primary.main,
+                                                      0.08
+                                                    ),
+                                                },
+                                              }}
+                                            >
+                                      <Tooltip
+                                        title={rawKey}
+                                        placement="top-start"
+                                        arrow
+                                      >
+                                        <ListItemText primary={actionLabel} />
+                                      </Tooltip>
+                                              <ListItemSecondaryAction>
+                                                <Checkbox
+                                                  edge="end"
+                                                  checked={selectedPermissions.includes(
+                                                    permission.id
+                                                  )}
+                                                  onChange={() =>
+                                                    handlePermissionToggle(permission.id)
+                                                  }
+                                                  color="primary"
+                                                />
+                                              </ListItemSecondaryAction>
+                                            </ListItem>
+                                          )
+                                        )}
+                                      </List>
+                                    </Box>
+                                  ))}
+                                </Box>
+                              )}
                             </>
                           )}
                         </Box>

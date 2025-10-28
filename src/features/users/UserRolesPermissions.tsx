@@ -1,5 +1,6 @@
 // src/features/users/UserRolesPermissions.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { alpha } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -31,6 +32,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Tooltip,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SearchIcon from '@mui/icons-material/Search';
@@ -45,6 +47,7 @@ import { roleApi } from '../../api/endpoints/role.api';
 import { rolePermissionApi } from '../../api/endpoints/rolePermission.api';
 import type { Role } from '../../types/role.types';
 import type { Permission } from '../../types/permission.types';
+import { groupPermissions } from '../../utils/permissionGrouping';
 
 interface Site {
   id: number;
@@ -356,8 +359,9 @@ export const UserRolesPermissions: React.FC = () => {
     }
   };
 
-  const filteredPermissions = rolePermissions.filter((permission) =>
-    permission.name.toLowerCase().includes(permissionSearch.toLowerCase())
+  const permissionGroups = useMemo(
+    () => groupPermissions(rolePermissions, { searchTerm: permissionSearch }),
+    [rolePermissions, permissionSearch]
   );
 
   const hasChanges =
@@ -612,27 +616,86 @@ export const UserRolesPermissions: React.FC = () => {
                   />
 
                   {loadingPermissions ? (
-                    <CircularProgress />
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                      <CircularProgress />
+                    </Box>
                   ) : (
-                    <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-                      {filteredPermissions.length === 0 ? (
-                        <Typography color="text.secondary">No permissions found</Typography>
+                    <Box
+                      sx={{
+                        maxHeight: 400,
+                        overflow: 'auto',
+                        border: (theme) => `1px solid ${theme.palette.divider}`,
+                        borderRadius: 1,
+                      }}
+                    >
+                      {!selectedRoleId ? (
+                        <Box sx={{ p: 2 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Select a role to view its permissions.
+                          </Typography>
+                        </Box>
+                      ) : permissionGroups.length === 0 ? (
+                        <Box sx={{ p: 2 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {permissionSearch
+                              ? 'No permissions match your search.'
+                              : 'No permissions are attached to this role.'}
+                          </Typography>
+                        </Box>
                       ) : (
-                        filteredPermissions.map((permission) => (
-                          <ListItem key={permission.id} dense>
-                            <ListItemText primary={permission.name} />
-                            <ListItemSecondaryAction>
-                              <Checkbox
-                                edge="end"
-                                checked={userPermissions.includes(permission.id)}
-                                onChange={() => handlePermissionToggle(permission.id)}
-                                disabled={saving}
-                              />
-                            </ListItemSecondaryAction>
-                          </ListItem>
-                        ))
+                        <Box sx={{ py: 1 }}>
+                          {permissionGroups.map((group) => (
+                            <Box
+                              key={group.resourceKey}
+                              sx={{ '&:not(:last-of-type)': { mb: 1.5 } }}
+                            >
+                              <Box
+                                sx={{
+                                  px: 2,
+                                  py: 1,
+                                  backgroundColor: (theme) =>
+                                    alpha(theme.palette.primary.main, 0.05),
+                                }}
+                              >
+                                <Typography variant="subtitle2" fontWeight={600}>
+                                  {group.resourceLabel}
+                                </Typography>
+                              </Box>
+                              <List dense disablePadding>
+                                {group.items.map(({ permission, actionLabel, rawKey }) => (
+                                  <ListItem
+                                    key={permission.id}
+                                    button
+                                    disabled={saving}
+                                    onClick={() => !saving && handlePermissionToggle(permission.id)}
+                                    sx={{
+                                      pl: 2,
+                                      pr: 1,
+                                      '&:hover': {
+                                        backgroundColor: (theme) =>
+                                          alpha(theme.palette.primary.main, 0.08),
+                                      },
+                                    }}
+                                  >
+                                    <Tooltip title={rawKey} placement="top-start" arrow>
+                                      <ListItemText primary={actionLabel} />
+                                    </Tooltip>
+                                    <ListItemSecondaryAction>
+                                      <Checkbox
+                                        edge="end"
+                                        checked={userPermissions.includes(permission.id)}
+                                        onChange={() => handlePermissionToggle(permission.id)}
+                                        disabled={saving}
+                                      />
+                                    </ListItemSecondaryAction>
+                                  </ListItem>
+                                ))}
+                              </List>
+                            </Box>
+                          ))}
+                        </Box>
                       )}
-                    </List>
+                    </Box>
                   )}
                 </>
               )}

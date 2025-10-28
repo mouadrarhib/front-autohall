@@ -2,10 +2,9 @@
 
 import { useMemo } from 'react';
 import { alpha } from '@mui/material/styles';
-import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
-import SecurityIcon from '@mui/icons-material/Security';
 import BusinessIcon from '@mui/icons-material/Business';
 import StoreIcon from '@mui/icons-material/Store';
 import type { GridColDef } from '@mui/x-data-grid';
@@ -16,7 +15,6 @@ interface UseUserColumnsArgs {
   isMediumScreen: boolean;
   onView: (userId: number, event: React.MouseEvent) => void;
   onEdit: (userId: number, event: React.MouseEvent) => void;
-  onPermissions: (userId: number, event: React.MouseEvent) => void;
 }
 
 export const useUserColumns = ({
@@ -24,7 +22,6 @@ export const useUserColumns = ({
   isMediumScreen,
   onView,
   onEdit,
-  onPermissions,
 }: UseUserColumnsArgs): GridColDef<User>[] => {
   const baseColumns = useMemo<GridColDef<User>[]>(() => {
     return [
@@ -38,7 +35,7 @@ export const useUserColumns = ({
         headerAlign: 'center',
         cellClassName: 'text-center-cell',
         renderCell: (params) => (
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          <Typography variant="body2" fontWeight={500}>
             {params.row.FullName}
           </Typography>
         ),
@@ -108,25 +105,26 @@ export const useUserColumns = ({
         headerAlign: 'center',
         renderCell: (params) => (
           <Chip
-            label={params.row.UserStatus}
+            label={params.row.UserActive ? 'Active' : 'Inactive'}
             size="small"
-            color={params.row.UserStatus === 'Active' ? 'success' : 'default'}
+            color={params.row.UserActive ? 'success' : 'default'}
             sx={{ fontWeight: 600 }}
           />
         ),
       },
 
-      // Actions Column with Eye Icon
+      // Actions Column - SIMPLIFIED (only View + Edit)
       {
         field: 'actions',
         headerName: 'Actions',
         align: 'center',
         headerAlign: 'center',
         sortable: false,
-        minWidth: 150,
-        flex: 0.9,
+        minWidth: 120,
+        flex: 0.8,
         renderCell: (params) => (
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+          <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
+            {/* View Button */}
             <Tooltip title="View Details">
               <IconButton
                 size="small"
@@ -144,6 +142,7 @@ export const useUserColumns = ({
               </IconButton>
             </Tooltip>
 
+            {/* Edit Button - Now handles both info AND permissions */}
             <Tooltip title="Edit User">
               <IconButton
                 size="small"
@@ -160,28 +159,11 @@ export const useUserColumns = ({
                 <EditIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-
-            <Tooltip title="Manage Permissions">
-              <IconButton
-                size="small"
-                onClick={(event) => onPermissions(params.row.UserId, event)}
-                sx={{
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    backgroundColor: (theme) => alpha(theme.palette.success.main, 0.12),
-                    color: 'success.main',
-                    transform: 'scale(1.09)',
-                  },
-                }}
-              >
-                <SecurityIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          </Stack>
         ),
       },
     ];
-  }, [onEdit, onPermissions, onView]);
+  }, [onEdit, onView]);
 
   return useMemo(() => {
     if (isSmallScreen) {
