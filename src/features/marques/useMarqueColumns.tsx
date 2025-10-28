@@ -1,6 +1,9 @@
 // src/features/marques/useMarqueColumns.tsx
+
 import { useMemo } from 'react';
-import { Box, Button, Chip, Stack, Typography } from '@mui/material';
+import { Box, Button, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import type { GridColDef } from '@mui/x-data-grid';
 import type { Marque } from '../../api/endpoints/marque.api';
@@ -8,6 +11,7 @@ import type { Marque } from '../../api/endpoints/marque.api';
 interface UseMarqueColumnsArgs {
   hasUpdate: boolean;
   togglingId: number | null;
+  onView: (marque: Marque) => void;
   onEdit: (marque: Marque) => void;
   onToggleActive: (marque: Marque) => void;
 }
@@ -15,147 +19,66 @@ interface UseMarqueColumnsArgs {
 export const useMarqueColumns = ({
   hasUpdate,
   togglingId,
+  onView,
   onEdit,
   onToggleActive,
-}: UseMarqueColumnsArgs): GridColDef[] => {
-  const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'MAD',
-        maximumFractionDigits: 0,
-      }),
-    []
-  );
-
-  return useMemo<GridColDef[]>(() => {
-    const alignCell = {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      height: '100%',
-    } as const;
-
-    const alignCellLeft = {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      width: '100%',
-      height: '100%',
-    } as const;
-
-    const numericTextStyle = {
-      fontWeight: 600,
-      lineHeight: 1,
-    } as const;
-
-    const formatPercent = (value?: number | null) => {
-      if (value === null || value === undefined) {
-        return '—';
-      }
-
-      return `${value.toFixed(1)}%`;
-    };
-
+}: UseMarqueColumnsArgs): GridColDef<Marque>[] => {
+  return useMemo(() => {
     return [
+      // Marque Name & Logo Column
       {
         field: 'marque',
         headerName: 'Marque',
-        flex: 1.4,
-        minWidth: 260,
+        flex: 1.5,
+        minWidth: 280,
         align: 'left',
         headerAlign: 'left',
         sortable: false,
         renderCell: ({ row }) => (
-          <Box sx={alignCellLeft}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box
-                component="img"
-                src={row.imageUrl || '/placeholder-brand.png'}
-                alt={row.name}
-                onError={(e) => {
-                  const img = e.currentTarget as HTMLImageElement;
-                  img.onerror = null;
-                  img.src = '/placeholder-brand.png';
-                }}
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 2,
-                  objectFit: 'contain',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                  p: 1,
-                }}
-              />
-              <Typography variant="body2" fontWeight={600}>
-                {row.name}
-              </Typography>
-            </Stack>
-          </Box>
-        ),
-      },
-      {
-        field: 'filialeName',
-        headerName: 'Filiale',
-        flex: 1,
-        minWidth: 180,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Chip
-              label={row.filialeName ?? 'N/A'}
-              size="small"
-              color="secondary"
-              variant="outlined"
-              sx={{ fontWeight: 600 }}
+          <Stack 
+            direction="row" 
+            spacing={2} 
+            alignItems="center"  // This centers items vertically
+            sx={{ 
+              height: '100%',  // Take full cell height
+              width: '100%',
+            }}
+          >
+            <Box
+              component="img"
+              src={row.imageUrl || '/placeholder-brand.png'}
+              alt={row.name}
+              onError={(e) => {
+                const img = e.currentTarget as HTMLImageElement;
+                img.onerror = null;
+                img.src = '/placeholder-brand.png';
+              }}
+              sx={{
+                width: 48,  // Slightly smaller for better alignment
+                height: 48,
+                borderRadius: 2,
+                objectFit: 'contain',
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                p: 0.5,
+                flexShrink: 0,  // Prevent image from shrinking
+              }}
             />
-          </Box>
-        ),
-      },
-      {
-        field: 'averageSalePrice',
-        headerName: 'Prix de vente',
-        width: 170,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Typography sx={numericTextStyle}>
-              {row.averageSalePrice !== undefined && row.averageSalePrice !== null
-                ? currencyFormatter.format(row.averageSalePrice)
-                : '—'}
+            <Typography 
+              variant="body2" 
+              fontWeight={600}
+              sx={{
+                lineHeight: 1.5,  // Better line height for vertical centering
+              }}
+            >
+              {row.name}
             </Typography>
-          </Box>
+          </Stack>
         ),
       },
-      {
-        field: 'tmDirect',
-        headerName: 'TM Direct',
-        width: 140,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Typography sx={numericTextStyle}>{formatPercent(row.tmDirect)}</Typography>
-          </Box>
-        ),
-      },
-      {
-        field: 'tmInterGroupe',
-        headerName: 'TM InterGroupe',
-        width: 160,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Typography sx={numericTextStyle}>{formatPercent(row.tmInterGroupe)}</Typography>
-          </Box>
-        ),
-      },
+
+      // Status Column
       {
         field: 'active',
         headerName: 'Statut',
@@ -164,54 +87,109 @@ export const useMarqueColumns = ({
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
-          <Box sx={alignCell}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              width: '100%',
+            }}
+          >
             <Chip
-              label={row.active ? 'Actif' : 'Inactif'}
-              color={row.active ? 'success' : 'default'}
+              label={row.active ? 'Active' : 'Inactive'}
               size="small"
-              sx={{ fontWeight: 700, minWidth: 80 }}
+              color={row.active ? 'success' : 'default'}
+              sx={{
+                fontWeight: 600,
+                minWidth: 90,
+              }}
             />
           </Box>
         ),
       },
+
+      // Actions Column
       {
         field: 'actions',
         headerName: 'Actions',
-        width: 260,
+        width: 320,
         sortable: false,
         filterable: false,
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-              {hasUpdate && (
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<EditIcon />}
-                  onClick={() => onEdit(row)}
-                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-                >
-                  Modifier
-                </Button>
-              )}
-              {hasUpdate && (
-                <Button
-                  variant={row.active ? 'outlined' : 'contained'}
-                  size="small"
-                  color={row.active ? 'error' : 'success'}
-                  onClick={() => onToggleActive(row)}
-                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, minWidth: 110 }}
-                  disabled={togglingId === row.id}
-                >
-                  {togglingId === row.id ? 'Patientez...' : row.active ? 'Desactiver' : 'Activer'}
-                </Button>
-              )}
-            </Stack>
-          </Box>
+          <Stack 
+            direction="row" 
+            spacing={1} 
+            justifyContent="center"
+            alignItems="center"  // Center items vertically
+            sx={{
+              height: '100%',  // Take full cell height
+              width: '100%',
+            }}
+          >
+            {/* View Details Button */}
+            <Tooltip title="Voir les détails">
+              <IconButton
+                size="small"
+                onClick={() => onView(row)}
+                sx={{
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                    color: 'primary.main',
+                    transform: 'scale(1.1)',
+                  },
+                }}
+              >
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
+            {/* Edit Button */}
+            {hasUpdate && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<EditIcon />}
+                onClick={() => onEdit(row)}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  minWidth: 100,
+                }}
+              >
+                Modifier
+              </Button>
+            )}
+
+            {/* Toggle Active Button */}
+            {hasUpdate && (
+              <Button
+                variant={row.active ? 'outlined' : 'contained'}
+                color={row.active ? 'error' : 'success'}
+                size="small"
+                onClick={() => onToggleActive(row)}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  minWidth: 110,
+                }}
+                disabled={togglingId === row.id}
+              >
+                {togglingId === row.id
+                  ? 'Patientez...'
+                  : row.active
+                  ? 'Désactiver'
+                  : 'Activer'}
+              </Button>
+            )}
+          </Stack>
         ),
       },
     ];
-  }, [currencyFormatter, hasUpdate, onEdit, onToggleActive, togglingId]);
+  }, [hasUpdate, onEdit, onToggleActive, onView, togglingId]);
 };

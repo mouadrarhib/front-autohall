@@ -65,18 +65,20 @@ export const ObjectifFilters: React.FC<ObjectifFiltersProps> = ({
           <Grid item xs={12} md={6}>
             <Stack direction="row" spacing={2} justifyContent={{ xs: 'flex-start', md: 'flex-end' }} alignItems="center">
               <FormControl sx={{ minWidth: 250 }}>
-                <InputLabel>Sélectionner une période</InputLabel>
+                <InputLabel>Selectionner une periode</InputLabel>
                 <Select
                   value={selectedPeriode ?? ''}
-                  label="Sélectionner une période"
+                  label="Selectionner une periode"
                   onChange={(e) => onChangePeriode(e.target.value ? Number(e.target.value) : null)}
                 >
                   <MenuItem value="">
-                    <em>Toutes les périodes</em>
+                    <em>Toutes les periodes</em>
                   </MenuItem>
                   {periodes.map((periode) => (
                     <MenuItem key={periode.id} value={periode.id}>
-                      {`${periode.startedDate} - ${periode.endDate} (${periode.year})`}
+                      {periode.name && periode.name.trim().length > 0
+                        ? periode.name
+                        : `${periode.startedDate} - ${periode.endDate} (${periode.year})`}
                     </MenuItem>
                   ))}
                 </Select>

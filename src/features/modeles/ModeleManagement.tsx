@@ -1,4 +1,5 @@
 // src/features/modeles/ModeleManagement.tsx
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Stack } from '@mui/material';
 import type { GridPaginationModel } from '@mui/x-data-grid';
@@ -8,6 +9,7 @@ import { useAuthStore } from '../../store/authStore';
 import { ModeleFilters } from './ModeleFilters';
 import { ModeleTable } from './ModeleTable';
 import { ModeleDialog } from './ModeleDialog';
+import { ModeleDetailsDialog } from './ModeleDetailsDialog'; // NEW
 import { useModeleColumns } from './useModeleColumns';
 import type { DialogMode, ModeleFormState, PaginationState } from './modeleTypes';
 
@@ -29,15 +31,16 @@ export const ModeleManagement: React.FC = () => {
   const [modeles, setModeles] = useState<Modele[]>([]);
   const [modelesLoading, setModelesLoading] = useState(false);
   const [modelesError, setModelesError] = useState<string | null>(null);
+
   const [pagination, setPagination] = useState<PaginationState>(DEFAULT_PAGINATION);
   const [pageState, setPageState] = useState({ page: 1, pageSize: 10 });
-
   const [filterMarqueId, setFilterMarqueId] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
+  // Edit Dialog State
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>('create');
   const [currentModele, setCurrentModele] = useState<Modele | null>(null);
@@ -48,6 +51,10 @@ export const ModeleManagement: React.FC = () => {
     active: true,
   });
   const [saving, setSaving] = useState(false);
+
+  // View Details Dialog State (NEW)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewModele, setViewModele] = useState<Modele | null>(null);
 
   // Debounce search query
   useEffect(() => {
@@ -135,10 +142,21 @@ export const ModeleManagement: React.FC = () => {
     });
   };
 
+  // Handle View Details (NEW)
+  const handleViewModele = (modele: Modele) => {
+    setViewModele(modele);
+    setViewDialogOpen(true);
+  };
+
+  const handleCloseViewDialog = () => {
+    setViewDialogOpen(false);
+    setViewModele(null);
+  };
+
   const handleOpenDialog = (mode: DialogMode, modele?: Modele) => {
     setDialogMode(mode);
     setCurrentModele(modele ?? null);
-    
+
     if (mode === 'edit' && modele) {
       setFormState({
         name: modele.name,
@@ -174,12 +192,12 @@ export const ModeleManagement: React.FC = () => {
 
   const handleSave = async () => {
     if (!formState.name.trim()) {
-      setModelesError('Le nom du modele est requis.');
+      setModelesError('Le nom du modèle est requis.');
       return;
     }
 
     if (formState.idMarque === null) {
-      setModelesError('Veuillez selectionner une marque.');
+      setModelesError('Veuillez sélectionner une marque.');
       return;
     }
 
@@ -203,7 +221,7 @@ export const ModeleManagement: React.FC = () => {
       setReloadToken((value) => value + 1);
     } catch (err: any) {
       console.error('Failed to save modele', err);
-      setModelesError(err?.response?.data?.error ?? 'Impossible de sauvegarder le modele.');
+      setModelesError(err?.response?.data?.error ?? 'Impossible de sauvegarder le modèle.');
     } finally {
       setSaving(false);
     }
@@ -217,11 +235,12 @@ export const ModeleManagement: React.FC = () => {
       } else {
         await modeleApi.activate(modele.id);
       }
-
       setReloadToken((value) => value + 1);
     } catch (err: any) {
       console.error('Failed to update modele', err);
-      setModelesError(err?.response?.data?.error ?? "Impossible de mettre a jour l'etat du modele.");
+      setModelesError(
+        err?.response?.data?.error ?? "Impossible de mettre à jour l'état du modèle."
+      );
     } finally {
       setTogglingId(null);
     }
@@ -230,6 +249,7 @@ export const ModeleManagement: React.FC = () => {
   const columns = useModeleColumns({
     hasUpdate,
     togglingId,
+    onView: handleViewModele, // NEW
     onEdit: (modele) => handleOpenDialog('edit', modele),
     onToggleActive: handleToggleActive,
   });
@@ -245,7 +265,7 @@ export const ModeleManagement: React.FC = () => {
   return (
     <Box
       sx={{
-        p: 4,
+        p: 3,
         background: (theme) =>
           theme.palette.mode === 'dark'
             ? 'linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))'
@@ -257,13 +277,13 @@ export const ModeleManagement: React.FC = () => {
       <Stack spacing={3}>
         <ModeleFilters
           marques={marques}
+          marquesLoading={marquesLoading}
           filterMarqueId={filterMarqueId}
           searchQuery={searchQuery}
-          marquesLoading={marquesLoading}
           totalRecords={pagination.totalRecords}
           hasCreate={hasCreate}
-          error={marquesError}
-          onClearError={() => setMarquesError(null)}
+          error={modelesError}
+          onClearError={() => setModelesError(null)}
           onChangeMarque={handleFilterChange}
           onSearchChange={setSearchQuery}
           onCreate={() => handleOpenDialog('create')}
@@ -273,12 +293,13 @@ export const ModeleManagement: React.FC = () => {
           rows={modeles}
           columns={columns}
           loading={modelesLoading}
+          error={modelesError}
           pagination={pagination}
           onPaginationChange={handlePaginationModelChange}
-          error={modelesError}
           onClearError={() => setModelesError(null)}
         />
 
+        {/* Edit Dialog */}
         <ModeleDialog
           open={dialogOpen}
           dialogMode={dialogMode}
@@ -289,6 +310,13 @@ export const ModeleManagement: React.FC = () => {
           onClose={handleCloseDialog}
           onSave={handleSave}
           onChangeField={handleFormChange}
+        />
+
+        {/* View Details Dialog (NEW) */}
+        <ModeleDetailsDialog
+          open={viewDialogOpen}
+          modele={viewModele}
+          onClose={handleCloseViewDialog}
         />
       </Stack>
     </Box>

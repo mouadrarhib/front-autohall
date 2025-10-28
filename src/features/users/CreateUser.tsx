@@ -1,4 +1,5 @@
 // src/features/users/CreateUser.tsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
@@ -19,18 +20,31 @@ import {
   Stepper,
   Step,
   StepLabel,
-  Autocomplete,
-  Chip,
   Grid,
   Divider,
+  List,
+  ListItem,
+  ListItemText,
+  Checkbox,
+  ListItemSecondaryAction,
+  InputAdornment,
+  IconButton,
+  Stack,
+  Paper,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { authApi } from '../../api/endpoints/auth.api';
 import { groupementApi } from '../../api/endpoints/groupement.api';
 import { permissionsApi } from '../../api/endpoints/permissions.api';
+import { roleApi } from '../../api/endpoints/role.api';
 import type { Groupement } from '../../types/usersite.types';
 import type { Permission } from '../../types/permission.types';
+import type { Role } from '../../types/role.types';
 
 interface CreateUserFormData {
   username: string;
@@ -39,11 +53,12 @@ interface CreateUserFormData {
   password: string;
   idGroupement: number;
   idSite: number;
+  roles: number[];
   permissions: number[];
   actif: boolean;
 }
 
-const steps = ['User Information', 'Site Assignment', 'Permissions'];
+const steps = ['User Information', 'Site Assignment', 'Roles & Permissions'];
 
 export const CreateUser: React.FC = () => {
   const navigate = useNavigate();
@@ -51,12 +66,18 @@ export const CreateUser: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [activeStep, setActiveStep] = useState(0);
-  
+
+  // Data states
   const [groupements, setGroupements] = useState<Groupement[]>([]);
   const [sites, setSites] = useState<any[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
+
+  // Selection states
   const [selectedGroupement, setSelectedGroupement] = useState<Groupement | null>(null);
-  const [selectedPermissions, setSelectedPermissions] = useState<Permission[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<number[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
 
   const methods = useForm<CreateUserFormData>({
     defaultValues: {
@@ -66,6 +87,7 @@ export const CreateUser: React.FC = () => {
       password: '',
       idGroupement: 0,
       idSite: 0,
+      roles: [],
       permissions: [],
       actif: true,
     },
@@ -75,18 +97,27 @@ export const CreateUser: React.FC = () => {
     const loadInitialData = async () => {
       try {
         setLoadingData(true);
-        
-        // Load groupements and permissions
-        const [groupementsData, permissionsData] = await Promise.all([
+        setError(null);
+
+        // Load groupements, roles, and permissions in parallel
+        const [groupementsData, rolesData, permissionsData] = await Promise.all([
           groupementApi.listGroupements(),
+          roleApi.listRoles(),
           permissionsApi.listPermissions({ active: true, pageSize: 1000 }),
         ]);
-        
+
+        console.log('Loaded data:', {
+          groupements: groupementsData,
+          roles: rolesData,
+          permissions: permissionsData,
+        });
+
         setGroupements(groupementsData.filter((g) => g.active));
+        setRoles(rolesData.filter((r: Role) => r.active));
         setPermissions(permissionsData.data || []);
       } catch (err: any) {
         console.error('Failed to load initial data:', err);
-        setError('Failed to load form data');
+        setError('Failed to load form data. Please refresh the page.');
       } finally {
         setLoadingData(false);
       }
@@ -99,6 +130,7 @@ export const CreateUser: React.FC = () => {
     if (!groupementId) {
       setSites([]);
       setSelectedGroupement(null);
+      methods.setValue('idSite', 0);
       return;
     }
 
@@ -106,27 +138,89 @@ export const CreateUser: React.FC = () => {
     setSelectedGroupement(groupement || null);
 
     try {
-      // Get filiales and succursales based on groupement type
+      // Get available sites based on groupement type
       const availableSites = await authApi.getAvailableSites();
+      console.log('Available sites:', availableSites);
+
+      // Filter sites based on groupement type
+      let filteredSites = availableSites;
       
-      if (groupement?.name === 'Filiale') {
-        setSites(availableSites.filter((s: any) => s.type === 'filiale'));
-      } else if (groupement?.name === 'Succursale') {
-        setSites(availableSites.filter((s: any) => s.type === 'succursale'));
-      } else {
-        setSites(availableSites);
+      if (groupement?.name?.toLowerCase() === 'filiale') {
+        filteredSites = availableSites.filter(
+          (s: any) => s.type?.toLowerCase() === 'filiale'
+        );
+      } else if (groupement?.name?.toLowerCase() === 'succursale') {
+        filteredSites = availableSites.filter(
+          (s: any) => s.type?.toLowerCase() === 'succursale'
+        );
       }
+
+      console.log('Filtered sites:', filteredSites);
+      setSites(filteredSites);
     } catch (err: any) {
       console.error('Failed to load sites:', err);
+      setError('Failed to load available sites');
       setSites([]);
     }
   };
 
-  const handleNext = () => {
+  const handleRoleToggle = (roleId: number) => {
+    setSelectedRoles((prev) =>
+      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
+    );
+  };
+
+  const handlePermissionToggle = (permissionId: number) => {
+    setSelectedPermissions((prev) =>
+      prev.includes(permissionId)
+        ? prev.filter((id) => id !== permissionId)
+        : [...prev, permissionId]
+    );
+  };
+
+  const handleNext = async () => {
+    // Validate current step before proceeding
+    const values = methods.getValues();
+    
+    if (activeStep === 0) {
+      // Validate user information
+      if (!values.username || !values.full_name || !values.email || !values.password) {
+        setError('Please fill in all required fields');
+        return;
+      }
+      
+      if (values.password.length < 6) {
+        setError('Password must be at least 6 characters');
+        return;
+      }
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(values.email)) {
+        setError('Please enter a valid email address');
+        return;
+      }
+    }
+    
+    if (activeStep === 1) {
+      // Validate site assignment
+      if (!values.idGroupement || values.idGroupement === 0) {
+        setError('Please select a groupement type');
+        return;
+      }
+      
+      if (!values.idSite || values.idSite === 0) {
+        setError('Please select a site');
+        return;
+      }
+    }
+
+    setError(null);
     setActiveStep((prev) => prev + 1);
   };
 
   const handleBack = () => {
+    setError(null);
     setActiveStep((prev) => prev - 1);
   };
 
@@ -135,23 +229,66 @@ export const CreateUser: React.FC = () => {
       setError(null);
       setIsLoading(true);
 
-      // Prepare user data for creation
+      // Validate final step
+      if (selectedRoles.length === 0 && selectedPermissions.length === 0) {
+        setError('Please assign at least one role or permission to the user');
+        setIsLoading(false);
+        return;
+      }
+
+      // Get groupement name for proper backend processing
+      const groupement = groupements.find((g) => g.id === data.idGroupement);
+      const groupementName = groupement?.name?.toLowerCase() as 'filiale' | 'succursale' || 'filiale';
+
+      // Prepare complete user data
       const userData = {
-        username: data.username,
-        full_name: data.full_name,
-        email: data.email,
+        username: data.username.trim(),
+        full_name: data.full_name.trim(),
+        email: data.email.trim().toLowerCase(),
         password: data.password,
         idGroupement: data.idGroupement,
+        groupement_name: groupementName,
         idSite: data.idSite,
-        permissions: selectedPermissions.map(p => p.id),
+        site_id: data.idSite, // Some backends might expect this field
+        roles: selectedRoles,
+        permissions: selectedPermissions,
         actif: true,
       };
 
-      console.log('Creating user with data:', userData);
-      await authApi.createUserComplete(userData);
-      navigate('/users');
+      console.log('Creating user with complete data:', {
+        ...userData,
+        password: '***hidden***', // Don't log the actual password
+      });
+
+      // Call the complete user creation API
+      const result = await authApi.createUserComplete(userData);
+      
+      console.log('User created successfully:', result);
+
+      // Navigate back to users list
+      navigate('/users', {
+        state: { 
+          message: `User "${data.username}" created successfully!` 
+        }
+      });
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create user');
+      console.error('Failed to create user:', err);
+      
+      // Extract error message from response
+      const errorMessage = 
+        err.response?.data?.error || 
+        err.response?.data?.message || 
+        err.message ||
+        'Failed to create user. Please try again.';
+      
+      setError(errorMessage);
+      
+      // If it's a validation error, go back to the appropriate step
+      if (errorMessage.includes('username') || errorMessage.includes('email')) {
+        setActiveStep(0);
+      } else if (errorMessage.includes('site') || errorMessage.includes('groupement')) {
+        setActiveStep(1);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -159,27 +296,39 @@ export const CreateUser: React.FC = () => {
 
   if (loadingData) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
+        <Stack alignItems="center" spacing={2}>
+          <CircularProgress size={60} />
+          <Typography variant="body1" color="text.secondary">
+            Loading form data...
+          </Typography>
+        </Stack>
       </Box>
     );
   }
 
   return (
     <Box>
-      <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <Button
-          startIcon={<ArrowBackIcon />}
+      <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+        <IconButton
           onClick={() => navigate('/users')}
           disabled={isLoading}
+          sx={{
+            '&:hover': {
+              backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
+            },
+          }}
         >
-          Back
-        </Button>
-        <Typography variant="h4">Create New User</Typography>
-      </Box>
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h5" fontWeight={700}>
+          Create New User
+        </Typography>
+      </Stack>
 
-      <Card>
-        <CardContent>
+      <Card elevation={0} sx={{ borderRadius: 3, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+        <CardContent sx={{ p: 4 }}>
+          {/* Stepper */}
           <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
             {steps.map((label) => (
               <Step key={label}>
@@ -188,8 +337,13 @@ export const CreateUser: React.FC = () => {
             ))}
           </Stepper>
 
+          {/* Error Alert */}
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert 
+              severity="error" 
+              onClose={() => setError(null)}
+              sx={{ mb: 3, borderRadius: 2 }}
+            >
               {error}
             </Alert>
           )}
@@ -198,25 +352,44 @@ export const CreateUser: React.FC = () => {
             <form onSubmit={methods.handleSubmit(onSubmit)}>
               {/* Step 1: User Information */}
               {activeStep === 0 && (
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                      Basic Information
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Enter the user's basic account details
+                    </Typography>
+                    <Divider sx={{ mt: 1, mb: 3 }} />
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
                     <Controller
                       name="username"
                       control={methods.control}
-                      rules={{ required: 'Username is required' }}
+                      rules={{ 
+                        required: 'Username is required',
+                        minLength: {
+                          value: 3,
+                          message: 'Username must be at least 3 characters'
+                        }
+                      }}
                       render={({ field, fieldState }) => (
                         <TextField
                           {...field}
                           label="Username"
                           fullWidth
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
+                          required
                           disabled={isLoading}
+                          error={!!fieldState.error}
+                          helperText={fieldState.error?.message || 'Unique username for login'}
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+
+                  <Grid item xs={12} md={6}>
                     <Controller
                       name="full_name"
                       control={methods.control}
@@ -226,38 +399,44 @@ export const CreateUser: React.FC = () => {
                           {...field}
                           label="Full Name"
                           fullWidth
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
+                          required
                           disabled={isLoading}
+                          error={!!fieldState.error}
+                          helperText={fieldState.error?.message || 'User\'s complete name'}
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+
+                  <Grid item xs={12}>
                     <Controller
                       name="email"
                       control={methods.control}
                       rules={{
                         required: 'Email is required',
                         pattern: {
-                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: 'Invalid email address',
+                          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                          message: 'Invalid email format',
                         },
                       }}
                       render={({ field, fieldState }) => (
                         <TextField
                           {...field}
-                          label="Email"
+                          label="Email Address"
                           type="email"
                           fullWidth
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
+                          required
                           disabled={isLoading}
+                          error={!!fieldState.error}
+                          helperText={fieldState.error?.message || 'User\'s email for notifications'}
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+
+                  <Grid item xs={12}>
                     <Controller
                       name="password"
                       control={methods.control}
@@ -272,11 +451,25 @@ export const CreateUser: React.FC = () => {
                         <TextField
                           {...field}
                           label="Password"
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           fullWidth
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
+                          required
                           disabled={isLoading}
+                          error={!!fieldState.error}
+                          helperText={fieldState.error?.message || 'Minimum 6 characters'}
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          InputProps={{
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <IconButton
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  edge="end"
+                                >
+                                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                                </IconButton>
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       )}
                     />
@@ -286,26 +479,41 @@ export const CreateUser: React.FC = () => {
 
               {/* Step 2: Site Assignment */}
               {activeStep === 1 && (
-                <Grid container spacing={2}>
+                <Grid container spacing={3}>
                   <Grid item xs={12}>
+                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                      Site Assignment
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Assign the user to a groupement type and specific site
+                    </Typography>
+                    <Divider sx={{ mt: 1, mb: 3 }} />
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
                     <Controller
                       name="idGroupement"
                       control={methods.control}
-                      rules={{ required: 'Groupement is required', min: 1 }}
+                      rules={{ 
+                        required: 'Groupement is required',
+                        validate: (value) => value !== 0 || 'Please select a groupement type'
+                      }}
                       render={({ field, fieldState }) => (
                         <FormControl fullWidth error={!!fieldState.error}>
-                          <InputLabel>Groupement Type</InputLabel>
+                          <InputLabel>Groupement Type *</InputLabel>
                           <Select
                             {...field}
-                            label="Groupement Type"
-                            disabled={isLoading}
+                            label="Groupement Type *"
                             onChange={(e) => {
                               field.onChange(e);
                               handleGroupementChange(Number(e.target.value));
-                              methods.setValue('idSite', 0);
                             }}
+                            disabled={isLoading}
+                            sx={{ borderRadius: 2 }}
                           >
-                            <MenuItem value={0}>Select Type</MenuItem>
+                            <MenuItem value={0} disabled>
+                              Select Type
+                            </MenuItem>
                             {groupements.map((groupement) => (
                               <MenuItem key={groupement.id} value={groupement.id}>
                                 {groupement.name}
@@ -315,38 +523,48 @@ export const CreateUser: React.FC = () => {
                           {fieldState.error && (
                             <FormHelperText>{fieldState.error.message}</FormHelperText>
                           )}
+                          {!fieldState.error && (
+                            <FormHelperText>
+                              Choose between Filiale or Succursale
+                            </FormHelperText>
+                          )}
                         </FormControl>
                       )}
                     />
                   </Grid>
-                  <Grid item xs={12}>
+
+                  <Grid item xs={12} md={6}>
                     <Controller
                       name="idSite"
                       control={methods.control}
-                      rules={{ required: 'Site is required', min: 1 }}
+                      rules={{ 
+                        required: 'Site is required',
+                        validate: (value) => value !== 0 || 'Please select a site'
+                      }}
                       render={({ field, fieldState }) => (
                         <FormControl fullWidth error={!!fieldState.error}>
-                          <InputLabel>Site</InputLabel>
+                          <InputLabel>Site *</InputLabel>
                           <Select
                             {...field}
-                            label="Site"
-                            disabled={isLoading || sites.length === 0}
+                            label="Site *"
+                            disabled={sites.length === 0 || isLoading}
+                            sx={{ borderRadius: 2 }}
                           >
-                            <MenuItem value={0}>
-                              {sites.length === 0 ? 'Select Type First' : 'Select Site'}
+                            <MenuItem value={0} disabled>
+                              {sites.length === 0 ? 'Select Groupement First' : 'Select Site'}
                             </MenuItem>
                             {sites.map((site) => (
                               <MenuItem key={site.id} value={site.id}>
-                                {site.name}
+                                {site.name} ({site.type})
                               </MenuItem>
                             ))}
                           </Select>
                           {fieldState.error && (
                             <FormHelperText>{fieldState.error.message}</FormHelperText>
                           )}
-                          {selectedGroupement && (
+                          {!fieldState.error && selectedGroupement && (
                             <FormHelperText>
-                              Type: {selectedGroupement.name}
+                              Type: {selectedGroupement.name} | Available sites: {sites.length}
                             </FormHelperText>
                           )}
                         </FormControl>
@@ -356,76 +574,227 @@ export const CreateUser: React.FC = () => {
                 </Grid>
               )}
 
-              {/* Step 3: Permissions */}
+              {/* Step 3: Roles & Permissions */}
               {activeStep === 2 && (
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    Assign Permissions
-                  </Typography>
-                  <Autocomplete
-                    multiple
-                    options={permissions}
-                    getOptionLabel={(option) => option.name}
-                    value={selectedPermissions}
-                    onChange={(_, newValue) => setSelectedPermissions(newValue)}
-                    disabled={isLoading}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Permissions"
-                        placeholder="Search and select permissions..."
-                      />
-                    )}
-                    renderTags={(value, getTagProps) =>
-                      value.map((option, index) => (
-                        <Chip
-                          label={option.name}
-                          {...getTagProps({ index })}
-                          size="small"
-                        />
-                      ))
-                    }
-                  />
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Selected: {selectedPermissions.length} permissions
-                  </Typography>
-                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                      Roles & Permissions
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Assign roles and additional permissions to define user access
+                    </Typography>
+                    <Divider sx={{ mt: 1, mb: 3 }} />
+                  </Grid>
+
+                  {/* Roles Section */}
+                  <Grid item xs={12} md={6}>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 2,
+                        border: (theme) => `1px solid ${theme.palette.divider}`,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                        Assign Roles
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                        Roles grant predefined sets of permissions
+                      </Typography>
+                      <Divider sx={{ my: 2 }} />
+                      
+                      <Box
+                        sx={{
+                          maxHeight: 300,
+                          overflow: 'auto',
+                          border: (theme) => `1px solid ${theme.palette.divider}`,
+                          borderRadius: 1,
+                        }}
+                      >
+                        <List dense>
+                          {roles.length === 0 ? (
+                            <ListItem>
+                              <ListItemText 
+                                primary="No roles available" 
+                                secondary="Contact administrator to create roles"
+                              />
+                            </ListItem>
+                          ) : (
+                            roles.map((role) => (
+                              <ListItem 
+                                key={role.id} 
+                                button 
+                                onClick={() => handleRoleToggle(role.id)}
+                                sx={{
+                                  '&:hover': {
+                                    backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                  },
+                                }}
+                              >
+                                <ListItemText
+                                  primary={role.name}
+                                  secondary={role.description || 'No description'}
+                                />
+                                <ListItemSecondaryAction>
+                                  <Checkbox
+                                    edge="end"
+                                    checked={selectedRoles.includes(role.id)}
+                                    onChange={() => handleRoleToggle(role.id)}
+                                    color="primary"
+                                  />
+                                </ListItemSecondaryAction>
+                              </ListItem>
+                            ))
+                          )}
+                        </List>
+                      </Box>
+                      
+                      <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {selectedRoles.length > 0 && <CheckCircleIcon color="success" fontSize="small" />}
+                        <Typography variant="caption" color={selectedRoles.length > 0 ? 'success.main' : 'text.secondary'}>
+                          Selected: {selectedRoles.length} role(s)
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  </Grid>
+
+                  {/* Permissions Section */}
+                  <Grid item xs={12} md={6}>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 2,
+                        border: (theme) => `1px solid ${theme.palette.divider}`,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                        Additional Permissions
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                        Grant specific permissions beyond role assignments
+                      </Typography>
+                      <Divider sx={{ my: 2 }} />
+                      
+                      <Box
+                        sx={{
+                          maxHeight: 300,
+                          overflow: 'auto',
+                          border: (theme) => `1px solid ${theme.palette.divider}`,
+                          borderRadius: 1,
+                        }}
+                      >
+                        <List dense>
+                          {permissions.length === 0 ? (
+                            <ListItem>
+                              <ListItemText 
+                                primary="No permissions available" 
+                                secondary="Contact administrator"
+                              />
+                            </ListItem>
+                          ) : (
+                            permissions.map((permission) => (
+                              <ListItem
+                                key={permission.id}
+                                button
+                                onClick={() => handlePermissionToggle(permission.id)}
+                                sx={{
+                                  '&:hover': {
+                                    backgroundColor: (theme) => alpha(theme.palette.secondary.main, 0.08),
+                                  },
+                                }}
+                              >
+                                <ListItemText primary={permission.name} />
+                                <ListItemSecondaryAction>
+                                  <Checkbox
+                                    edge="end"
+                                    checked={selectedPermissions.includes(permission.id)}
+                                    onChange={() => handlePermissionToggle(permission.id)}
+                                    color="secondary"
+                                  />
+                                </ListItemSecondaryAction>
+                              </ListItem>
+                            ))
+                          )}
+                        </List>
+                      </Box>
+                      
+                      <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {selectedPermissions.length > 0 && <CheckCircleIcon color="success" fontSize="small" />}
+                        <Typography variant="caption" color={selectedPermissions.length > 0 ? 'success.main' : 'text.secondary'}>
+                          Selected: {selectedPermissions.length} permission(s)
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  </Grid>
+
+                  {/* Summary Alert */}
+                  {selectedRoles.length === 0 && selectedPermissions.length === 0 && (
+                    <Grid item xs={12}>
+                      <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                        Please assign at least one role or permission to the user before creating the account.
+                      </Alert>
+                    </Grid>
+                  )}
+                </Grid>
               )}
 
-              <Divider sx={{ my: 3 }} />
-
-              <Box display="flex" justifyContent="space-between">
-                <Button
-                  disabled={activeStep === 0 || isLoading}
-                  onClick={handleBack}
-                >
-                  Back
-                </Button>
-                <Box display="flex" gap={2}>
+              {/* Navigation Buttons */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4, pt: 3, borderTop: (theme) => `1px solid ${theme.palette.divider}` }}>
+                <Box>
+                  {activeStep > 0 && (
+                    <Button
+                      onClick={handleBack}
+                      disabled={isLoading}
+                      sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
+                    >
+                      Back
+                    </Button>
+                  )}
+                </Box>
+                
+                <Box sx={{ display: 'flex', gap: 2 }}>
                   <Button
-                    variant="outlined"
                     onClick={() => navigate('/users')}
                     disabled={isLoading}
+                    sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
                   >
                     Cancel
                   </Button>
+                  
                   {activeStep === steps.length - 1 ? (
                     <Button
                       type="submit"
                       variant="contained"
-                      disabled={isLoading}
-                      startIcon={
-                        isLoading ? (
-                          <CircularProgress size={20} color="inherit" />
-                        ) : (
-                          <SaveIcon />
-                        )
-                      }
+                      startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                      disabled={isLoading || (selectedRoles.length === 0 && selectedPermissions.length === 0)}
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        px: 4,
+                        boxShadow: '0 8px 16px rgba(37, 99, 235, 0.3)',
+                        '&:hover': {
+                          boxShadow: '0 12px 24px rgba(37, 99, 235, 0.4)',
+                        },
+                      }}
                     >
                       {isLoading ? 'Creating...' : 'Create User'}
                     </Button>
                   ) : (
-                    <Button variant="contained" onClick={handleNext}>
+                    <Button
+                      onClick={handleNext}
+                      variant="contained"
+                      disabled={isLoading}
+                      sx={{ 
+                        borderRadius: 2, 
+                        textTransform: 'none', 
+                        px: 4,
+                        fontWeight: 600,
+                      }}
+                    >
                       Next
                     </Button>
                   )}

@@ -4,6 +4,7 @@ import { apiClient, ApiResponse } from '../client';
 
 export interface Periode {
   id: number;
+  name?: string;
   year: number;
   month: number;
   week: number;

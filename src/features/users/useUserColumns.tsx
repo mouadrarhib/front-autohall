@@ -9,7 +9,6 @@ import SecurityIcon from '@mui/icons-material/Security';
 import BusinessIcon from '@mui/icons-material/Business';
 import StoreIcon from '@mui/icons-material/Store';
 import type { GridColDef } from '@mui/x-data-grid';
-
 import type { User } from './userTypes';
 
 interface UseUserColumnsArgs {
@@ -28,67 +27,24 @@ export const useUserColumns = ({
   onPermissions,
 }: UseUserColumnsArgs): GridColDef<User>[] => {
   const baseColumns = useMemo<GridColDef<User>[]>(() => {
-    const cellCenter = {
-      width: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    } as const;
-
     return [
-      {
-        field: 'Username',
-        headerName: 'Username',
-        minWidth: 130,
-        flex: 0.9,
-        align: 'center',
-        headerAlign: 'center',
-        cellClassName: 'text-center-cell',
-        renderCell: (params) => (
-          <Box sx={cellCenter}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 600,
-                color: 'text.primary',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                textAlign: 'center',
-                maxWidth: '100%',
-              }}
-            >
-              {params.row.Username}
-            </Typography>
-          </Box>
-        ),
-      },
+      // Full Name Column
       {
         field: 'FullName',
         headerName: 'Full Name',
-        minWidth: 180,
-        flex: 1.1,
+        minWidth: 200,
+        flex: 1.2,
         align: 'center',
         headerAlign: 'center',
         cellClassName: 'text-center-cell',
         renderCell: (params) => (
-          <Box sx={cellCenter}>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'text.primary',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                textAlign: 'center',
-                maxWidth: '100%',
-              }}
-            >
-              {params.row.FullName}
-            </Typography>
-          </Box>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {params.row.FullName}
+          </Typography>
         ),
       },
+
+      // Email Column
       {
         field: 'Email',
         headerName: 'Email',
@@ -98,22 +54,13 @@ export const useUserColumns = ({
         headerAlign: 'center',
         cellClassName: 'text-center-cell',
         renderCell: (params) => (
-          <Box sx={cellCenter}>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'text.secondary',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                maxWidth: '100%',
-              }}
-            >
-              {params.row.Email}
-            </Typography>
-          </Box>
+          <Typography variant="body2" color="text.secondary">
+            {params.row.Email}
+          </Typography>
         ),
       },
+
+      // Groupement Column
       {
         field: 'GroupementType',
         headerName: 'Groupement',
@@ -125,7 +72,7 @@ export const useUserColumns = ({
           const isFiliale = params.row.GroupementType?.toLowerCase() === 'filiale';
           return (
             <Chip
-              icon={isFiliale ? <BusinessIcon fontSize="small" /> : <StoreIcon fontSize="small" />}
+              icon={isFiliale ? <BusinessIcon /> : <StoreIcon />}
               label={params.row.GroupementType || '-'}
               size="small"
               sx={{
@@ -137,6 +84,8 @@ export const useUserColumns = ({
           );
         },
       },
+
+      // Site Column
       {
         field: 'SiteName',
         headerName: 'Site',
@@ -145,20 +94,11 @@ export const useUserColumns = ({
         align: 'center',
         headerAlign: 'center',
         renderCell: (params) => (
-          <Typography
-            variant="body2"
-            sx={{
-              color: 'text.primary',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: '100%',
-            }}
-          >
-            {params.row.SiteName || '-'}
-          </Typography>
+          <Typography variant="body2">{params.row.SiteName || '-'}</Typography>
         ),
       },
+
+      // Status Column
       {
         field: 'UserStatus',
         headerName: 'Status',
@@ -168,68 +108,15 @@ export const useUserColumns = ({
         headerAlign: 'center',
         renderCell: (params) => (
           <Chip
-            label={params.row.UserActive ? 'Active' : 'Inactive'}
-            color={params.row.UserActive ? 'success' : 'default'}
+            label={params.row.UserStatus}
             size="small"
-            sx={{
-              fontWeight: 600,
-              px: 1.5,
-              textTransform: 'uppercase',
-            }}
+            color={params.row.UserStatus === 'Active' ? 'success' : 'default'}
+            sx={{ fontWeight: 600 }}
           />
         ),
       },
-      {
-        field: 'ActiveRolesCount',
-        headerName: 'Roles',
-        minWidth: 120,
-        flex: 0.8,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: (params) => (
-          <Chip
-            label={`${params.row.ActiveRolesCount || 0}`}
-            size="small"
-            sx={{
-              fontWeight: 600,
-              bgcolor: 'rgba(59, 130, 246, 0.12)',
-              color: 'primary.main',
-            }}
-          />
-        ),
-      },
-      {
-        field: 'ActivePermissionsCount',
-        headerName: 'Permissions',
-        minWidth: 140,
-        flex: 0.9,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: (params) => (
-          <Chip
-            label={`${params.row.ActivePermissionsCount || 0}`}
-            size="small"
-            sx={{
-              fontWeight: 600,
-              bgcolor: 'rgba(147, 51, 234, 0.12)',
-              color: '#6d28d9',
-            }}
-          />
-        ),
-      },
-      {
-        field: 'LastActivity',
-        headerName: 'Last Activity',
-        minWidth: 180,
-        flex: 1,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: (params) => (
-          <Typography variant="body2" color="text.secondary">
-            {params.row.LastActivity ? new Date(params.row.LastActivity).toLocaleString() : '-'}
-          </Typography>
-        ),
-      },
+
+      // Actions Column with Eye Icon
       {
         field: 'actions',
         headerName: 'Actions',
@@ -239,8 +126,8 @@ export const useUserColumns = ({
         minWidth: 150,
         flex: 0.9,
         renderCell: (params) => (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Tooltip title="View details" arrow>
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+            <Tooltip title="View Details">
               <IconButton
                 size="small"
                 onClick={(event) => onView(params.row.UserId, event)}
@@ -256,7 +143,8 @@ export const useUserColumns = ({
                 <VisibilityIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Edit roles & permissions" arrow>
+
+            <Tooltip title="Edit User">
               <IconButton
                 size="small"
                 onClick={(event) => onEdit(params.row.UserId, event)}
@@ -272,7 +160,8 @@ export const useUserColumns = ({
                 <EditIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Direct permissions" arrow>
+
+            <Tooltip title="Manage Permissions">
               <IconButton
                 size="small"
                 onClick={(event) => onPermissions(params.row.UserId, event)}
@@ -297,13 +186,13 @@ export const useUserColumns = ({
   return useMemo(() => {
     if (isSmallScreen) {
       return baseColumns.filter((column) =>
-        ['Username', 'FullName', 'UserStatus', 'actions'].includes(column.field as string)
+        ['FullName', 'Email', 'UserStatus', 'actions'].includes(column.field as string)
       );
     }
 
     if (isMediumScreen) {
       return baseColumns.filter((column) =>
-        !['ActivePermissionsCount', 'UserPermissions', 'UserRoles'].includes(column.field as string)
+        !['GroupementType'].includes(column.field as string)
       );
     }
 

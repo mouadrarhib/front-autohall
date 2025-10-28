@@ -68,10 +68,11 @@ export const AppRoutes: React.FC = () => {
           <Route path="/dashboard" element={<Dashboard />} />
 
           {/* ===== USERS ROUTES ===== */}
+          <Route path="/users/create" element={<CreateUser />} />
+          <Route path="/users/:userId/edit" element={<EditUser />} />
+          <Route path="/users/:userId/permissions" element={<UserRolesPermissions />} />
+          <Route path="/users/:userId" element={<UserDetails />} />
           <Route path="/users" element={<UserList />} />
-          <Route path="/users/new" element={<CreateUser />} />
-          <Route path="/users/:id" element={<UserDetails />} />
-          <Route path="/users/:id/edit" element={<EditUser />} />
 
           {/* ===== PERMISSIONS ROUTES ===== */}
           <Route path="/permissions" element={<PermissionsList />} />

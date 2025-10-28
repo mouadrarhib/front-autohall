@@ -1,17 +1,17 @@
 // src/features/users/UserList.tsx
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Paper, Stack, useMediaQuery } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import type { GridPaginationModel } from '@mui/x-data-grid';
-
-import { authApi } from '../../api/endpoints/auth.api';
-import { useAuthStore } from '../../store/authStore';
-import { UserHeader } from './UserHeader';
-import { UserTable } from './UserTable';
-import { useUserColumns } from './useUserColumns';
-import type { PaginationState, User } from './userTypes';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Alert, Box, Paper, Stack, useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import type { GridPaginationModel } from "@mui/x-data-grid";
+import { authApi } from "../../api/endpoints/auth.api";
+import { useAuthStore } from "../../store/authStore";
+import { UserHeader } from "./UserHeader";
+import { UserTable } from "./UserTable";
+import { useUserColumns } from "./useUserColumns";
+import { UserDetailsDialog } from "./UserDetailsDialog";
+import type { PaginationState, User } from "./userTypes";
 
 const DEFAULT_PAGINATION: PaginationState = {
   page: 1,
@@ -22,18 +22,28 @@ const DEFAULT_PAGINATION: PaginationState = {
 
 export const UserList: React.FC = () => {
   const navigate = useNavigate();
-  const hasCreatePermission = useAuthStore((state) => state.hasPermission('USER_CREATE'));
+  const hasCreatePermission = useAuthStore((state) =>
+    state.hasPermission("USER_CREATE")
+  );
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const isMediumScreen = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<PaginationState>(DEFAULT_PAGINATION);
+  const [pagination, setPagination] =
+    useState<PaginationState>(DEFAULT_PAGINATION);
 
-  const activeUsersCount = useMemo(() => users.filter((user) => user.UserActive).length, [users]);
+  // Dialog state
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
 
+  const activeUsersCount = useMemo(
+    () => users.filter((user) => user.UserActive).length,
+    [users]
+  );
   const totalUsersCount = useMemo(
     () => pagination.totalRecords || users.length,
     [pagination.totalRecords, users.length]
@@ -48,8 +58,8 @@ export const UserList: React.FC = () => {
       let usersData: User[] = [];
       let total = 0;
 
-      if (response && typeof response === 'object') {
-        if ('data' in response && Array.isArray(response.data)) {
+      if (response && typeof response === "object") {
+        if ("data" in response && Array.isArray(response.data)) {
           usersData = response.data as User[];
           total = (response as any).total ?? response.data.length;
         } else if (Array.isArray(response)) {
@@ -65,8 +75,8 @@ export const UserList: React.FC = () => {
         totalPages: Math.ceil(total / prev.pageSize),
       }));
     } catch (err: any) {
-      console.error('Failed to load users:', err);
-      setError(err?.response?.data?.error ?? 'Failed to load users');
+      console.error("Failed to load users:", err);
+      setError(err?.response?.data?.error ?? "Failed to load users");
     } finally {
       setLoading(false);
     }
@@ -77,16 +87,37 @@ export const UserList: React.FC = () => {
   }, [loadUsers, pagination.page, pagination.pageSize]);
 
   const handleViewClick = useCallback(
-    (userId: number, event: React.MouseEvent) => {
+    async (userId: number, event: React.MouseEvent) => {
       event.stopPropagation();
-      navigate(`/users/${userId}`);
+
+      try {
+        setLoadingUserDetails(true);
+        setOpenDialog(true);
+
+        // Fetch complete user information
+        const userData = await authApi.getUserCompleteInfo(userId);
+        setSelectedUser(userData);
+      } catch (err: any) {
+        console.error("Failed to load user details:", err);
+        setError(err?.response?.data?.error ?? "Failed to load user details");
+        setOpenDialog(false);
+      } finally {
+        setLoadingUserDetails(false);
+      }
     },
-    [navigate]
+    []
   );
+
+  const handleCloseDialog = useCallback(() => {
+    setOpenDialog(false);
+    setSelectedUser(null);
+  }, []);
 
   const handleEditClick = useCallback(
     (userId: number, event: React.MouseEvent) => {
       event.stopPropagation();
+      console.log("Navigating to edit user:", userId); // Add this line
+      console.log("Path:", `/users/${userId}/edit`); // Add this line
       navigate(`/users/${userId}/edit`);
     },
     [navigate]
@@ -117,51 +148,53 @@ export const UserList: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
-      <Stack spacing={2.5}>
-        <Paper
-          elevation={0}
+    <Stack spacing={3}>
+      <UserHeader
+        totalUsers={totalUsersCount}
+        activeUsers={activeUsersCount}
+        hasCreatePermission={hasCreatePermission}
+        onCreate={() => navigate("/users/create")}
+      />
+
+      {error && (
+        <Alert
+          severity="error"
+          onClose={() => setError(null)}
           sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 3,
-            overflow: 'hidden',
-            backgroundColor: 'background.paper',
+            borderRadius: 2,
+            "& .MuiAlert-message": {
+              width: "100%",
+            },
           }}
         >
-          <UserHeader
-            totalUsers={totalUsersCount}
-            activeUsers={activeUsersCount}
-            hasCreatePermission={hasCreatePermission}
-            onCreate={() => navigate('/users/create')}
-          />
+          {error}
+        </Alert>
+      )}
 
-          {error && (
-            <Box sx={{ p: { xs: 2, md: 2.5 } }}>
-              <Alert
-                severity="error"
-                onClose={() => setError(null)}
-                sx={{
-                  borderRadius: 2,
-                  '& .MuiAlert-message': {
-                    width: '100%',
-                  },
-                }}
-              >
-                {error}
-              </Alert>
-            </Box>
-          )}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          border: `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        <UserTable
+          rows={users} // Changed from 'users' to 'rows'
+          columns={columns}
+          loading={loading}
+          pagination={pagination}
+          onPaginationChange={handlePaginationChange}
+        />
+      </Paper>
 
-          <UserTable
-            rows={users}
-            columns={columns}
-            loading={loading}
-            pagination={pagination}
-            onPaginationChange={handlePaginationChange}
-          />
-        </Paper>
-      </Stack>
-    </Box>
+      {/* User Details Dialog */}
+      <UserDetailsDialog
+        open={openDialog}
+        user={selectedUser}
+        loading={loadingUserDetails}
+        onClose={handleCloseDialog}
+      />
+    </Stack>
   );
 };

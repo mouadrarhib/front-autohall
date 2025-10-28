@@ -1,7 +1,9 @@
 // src/features/versions/useVersionColumns.tsx
+
 import { useMemo } from 'react';
-import { Box, Button, Chip, Stack, Typography } from '@mui/material';
+import { Box, Button, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import type { GridColDef } from '@mui/x-data-grid';
 import type { Version } from '../../api/endpoints/version.api';
@@ -9,6 +11,7 @@ import type { Version } from '../../api/endpoints/version.api';
 interface UseVersionColumnsArgs {
   hasUpdate: boolean;
   togglingId: number | null;
+  onView: (version: Version) => void;
   onEdit: (version: Version) => void;
   onToggleActive: (version: Version) => void;
 }
@@ -16,194 +19,149 @@ interface UseVersionColumnsArgs {
 export const useVersionColumns = ({
   hasUpdate,
   togglingId,
+  onView,
   onEdit,
   onToggleActive,
-}: UseVersionColumnsArgs): GridColDef[] => {
-  const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'MAD',
-        maximumFractionDigits: 0,
-      }),
-    []
-  );
-
-  return useMemo<GridColDef[]>(() => {
-    const alignCell = {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      height: '100%',
-    } as const;
-
-    const alignCellLeft = {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      width: '100%',
-      height: '100%',
-    } as const;
-
-    const numericTextStyle = {
-      fontWeight: 600,
-      lineHeight: 1,
-    } as const;
-
+}: UseVersionColumnsArgs): GridColDef<Version>[] => {
+  return useMemo(() => {
     return [
+      // Version Name Column
       {
         field: 'nom',
         headerName: 'Version',
-        flex: 1.2,
-        minWidth: 220,
+        flex: 1.5,
+        minWidth: 250,
         align: 'left',
         headerAlign: 'left',
         sortable: false,
         renderCell: ({ row }) => (
-          <Box sx={alignCellLeft}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              height: '100%',
+              width: '100%',
+            }}
+          >
             <Typography variant="body2" fontWeight={600}>
               {row.nom}
             </Typography>
           </Box>
         ),
       },
-      {
-        field: 'nomModele',
-        headerName: 'Modele',
-        flex: 1,
-        minWidth: 160,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Chip
-              label={row.nomModele ?? 'N/A'}
-              size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ fontWeight: 600 }}
-            />
-          </Box>
-        ),
-      },
-      {
-        field: 'nomMarque',
-        headerName: 'Marque',
-        flex: 1,
-        minWidth: 160,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Chip
-              label={row.nomMarque ?? 'N/A'}
-              size="small"
-              color="secondary"
-              variant="outlined"
-              sx={{ fontWeight: 600 }}
-            />
-          </Box>
-        ),
-      },
-      {
-        field: 'prixDeVente',
-        headerName: 'Prix',
-        width: 140,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Typography sx={numericTextStyle}>
-              {currencyFormatter.format(row.prixDeVente ?? 0)}
-            </Typography>
-          </Box>
-        ),
-      },
-      {
-        field: 'tmDirect',
-        headerName: 'TM (%)',
-        width: 120,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Typography sx={numericTextStyle}>
-              {`${(row.tmDirect ?? 0).toFixed(1)}%`}
-            </Typography>
-          </Box>
-        ),
-      },
-      {
-        field: 'tmInterGroupe',
-        headerName: 'Marge (%)',
-        width: 140,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Typography sx={numericTextStyle}>
-              {`${(row.tmInterGroupe ?? 0).toFixed(1)}%`}
-            </Typography>
-          </Box>
-        ),
-      },
+
+      // Status Column
       {
         field: 'active',
         headerName: 'Statut',
-        width: 140,
+        width: 150,
         sortable: false,
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
-          <Box sx={alignCell}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              width: '100%',
+            }}
+          >
             <Chip
-              label={row.active ? 'Actif' : 'Inactif'}
-              color={row.active ? 'success' : 'default'}
+              label={row.active ? 'Active' : 'Inactive'}
               size="small"
-              sx={{ fontWeight: 700, minWidth: 80 }}
+              color={row.active ? 'success' : 'default'}
+              sx={{
+                fontWeight: 600,
+                minWidth: 90,
+              }}
             />
           </Box>
         ),
       },
+
+      // Actions Column
       {
         field: 'actions',
         headerName: 'Actions',
-        width: 260,
+        width: 320,
         sortable: false,
         filterable: false,
         align: 'center',
         headerAlign: 'center',
         renderCell: ({ row }) => (
-          <Box sx={alignCell}>
-            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-              {hasUpdate && (
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<EditIcon />}
-                  onClick={() => onEdit(row)}
-                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-                >
-                  Modifier
-                </Button>
-              )}
-              {hasUpdate && (
-                <Button
-                  variant={row.active ? 'outlined' : 'contained'}
-                  size="small"
-                  color={row.active ? 'error' : 'success'}
-                  onClick={() => onToggleActive(row)}
-                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, minWidth: 110 }}
-                  disabled={togglingId === row.id}
-                >
-                  {togglingId === row.id ? 'Patientez...' : row.active ? 'Desactiver' : 'Activer'}
-                </Button>
-              )}
-            </Stack>
-          </Box>
+          <Stack
+            direction="row"
+            spacing={1}
+            justifyContent="center"
+            alignItems="center"
+            sx={{
+              height: '100%',
+              width: '100%',
+            }}
+          >
+            {/* View Details Button */}
+            <Tooltip title="Voir les détails">
+              <IconButton
+                size="small"
+                onClick={() => onView(row)}
+                sx={{
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                    color: 'primary.main',
+                    transform: 'scale(1.1)',
+                  },
+                }}
+              >
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
+            {/* Edit Button */}
+            {hasUpdate && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<EditIcon />}
+                onClick={() => onEdit(row)}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  minWidth: 100,
+                }}
+              >
+                Modifier
+              </Button>
+            )}
+
+            {/* Toggle Active Button */}
+            {hasUpdate && (
+              <Button
+                variant={row.active ? 'outlined' : 'contained'}
+                color={row.active ? 'error' : 'success'}
+                size="small"
+                onClick={() => onToggleActive(row)}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  minWidth: 110,
+                }}
+                disabled={togglingId === row.id}
+              >
+                {togglingId === row.id
+                  ? 'Patientez...'
+                  : row.active
+                  ? 'Désactiver'
+                  : 'Activer'}
+              </Button>
+            )}
+          </Stack>
         ),
       },
     ];
-  }, [currencyFormatter, hasUpdate, onEdit, onToggleActive, togglingId]);
+  }, [hasUpdate, onEdit, onToggleActive, onView, togglingId]);
 };

@@ -1,4 +1,5 @@
 // src/features/marques/MarqueManagement.tsx
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Stack } from '@mui/material';
 import type { GridPaginationModel } from '@mui/x-data-grid';
@@ -8,6 +9,7 @@ import { useAuthStore } from '../../store/authStore';
 import { MarqueFilters } from './MarqueFilters';
 import { MarqueTable } from './MarqueTable';
 import { MarqueDialog } from './MarqueDialog';
+import { MarqueDetailsDialog } from './MarqueDetailsDialog'; // New import
 import { useMarqueColumns } from './useMarqueColumns';
 import type { DialogMode, MarqueFormState, PaginationState } from './marqueTypes';
 
@@ -29,15 +31,16 @@ export const MarqueManagement: React.FC = () => {
   const [marques, setMarques] = useState<Marque[]>([]);
   const [marquesLoading, setMarquesLoading] = useState(false);
   const [marquesError, setMarquesError] = useState<string | null>(null);
+
   const [pagination, setPagination] = useState<PaginationState>(DEFAULT_PAGINATION);
   const [pageState, setPageState] = useState({ page: 1, pageSize: 10 });
-
   const [filterFilialeId, setFilterFilialeId] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
+  // Edit Dialog State
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>('create');
   const [currentMarque, setCurrentMarque] = useState<Marque | null>(null);
@@ -48,6 +51,10 @@ export const MarqueManagement: React.FC = () => {
     active: true,
   });
   const [saving, setSaving] = useState(false);
+
+  // View Details Dialog State (NEW)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewMarque, setViewMarque] = useState<Marque | null>(null);
 
   // Debounce search query (500ms)
   useEffect(() => {
@@ -103,7 +110,8 @@ export const MarqueManagement: React.FC = () => {
 
       const enriched = (response.data ?? []).map((marque) => ({
         ...marque,
-        filialeName: marque.filialeName ?? filiales.find((f) => f.id === marque.idFiliale)?.name ?? 'N/A',
+        filialeName:
+          marque.filialeName ?? filiales.find((f) => f.id === marque.idFiliale)?.name ?? 'N/A',
       }));
 
       setMarques(enriched);
@@ -140,10 +148,21 @@ export const MarqueManagement: React.FC = () => {
     });
   };
 
+  // Handle View Details (NEW)
+  const handleViewMarque = (marque: Marque) => {
+    setViewMarque(marque);
+    setViewDialogOpen(true);
+  };
+
+  const handleCloseViewDialog = () => {
+    setViewDialogOpen(false);
+    setViewMarque(null);
+  };
+
   const handleOpenDialog = (mode: DialogMode, marque?: Marque) => {
     setDialogMode(mode);
     setCurrentMarque(marque ?? null);
-    
+
     if (mode === 'edit' && marque) {
       setFormState({
         name: marque.name,
@@ -184,7 +203,7 @@ export const MarqueManagement: React.FC = () => {
     }
 
     if (formState.idFiliale === null) {
-      setMarquesError('Veuillez selectionner une filiale.');
+      setMarquesError('Veuillez sélectionner une filiale.');
       return;
     }
 
@@ -222,11 +241,12 @@ export const MarqueManagement: React.FC = () => {
       } else {
         await marqueApi.activate(marque.id);
       }
-
       setReloadToken((value) => value + 1);
     } catch (err: any) {
       console.error('Failed to update marque', err);
-      setMarquesError(err?.response?.data?.error ?? "Impossible de mettre a jour l'etat de la marque.");
+      setMarquesError(
+        err?.response?.data?.error ?? "Impossible de mettre à jour l'état de la marque."
+      );
     } finally {
       setTogglingId(null);
     }
@@ -235,6 +255,7 @@ export const MarqueManagement: React.FC = () => {
   const columns = useMarqueColumns({
     hasUpdate,
     togglingId,
+    onView: handleViewMarque, // NEW
     onEdit: (marque) => handleOpenDialog('edit', marque),
     onToggleActive: handleToggleActive,
   });
@@ -250,7 +271,7 @@ export const MarqueManagement: React.FC = () => {
   return (
     <Box
       sx={{
-        p: 4,
+        p: 3,
         background: (theme) =>
           theme.palette.mode === 'dark'
             ? 'linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))'
@@ -260,42 +281,53 @@ export const MarqueManagement: React.FC = () => {
       }}
     >
       <Stack spacing={3}>
-        <MarqueFilters
-          filiales={filiales}
-          filterFilialeId={filterFilialeId}
-          searchQuery={searchQuery}
-          filialesLoading={filialesLoading}
-          totalRecords={pagination.totalRecords}
-          hasCreate={hasCreate}
-          error={filialesError}
-          onClearError={() => setFilialesError(null)}
-          onChangeFiliale={handleFilterChange}
-          onSearchChange={setSearchQuery}
-          onCreate={() => handleOpenDialog('create')}
-        />
+  {/* Filters - Fixed prop names */}
+  <MarqueFilters
+    filiales={filiales}
+    filialesLoading={filialesLoading}
+    filterFilialeId={filterFilialeId}  // Changed from selectedFilialeId
+    searchQuery={searchQuery}
+    totalRecords={pagination.totalRecords}
+    hasCreate={hasCreate}
+    error={marquesError}  // Changed from filialesError - this is for the general error display
+    onClearError={() => setMarquesError(null)}  // Changed from onClearFilialesError
+    onChangeFiliale={handleFilterChange}
+    onSearchChange={setSearchQuery}
+    onCreate={() => handleOpenDialog('create')}
+  />
 
-        <MarqueTable
-          rows={marques}
-          columns={columns}
-          loading={marquesLoading}
-          pagination={pagination}
-          onPaginationChange={handlePaginationModelChange}
-          error={marquesError}
-          onClearError={() => setMarquesError(null)}
-        />
+  {/* Table - Fixed prop names */}
+  <MarqueTable
+    rows={marques}  // Changed from marques
+    columns={columns}
+    loading={marquesLoading}
+    error={marquesError}
+    pagination={pagination}
+    onPaginationChange={handlePaginationModelChange}  // Changed from onPaginationModelChange
+    onClearError={() => setMarquesError(null)}
+  />
 
-        <MarqueDialog
-          open={dialogOpen}
-          dialogMode={dialogMode}
-          formState={formState}
-          filiales={filiales}
-          saving={saving}
-          isFormValid={isFormValid}
-          onClose={handleCloseDialog}
-          onSave={handleSave}
-          onChangeField={handleFormChange}
-        />
-      </Stack>
+  {/* Edit Dialog */}
+  <MarqueDialog
+    open={dialogOpen}
+    dialogMode={dialogMode}
+    formState={formState}
+    filiales={filiales}
+    saving={saving}
+    isFormValid={isFormValid}
+    onClose={handleCloseDialog}
+    onSave={handleSave}
+    onChangeField={handleFormChange}
+  />
+
+  {/* View Details Dialog (NEW) */}
+  <MarqueDetailsDialog
+    open={viewDialogOpen}
+    marque={viewMarque}
+    onClose={handleCloseViewDialog}
+  />
+</Stack>
+
     </Box>
   );
 };

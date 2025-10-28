@@ -37,7 +37,17 @@ export const VersionTable: React.FC<VersionTableProps> = ({
           {error}
         </Alert>
       )}
-      <Paper elevation={0} sx={{ height: 650, width: '100%', borderRadius: 3 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          overflow: 'hidden',
+          bgcolor: (theme) =>
+            theme.palette.mode === 'dark'
+              ? alpha('#1e293b', 0.4)
+              : alpha('#ffffff', 0.9),
+        }}
+      >
         <DataGrid
           rows={rows}
           columns={columns}
@@ -54,7 +64,7 @@ export const VersionTable: React.FC<VersionTableProps> = ({
           disableColumnMenu
           disableColumnFilter
           disableColumnSelector
-          density="comfortable"
+          rowHeight={72}
           sx={{
             border: 'none',
             '& .MuiDataGrid-columnSeparator': {
@@ -72,8 +82,8 @@ export const VersionTable: React.FC<VersionTableProps> = ({
             '& .MuiDataGrid-cell': {
               borderBottom: '1px solid',
               borderColor: alpha('#1e293b', 0.05),
-              paddingTop: '14px',
-              paddingBottom: '14px',
+              display: 'flex',
+              alignItems: 'center',
             },
             '& .MuiDataGrid-columnHeaders': {
               borderBottom: '1px solid',
