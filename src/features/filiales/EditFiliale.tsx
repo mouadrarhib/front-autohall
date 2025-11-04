@@ -1,4 +1,5 @@
 // src/features/filiales/EditFiliale.tsx
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -45,6 +46,7 @@ export const EditFiliale: React.FC = () => {
       try {
         setLoadingFiliale(true);
         const filiale = await filialeApi.getFilialeById(Number(filialeId));
+
         methods.reset({
           name: filiale.name,
           active: filiale.active,
@@ -66,10 +68,12 @@ export const EditFiliale: React.FC = () => {
     try {
       setError(null);
       setIsLoading(true);
+
       await filialeApi.updateFiliale(Number(filialeId), {
         name: data.name.trim(),
         active: data.active,
       });
+
       navigate('/filiales');
     } catch (err: any) {
       console.error('Failed to update filiale:', err);
@@ -81,92 +85,83 @@ export const EditFiliale: React.FC = () => {
 
   if (loadingFiliale) {
     return (
-      <Box>
-        <Box display="flex" alignItems="center" gap={2} mb={3}>
-          <Skeleton variant="rectangular" width={80} height={36} />
-          <Skeleton variant="text" width={220} height={40} />
-        </Box>
-        <Card sx={{ maxWidth: 600 }}>
-          <CardContent>
-            <Skeleton variant="rectangular" height={56} sx={{ mb: 2 }} />
-            <Skeleton variant="rectangular" height={40} sx={{ mb: 2 }} />
-            <Skeleton variant="rectangular" height={56} />
-          </CardContent>
-        </Card>
+      <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+        <Skeleton variant="rectangular" height={40} sx={{ mb: 2 }} />
+        <Skeleton variant="rectangular" height={200} />
       </Box>
     );
   }
 
   return (
-    <Box>
-      <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/filiales')}
-          disabled={isLoading}
-        >
-          Back
-        </Button>
-        <Typography variant="h4">Edit Filiale</Typography>
-      </Box>
+    <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate('/filiales')}
+        disabled={isLoading}
+        sx={{ mb: 2, textTransform: 'none' }}
+      >
+        Back
+      </Button>
 
-      <Card sx={{ maxWidth: 600 }}>
+      <Typography variant="h4" fontWeight={600} sx={{ mb: 3 }}>
+        Edit Filiale
+      </Typography>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      <Card>
         <CardContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
           <FormProvider {...methods}>
             <form onSubmit={methods.handleSubmit(onSubmit)}>
               <FormInput
                 name="name"
                 label="Filiale Name"
-                rules={{
-                  required: 'Filiale name is required',
-                  minLength: {
-                    value: 3,
-                    message: 'Name must be at least 3 characters',
-                  },
-                }}
-                disabled={isLoading}
+                placeholder="Enter filiale name"
+                required
+                fullWidth
               />
 
               <FormControlLabel
                 control={
                   <Checkbox
                     {...methods.register('active')}
-                    disabled={isLoading}
                   />
                 }
                 label="Active"
               />
 
-              <Box display="flex" gap={2} mt={3}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={isLoading}
-                  fullWidth
-                  startIcon={
-                    isLoading ? (
-                      <CircularProgress size={20} color="inherit" />
-                    ) : (
-                      <SaveIcon />
-                    )
-                  }
-                >
-                  {isLoading ? 'Updating...' : 'Update Filiale'}
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate('/filiales')}
-                  fullWidth
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
+              <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+                {isLoading ? (
+                  <Button disabled fullWidth>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Updating...
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      startIcon={<SaveIcon />}
+                      fullWidth
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Update Filiale
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      onClick={() => navigate('/filiales')}
+                      fullWidth
+                      disabled={isLoading}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                )}
               </Box>
             </form>
           </FormProvider>
@@ -175,4 +170,3 @@ export const EditFiliale: React.FC = () => {
     </Box>
   );
 };
-

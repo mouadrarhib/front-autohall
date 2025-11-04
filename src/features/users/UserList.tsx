@@ -6,7 +6,7 @@ import { Alert, Box, Paper, Stack, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { GridPaginationModel } from "@mui/x-data-grid";
 import { authApi } from "../../api/endpoints/auth.api";
-import { useAuthStore } from "../../store/authStore";
+import { useRoles } from "../../hooks/useRoles";
 import { UserHeader } from "./UserHeader";
 import { UserTable } from "./UserTable";
 import { useUserColumns } from "./useUserColumns";
@@ -22,9 +22,8 @@ const DEFAULT_PAGINATION: PaginationState = {
 
 export const UserList: React.FC = () => {
   const navigate = useNavigate();
-  const hasCreatePermission = useAuthStore((state) =>
-    state.hasPermission("USER_CREATE")
-  );
+  const { isAdminFonctionnel } = useRoles();
+  const canCreateUser = isAdminFonctionnel;
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
@@ -126,7 +125,7 @@ export const UserList: React.FC = () => {
   const handlePermissionsClick = useCallback(
     (userId: number, event: React.MouseEvent) => {
       event.stopPropagation();
-      navigate(`/users/${userId}/permissions`);
+      navigate(`/users/${userId}/roles-permissions`);
     },
     [navigate]
   );
@@ -152,8 +151,8 @@ export const UserList: React.FC = () => {
       <UserHeader
         totalUsers={totalUsersCount}
         activeUsers={activeUsersCount}
-        hasCreatePermission={hasCreatePermission}
-        onCreate={() => navigate("/users/create")}
+        canCreateUser={canCreateUser}
+        onCreate={() => navigate("/users/new")}
       />
 
       {error && (

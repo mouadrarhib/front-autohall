@@ -10,7 +10,11 @@ import React, {
 } from "react";
 import { Box, Stack } from "@mui/material";
 import type { GridPaginationModel } from "@mui/x-data-grid";
-import { objectifApi, ObjectifView } from "../../api/endpoints/objectif.api";
+import {
+  objectifApi,
+  ObjectifView,
+  ListObjectifsParams,
+} from "../../api/endpoints/objectif.api";
 import { periodeApi, Periode } from "../../api/endpoints/periode.api";
 import { typeventeApi, TypeVente } from "../../api/endpoints/typevente.api";
 import {
@@ -20,11 +24,10 @@ import {
 import { marqueApi, Marque } from "../../api/endpoints/marque.api";
 import { modeleApi, Modele } from "../../api/endpoints/modele.api";
 import { versionApi, Version } from "../../api/endpoints/version.api";
-import { groupementApi } from "../../api/endpoints/groupement.api";
-import { filialeApi, Filiale } from "../../api/endpoints/filiale.api";
-import { succursaleApi, Succursale } from "../../api/endpoints/succursale.api";
+import { usersiteApi } from "../../api/endpoints/usersite.api";
 import { useAuthStore } from "../../store/authStore";
-import type { Groupement } from "../../types/usersite.types";
+import { useRoles } from "../../hooks/useRoles";
+import type { UserSite } from "../../types/usersite.types";
 import { ObjectifFilters } from "./ObjectifFilters";
 import { ObjectifTable } from "./ObjectifTable";
 import { ObjectifDialog } from "./ObjectifDialog";
@@ -43,12 +46,10 @@ const extractArray = <T,>(payload: any): T[] => {
 
 export const ObjectifManagement: React.FC = () => {
   const currentUser = useAuthStore((state) => state.user);
-  const hasCreatePermission = useAuthStore((state) =>
-    state.hasPermission("OBJECTIF_CREATE")
-  );
-  const hasUpdatePermission = useAuthStore((state) =>
-    state.hasPermission("OBJECTIF_UPDATE")
-  );
+  const { isIntegrateurObjectifs, isAdminFonctionnel } = useRoles();
+  const canManageObjectifs = isIntegrateurObjectifs;
+  const canCreateObjectif = canManageObjectifs;
+  const canUpdateObjectif = canManageObjectifs;
 
   const [objectifs, setObjectifs] = useState<ObjectifView[]>([]);
   const [periodes, setPeriodes] = useState<Periode[]>([]);
@@ -57,25 +58,148 @@ export const ObjectifManagement: React.FC = () => {
   const [marques, setMarques] = useState<Marque[]>([]);
   const [modeles, setModeles] = useState<Modele[]>([]);
   const [versions, setVersions] = useState<Version[]>([]);
-  const [groupements, setGroupements] = useState<Groupement[]>([]);
   const [marquesTotal, setMarquesTotal] = useState(0);
   const [modelesTotal, setModelesTotal] = useState(0);
   const [versionsTotal, setVersionsTotal] = useState(0);
-  const [sites, setSites] = useState<Array<Filiale | Succursale>>([]);
+  const [userSiteAssignments, setUserSiteAssignments] = useState<UserSite[]>([]);
+  const [dialogSiteInfo, setDialogSiteInfo] = useState<{
+    siteId: number;
+    siteName: string;
+    groupementName?: string | null;
+  } | null>(null);
+
+  const userSiteIdFromProfile = useMemo(() => {
+    if (!currentUser) return null;
+    const possibleIds = [
+      (currentUser as any)?.idUserSite,
+      (currentUser as any)?.UserSiteId,
+    ];
+    for (const value of possibleIds) {
+      if (value == null) continue;
+      const parsedValue = Number(value);
+      if (Number.isFinite(parsedValue) && parsedValue > 0) {
+        return parsedValue;
+      }
+    }
+    return null;
+  }, [currentUser]);
+
+  const fallbackUserSiteAssignment = useMemo((): UserSite | null => {
+    if (!currentUser) return null;
+    const rawSiteId = Number(
+      (currentUser as any)?.SiteId ?? (currentUser as any)?.siteId ?? (currentUser as any)?.idSite ?? 0
+    );
+    const rawGroupement = (
+      (currentUser as any)?.GroupementType ??
+      (currentUser as any)?.groupementname ??
+      (currentUser as any)?.SiteType ??
+      (currentUser as any)?.sitetype ??
+      ''
+    ) as string;
+    if (!Number.isFinite(rawSiteId) || rawSiteId <= 0 || !rawGroupement) {
+      return null;
+    }
+    const normalizedGroupement = rawGroupement.toLowerCase();
+    const siteType: 'Filiale' | 'Succursale' =
+      normalizedGroupement === 'succursale' ? 'Succursale' : 'Filiale';
+    return {
+      id: Number((currentUser as any)?.idUserSite ?? (currentUser as any)?.UserSiteId ?? 0) || 0,
+      idGroupement:
+        Number((currentUser as any)?.idGroupement ?? (currentUser as any)?.GroupementId ?? 0) || 0,
+      groupement_name: rawGroupement,
+      idSite: rawSiteId,
+      site_name: ((currentUser as any)?.SiteName ?? (currentUser as any)?.sitename ?? '') as string,
+      site_type: siteType,
+      active: ((currentUser as any)?.UserSiteActive ?? (currentUser as any)?.userSiteActive ?? true) as boolean,
+      createdAt: ((currentUser as any)?.createdAt ?? (currentUser as any)?.CreatedAt) as string | undefined,
+      updatedAt: ((currentUser as any)?.updatedAt ?? (currentUser as any)?.UpdatedAt) as string | undefined,
+    };
+  }, [currentUser]);
+
+  const primaryAssignment = useMemo(() => {
+    if (userSiteAssignments.length > 0) {
+      return userSiteAssignments[0];
+    }
+    return fallbackUserSiteAssignment;
+  }, [userSiteAssignments, fallbackUserSiteAssignment]);
+
+  const resolveUserSiteInfo = useCallback(async (assignment: UserSite | null): Promise<UserSite | null> => {
+    if (!assignment) {
+      return null;
+    }
+
+    const hasSiteName = typeof assignment.site_name === 'string' && assignment.site_name.trim().length > 0;
+    const hasGroupementName =
+      typeof assignment.groupement_name === 'string' && assignment.groupement_name.trim().length > 0;
+
+    if (hasSiteName && hasGroupementName) {
+      return assignment;
+    }
+
+    try {
+      if (assignment.id && assignment.id > 0) {
+        const detailed = await usersiteApi.getUserSiteById(assignment.id);
+        return { ...assignment, ...detailed };
+      }
+
+      if (assignment.idSite && assignment.idSite > 0) {
+        const matches = await usersiteApi.searchUserSites({
+          idSite: assignment.idSite,
+          onlyActive: true,
+        });
+        const matched =
+          matches.find((item) => item.id === assignment.id) ||
+          matches.find((item) => item.idGroupement === assignment.idGroupement) ||
+          matches[0];
+        if (matched) {
+          return { ...assignment, ...matched };
+        }
+      }
+    } catch (err) {
+      console.error('Failed to resolve user site details', err);
+    }
+
+    return assignment;
+  }, []);
+
+  useEffect(() => {
+    const loadUserSiteAssignments = async () => {
+      if (!currentUser) {
+        setUserSiteAssignments([]);
+        return;
+      }
+
+      const applyResolvedAssignment = async (input: UserSite | null) => {
+        const resolved = await resolveUserSiteInfo(input);
+        setUserSiteAssignments(resolved ? [resolved] : []);
+      };
+
+      if (!userSiteIdFromProfile) {
+        await applyResolvedAssignment(fallbackUserSiteAssignment);
+        return;
+      }
+
+      try {
+        const assignment = await usersiteApi.getUserSiteById(userSiteIdFromProfile);
+        if (assignment) {
+          await applyResolvedAssignment(assignment);
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to load user site assignment', err);
+      }
+
+      await applyResolvedAssignment(fallbackUserSiteAssignment);
+    };
+
+    void loadUserSiteAssignments();
+  }, [currentUser, fallbackUserSiteAssignment, resolveUserSiteInfo, userSiteIdFromProfile]);
 
   const allMarquesRef = useRef<Marque[]>([]);
   const allModelesRef = useRef<Modele[]>([]);
   const allVersionsRef = useRef<Version[]>([]);
-  const siteCache = useRef<{
-    filiale?: Array<Filiale>;
-    succursale?: Array<Succursale>;
-  }>({});
-  const modeleCache = useRef<
-    Record<number, { items: Modele[]; total: number }>
-  >({});
-  const versionCache = useRef<
-    Record<number, { items: Version[]; total: number }>
-  >({});
+  const modeleCache = useRef<Record<number, { items: Modele[]; total: number }>>({});
+  const versionCache = useRef<Record<number, { items: Version[]; total: number }>>({});
   const objectifsCache = useRef<Record<string, ObjectifView[]>>({});
 
   const [selectedPeriode, setSelectedPeriode] = useState<number | null>(null);
@@ -89,12 +213,10 @@ export const ObjectifManagement: React.FC = () => {
   });
 
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingObjectif, setEditingObjectif] = useState<ObjectifView | null>(
-    null
-  );
+  const [editingObjectif, setEditingObjectif] = useState<ObjectifView | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<ObjectifFormState>({
-    targetType: "marque",
+    targetType: 'marque',
     groupementId: 0,
     siteId: 0,
     periodeId: 0,
@@ -103,16 +225,61 @@ export const ObjectifManagement: React.FC = () => {
     marqueId: 0,
     modeleId: 0,
     versionId: 0,
-    volume: "",
-    salePrice: "0",
-    chiffreAffaire: "0",
-    tmDirect: "",
-    margeInterGroupe: "",
+    volume: '',
+    salePrice: '0',
+    chiffreAffaire: '0',
+    tmDirect: '',
+    margeInterGroupe: '',
   });
 
-  // View Details Dialog State (NEW)
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewObjectif, setViewObjectif] = useState<ObjectifView | null>(null);
+
+  const applySiteScopedMarques = useCallback(
+    (siteId: number, groupementName?: string | null) => {
+      const normalizedGroupement = groupementName?.trim().toLowerCase() ?? '';
+      const shouldFilterByFiliale = normalizedGroupement === 'filiale';
+
+      if (siteId > 0 && shouldFilterByFiliale) {
+        const filteredMarques = allMarquesRef.current.filter(
+          (marque) => marque.idFiliale === siteId
+        );
+
+        startTransition(() => {
+          setMarques(filteredMarques);
+          setMarquesTotal(filteredMarques.length);
+        });
+
+        setFormData((prev) => {
+          const isCurrentMarqueValid = filteredMarques.some((marque) => marque.id === prev.marqueId);
+          if (isCurrentMarqueValid) {
+            return prev;
+          }
+          if (prev.marqueId === 0 && prev.modeleId === 0 && prev.versionId === 0) {
+            return prev;
+          }
+          return {
+            ...prev,
+            marqueId: 0,
+            modeleId: 0,
+            versionId: 0,
+            volume: '',
+            salePrice: '0',
+            chiffreAffaire: '0',
+            tmDirect: '',
+            margeInterGroupe: '',
+          };
+        });
+        return;
+      }
+
+      startTransition(() => {
+        setMarques(allMarquesRef.current);
+        setMarquesTotal(allMarquesRef.current.length);
+      });
+    },
+    []
+  );
 
   const loadAllDropdownData = useCallback(async () => {
     try {
@@ -124,7 +291,6 @@ export const ObjectifManagement: React.FC = () => {
         marquesRes,
         modelesRes,
         versionsRes,
-        groupementsRes,
       ] = await Promise.all([
         periodeApi.listActivePeriodes({ pageSize: 1000 }),
         typeventeApi.listActiveTypeVentes(),
@@ -132,7 +298,6 @@ export const ObjectifManagement: React.FC = () => {
         marqueApi.list({ onlyActive: true, pageSize: 1000 }),
         modeleApi.list({ onlyActive: true, pageSize: 1000 }),
         versionApi.list({ onlyActive: true, pageSize: 1000 }),
-        groupementApi.listGroupements(),
       ]);
 
       setPeriodes(extractArray<Periode>(periodesRes.data));
@@ -142,26 +307,22 @@ export const ObjectifManagement: React.FC = () => {
       const marqueList = extractArray<Marque>(marquesRes.data);
       setMarques(marqueList);
       allMarquesRef.current = marqueList;
-      const totalMarques =
-        marquesRes.pagination?.totalRecords ?? marqueList.length;
+      const totalMarques = marquesRes.pagination?.totalRecords ?? marqueList.length;
       setMarquesTotal(totalMarques);
 
       const allModeles = extractArray<Modele>(modelesRes.data);
       allModelesRef.current = allModeles;
-      const totalModeles =
-        modelesRes.pagination?.totalRecords ?? allModeles.length;
+      const totalModeles = modelesRes.pagination?.totalRecords ?? allModeles.length;
       setModelesTotal(totalModeles);
 
       const allVersions = extractArray<Version>(versionsRes.data);
       allVersionsRef.current = allVersions;
-      const totalVersions =
-        versionsRes.pagination?.totalRecords ?? allVersions.length;
+      const totalVersions = versionsRes.pagination?.totalRecords ?? allVersions.length;
       setVersionsTotal(totalVersions);
 
-      setGroupements(extractArray<Groupement>(groupementsRes));
     } catch (err: any) {
-      console.error("Failed to load dropdown data:", err);
-      setError(err.response?.data?.error || "Failed to load data");
+      console.error('Failed to load dropdown data', err);
+      setError(err.response?.data?.error || 'Failed to load data');
       setMarquesTotal(0);
       setModelesTotal(0);
       setVersionsTotal(0);
@@ -170,80 +331,40 @@ export const ObjectifManagement: React.FC = () => {
     }
   }, []);
 
-  const loadSitesByGroupement = useCallback(
-    async (groupementId: number) => {
-      try {
-        const groupement = groupements.find((g) => g.id === groupementId);
-        if (!groupement) {
-          setSites([]);
-          return;
-        }
-
-        const normalizedName = groupement.name?.toLowerCase();
-        const cacheKey =
-          normalizedName === "filiale"
-            ? "filiale"
-            : normalizedName === "succursale"
-            ? "succursale"
-            : undefined;
-
-        if (cacheKey && siteCache.current[cacheKey]) {
-          const cachedSites = siteCache.current[cacheKey] ?? [];
-          startTransition(() => setSites(cachedSites));
-          return;
-        }
-
-        let siteList: Array<Filiale | Succursale> = [];
-        if (normalizedName === "filiale") {
-          const response = await filialeApi.listFiliales({ pageSize: 1000 });
-          siteList = extractArray<Filiale>(response.data);
-        } else if (normalizedName === "succursale") {
-          const response = await succursaleApi.listSuccursales({
-            pageSize: 1000,
-          });
-          siteList = extractArray<Succursale>(response.data);
-        } else {
-          setSites([]);
-          return;
-        }
-
-        if (cacheKey) {
-          siteCache.current[cacheKey] = siteList as any;
-        }
-
-        startTransition(() => setSites(siteList));
-      } catch (err: any) {
-        console.error("Failed to load sites:", err);
-      }
-    },
-    [groupements]
-  );
-
   const loadModelesByMarque = useCallback(async (marqueId: number) => {
     try {
       const cached = modeleCache.current[marqueId];
       if (cached) {
-        startTransition(() => setModeles(cached.items));
-        setModelesTotal(cached.total);
+        startTransition(() => {
+          setModeles(cached.items);
+          setModelesTotal(cached.total);
+        });
         return;
       }
 
-      startTransition(() => setModeles([]));
+      startTransition(() => {
+        setModeles([]);
+      });
+
       const response = await modeleApi.listByMarque(marqueId, {
         onlyActive: true,
         pageSize: 1000,
       });
-
       const items = response.data ?? [];
       const total = response.pagination?.totalRecords ?? items.length;
 
       modeleCache.current[marqueId] = { items, total };
-      startTransition(() => setModeles(items));
-      setModelesTotal(total);
+
+      startTransition(() => {
+        setModeles(items);
+        setModelesTotal(total);
+      });
     } catch (err: any) {
-      console.error("Failed to load modeles:", err);
-      startTransition(() => setModeles([]));
-      setModelesTotal(0);
+      console.error('Failed to load modeles', err);
+      startTransition(() => {
+        setModeles([]);
+        setModelesTotal(0);
+      });
     }
   }, []);
 
@@ -251,71 +372,132 @@ export const ObjectifManagement: React.FC = () => {
     try {
       const cached = versionCache.current[modeleId];
       if (cached) {
-        startTransition(() => setVersions(cached.items));
-        setVersionsTotal(cached.total);
+        startTransition(() => {
+          setVersions(cached.items);
+          setVersionsTotal(cached.total);
+        });
         return;
       }
 
-      startTransition(() => setVersions([]));
+      startTransition(() => {
+        setVersions([]);
+      });
+
       const response = await versionApi.listByModele({
         idModele: modeleId,
         onlyActive: true,
         pageSize: 1000,
       });
-
       const items = response.data ?? [];
       const total = response.pagination?.totalRecords ?? items.length;
 
       versionCache.current[modeleId] = { items, total };
-      startTransition(() => setVersions(items));
-      setVersionsTotal(total);
+
+      startTransition(() => {
+        setVersions(items);
+        setVersionsTotal(total);
+      });
     } catch (err: any) {
-      console.error("Failed to load versions:", err);
-      startTransition(() => setVersions([]));
-      setVersionsTotal(0);
+      console.error('Failed to load versions', err);
+      startTransition(() => {
+        setVersions([]);
+        setVersionsTotal(0);
+      });
     }
   }, []);
 
   const loadObjectifs = useCallback(
-    async (options: { force?: boolean } = {}) => {
-      const { force = false } = options;
-
+    async (options?: { force?: boolean }) => {
+      const { force = false } = options || {};
       if (force) {
         objectifsCache.current = {};
       }
 
-      const cacheKey = selectedPeriode ? selectedPeriode.toString() : "all";
+      const activeSiteIds = userSiteAssignments
+        .map((assignment) => Number(assignment.idSite) || 0)
+        .filter((id) => Number.isFinite(id) && id > 0);
+      const distinctSiteIds = Array.from(new Set(activeSiteIds)).sort((a, b) => a - b);
+
+      const cacheKeyParts = [
+        selectedPeriode ? `periode:${selectedPeriode}` : 'periode:all',
+        isAdminFonctionnel ? 'scope:all' : `sites:${distinctSiteIds.join(',') || 'none'}`,
+      ];
+      const cacheKey = cacheKeyParts.join('|');
+
       const cached = objectifsCache.current[cacheKey];
       const shouldShowLoader = !cached || force;
 
       if (cached && !force) {
-        startTransition(() => setObjectifs(cached));
+        startTransition(() => {
+          setObjectifs(cached);
+        });
+        return;
+      }
+
+      if (!isAdminFonctionnel && distinctSiteIds.length === 0) {
+        objectifsCache.current[cacheKey] = [];
+        if (shouldShowLoader) {
+          setLoading(false);
+        }
+        startTransition(() => {
+          setObjectifs([]);
+        });
         return;
       }
 
       try {
         if (shouldShowLoader) {
           setLoading(true);
+          setError(null);
         }
 
-        setError(null);
-        const response = await objectifApi.listObjectifsView(
-          selectedPeriode ? { periodeId: selectedPeriode } : undefined
-        );
+        const baseParams: ListObjectifsParams = {};
+        if (selectedPeriode) {
+          baseParams.periodeId = selectedPeriode;
+        }
 
-        const objectifsData = extractArray<ObjectifView>(response.data);
+        let objectifsData: ObjectifView[] = [];
+
+        if (isAdminFonctionnel) {
+          const response = await objectifApi.listObjectifsView(
+            Object.keys(baseParams).length > 0 ? baseParams : undefined
+          );
+          objectifsData = extractArray<ObjectifView>(response.data);
+        } else {
+          const responses = await Promise.all(
+            distinctSiteIds.map((siteId) =>
+              objectifApi.listObjectifsView({
+                ...baseParams,
+                siteId,
+              })
+            )
+          );
+
+          const mergedObjectifs = new Map<number, ObjectifView>();
+          for (const response of responses) {
+            const items = extractArray<ObjectifView>(response.data);
+            for (const item of items) {
+              mergedObjectifs.set(item.id, item);
+            }
+          }
+          objectifsData = Array.from(mergedObjectifs.values());
+        }
+
         objectifsCache.current[cacheKey] = objectifsData;
-        startTransition(() => setObjectifs(objectifsData));
+
+        startTransition(() => {
+          setObjectifs(objectifsData);
+        });
       } catch (err: any) {
-        console.error("Failed to load objectifs:", err);
-        setError(err.response?.data?.error || "Failed to load objectifs");
+        console.error('Failed to load objectifs', err);
+        setError(err.response?.data?.error || 'Failed to load objectifs');
       } finally {
         if (shouldShowLoader) {
           setLoading(false);
         }
       }
     },
-    [selectedPeriode]
+    [selectedPeriode, isAdminFonctionnel, userSiteAssignments]
   );
 
   useEffect(() => {
@@ -327,86 +509,16 @@ export const ObjectifManagement: React.FC = () => {
   }, [selectedPeriode, loadObjectifs]);
 
   useEffect(() => {
-    if (formData.groupementId) {
-      loadSitesByGroupement(formData.groupementId);
-    }
-  }, [formData.groupementId, loadSitesByGroupement]);
-
-  useEffect(() => {
-    const selectedGroupement = groupements.find(
-      (groupement) => groupement.id === formData.groupementId
-    );
-    const normalizedGroupementName =
-      selectedGroupement?.name?.trim().toLowerCase() ?? "";
-
-    if (normalizedGroupementName === "filiale") {
-      if (!formData.siteId) {
-        startTransition(() => setMarques([]));
-        setMarquesTotal(0);
-        setFormData((prev) => {
-          if (
-            prev.marqueId === 0 &&
-            prev.modeleId === 0 &&
-            prev.versionId === 0
-          ) {
-            return prev;
-          }
-
-          return {
-            ...prev,
-            marqueId: 0,
-            modeleId: 0,
-            versionId: 0,
-            volume: "",
-            salePrice: "0",
-            chiffreAffaire: "0",
-            tmDirect: "",
-            margeInterGroupe: "",
-          };
-        });
-        return;
-      }
-
-      const filteredMarques = allMarquesRef.current.filter(
-        (marque) => marque.idFiliale === formData.siteId
-      );
-      startTransition(() => setMarques(filteredMarques));
-      setMarquesTotal(filteredMarques.length);
-
-      setFormData((prev) => {
-        const isCurrentMarqueValid = filteredMarques.some(
-          (marque) => marque.id === prev.marqueId
-        );
-        if (isCurrentMarqueValid) {
-          return prev;
-        }
-
-        if (
-          prev.marqueId === 0 &&
-          prev.modeleId === 0 &&
-          prev.versionId === 0
-        ) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          marqueId: 0,
-          modeleId: 0,
-          versionId: 0,
-          volume: "",
-          salePrice: "0",
-          chiffreAffaire: "0",
-          tmDirect: "",
-          margeInterGroupe: "",
-        };
-      });
+    if (allMarquesRef.current.length === 0) {
       return;
     }
+    const contextSiteId = dialogSiteInfo?.siteId ?? primaryAssignment?.idSite ?? 0;
+    const contextGroupement =
+      dialogSiteInfo?.groupementName ?? primaryAssignment?.groupement_name ?? null;
+    applySiteScopedMarques(contextSiteId, contextGroupement);
+  }, [dialogSiteInfo, primaryAssignment, applySiteScopedMarques]);
 
-    startTransition(() => setMarques(allMarquesRef.current));
-    setMarquesTotal(allMarquesRef.current.length);
-  }, [formData.groupementId, formData.siteId, groupements]);
+
 
   useEffect(() => {
     if (!formData.marqueId) {
@@ -415,7 +527,7 @@ export const ObjectifManagement: React.FC = () => {
       return;
     }
 
-    if (formData.targetType === "marque") {
+    if (formData.targetType === 'marque') {
       setModeles([]);
       setModelesTotal(allModelesRef.current.length);
       return;
@@ -425,7 +537,7 @@ export const ObjectifManagement: React.FC = () => {
   }, [formData.marqueId, formData.targetType, loadModelesByMarque]);
 
   useEffect(() => {
-    if (!formData.modeleId || formData.targetType !== "version") {
+    if (!formData.modeleId || formData.targetType !== 'version') {
       setVersions([]);
       setVersionsTotal(allVersionsRef.current.length);
       return;
@@ -437,8 +549,7 @@ export const ObjectifManagement: React.FC = () => {
   useEffect(() => {
     setPagination((prev) => {
       const totalRecords = objectifs.length;
-      const totalPages =
-        totalRecords > 0 ? Math.ceil(totalRecords / prev.pageSize) : 1;
+      const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / prev.pageSize) : 1;
       const nextPage = Math.min(Math.max(prev.page, 1), totalPages);
 
       if (
@@ -463,8 +574,7 @@ export const ObjectifManagement: React.FC = () => {
       setPagination(() => {
         const nextPageSize = Math.max(model.pageSize, 1);
         const totalRecords = objectifs.length;
-        const totalPages =
-          totalRecords > 0 ? Math.ceil(totalRecords / nextPageSize) : 1;
+        const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / nextPageSize) : 1;
         const requestedPage = Math.min(Math.max(model.page + 1, 1), totalPages);
 
         return {
@@ -483,7 +593,6 @@ export const ObjectifManagement: React.FC = () => {
     return objectifs.slice(startIndex, startIndex + pagination.pageSize);
   }, [objectifs, pagination.page, pagination.pageSize]);
 
-  // Handle View Details (NEW)
   const handleViewObjectif = useCallback((objectif: ObjectifView) => {
     setViewObjectif(objectif);
     setViewDialogOpen(true);
@@ -494,14 +603,16 @@ export const ObjectifManagement: React.FC = () => {
     setViewObjectif(null);
   }, []);
 
+  // ✅ UPDATED: handleOpenDialog with auto-fill logic
   const handleOpenDialog = useCallback(
     (objectif?: ObjectifView) => {
+      if (!canManageObjectifs) return;
+
       if (objectif) {
+        // EDIT MODE
         const toNumber = (value: unknown): number => {
-          if (typeof value === "number" && Number.isFinite(value)) {
-            return value;
-          }
-          if (typeof value === "string") {
+          if (typeof value === 'number' && Number.isFinite(value)) return value;
+          if (typeof value === 'string') {
             const parsed = Number.parseFloat(value);
             return Number.isFinite(parsed) ? parsed : 0;
           }
@@ -510,10 +621,10 @@ export const ObjectifManagement: React.FC = () => {
 
         const inferredTargetType =
           objectif.versionID && objectif.versionID > 0
-            ? "version"
+            ? 'version'
             : objectif.modeleID && objectif.modeleID > 0
-            ? "modele"
-            : "marque";
+            ? 'modele'
+            : 'marque';
 
         setEditingObjectif(objectif);
 
@@ -537,117 +648,134 @@ export const ObjectifManagement: React.FC = () => {
           modeleId: objectif.modeleID || 0,
           versionId: objectif.versionID || 0,
           volume: objectif.volume.toString(),
-          salePrice: salePriceValue > 0 ? salePriceValue.toFixed(2) : "0",
+          salePrice: salePriceValue > 0 ? salePriceValue.toFixed(2) : '0',
           chiffreAffaire:
-            chiffreAffaireValue > 0 ? chiffreAffaireValue.toFixed(2) : "0",
+            chiffreAffaireValue > 0 ? chiffreAffaireValue.toFixed(2) : '0',
           tmDirect: (tmDirectValue * 100).toFixed(2),
           margeInterGroupe: (tmInterValue * 100).toFixed(2),
         });
 
-        const normalizedGroupement = objectif.groupementName?.toLowerCase();
-        const siteCacheKey =
-          normalizedGroupement === "filiale"
-            ? "filiale"
-            : normalizedGroupement === "succursale"
-            ? "succursale"
-            : undefined;
+        setDialogSiteInfo({
+          siteId: objectif.SiteID,
+          siteName: objectif.SiteName ?? '',
+          groupementName: objectif.groupementName ?? null,
+        });
 
-        if (siteCacheKey && siteCache.current[siteCacheKey]) {
-          startTransition(() =>
-            setSites(siteCache.current[siteCacheKey] ?? [])
-          );
-        }
+        applySiteScopedMarques(objectif.SiteID, objectif.groupementName ?? null);
 
         const objectifMarqueId = objectif.marqueID;
-        if (typeof objectifMarqueId === "number" && objectifMarqueId > 0) {
+        if (typeof objectifMarqueId === 'number' && objectifMarqueId > 0) {
           const cachedModeles = modeleCache.current[objectifMarqueId];
           if (cachedModeles) {
-            startTransition(() => setModeles(cachedModeles.items));
-            setModelesTotal(cachedModeles.total);
+            startTransition(() => {
+              setModeles(cachedModeles.items);
+              setModelesTotal(cachedModeles.total);
+            });
           }
-
           if (!cachedModeles) {
             void loadModelesByMarque(objectifMarqueId);
           }
         }
 
         const objectifModeleId = objectif.modeleID;
-        if (typeof objectifModeleId === "number" && objectifModeleId > 0) {
+        if (typeof objectifModeleId === 'number' && objectifModeleId > 0) {
           const cachedVersions = versionCache.current[objectifModeleId];
           if (cachedVersions) {
-            startTransition(() => setVersions(cachedVersions.items));
-            setVersionsTotal(cachedVersions.total);
+            startTransition(() => {
+              setVersions(cachedVersions.items);
+              setVersionsTotal(cachedVersions.total);
+            });
           }
-
           if (!cachedVersions) {
             void loadVersionsByModele(objectifModeleId);
           }
         }
+
+        setOpenDialog(true);
       } else {
+        // ✅ CREATE MODE - Auto-fill from user assignment
+        const defaultGroupementId = primaryAssignment?.idGroupement ?? 0;
+        const defaultSiteId = primaryAssignment?.idSite ?? 0;
+
         setEditingObjectif(null);
         setFormData({
-          targetType: "marque",
-          groupementId: 0,
-          siteId: 0,
-          periodeId: selectedPeriode || 0,
+          targetType: 'marque',
+          groupementId: defaultGroupementId,
+          siteId: defaultSiteId,
+          periodeId: selectedPeriode ?? 0,
           typeVenteId: 0,
           typeObjectifId: 0,
           marqueId: 0,
           modeleId: 0,
           versionId: 0,
-          volume: "",
-          salePrice: "0",
-          chiffreAffaire: "0",
-          tmDirect: "",
-          margeInterGroupe: "",
+          volume: '',
+          salePrice: '0',
+          chiffreAffaire: '0',
+          tmDirect: '',
+          margeInterGroupe: '',
         });
 
+        if (primaryAssignment) {
+          setDialogSiteInfo({
+            siteId: defaultSiteId,
+            siteName: primaryAssignment.site_name ?? '',
+            groupementName: primaryAssignment.groupement_name ?? null,
+          });
+        } else {
+          setDialogSiteInfo(null);
+        }
+
+        applySiteScopedMarques(defaultSiteId, primaryAssignment?.groupement_name ?? null);
+
         startTransition(() => {
-          setSites([]);
           setModeles([]);
           setVersions([]);
         });
 
         setModelesTotal(allModelesRef.current.length);
         setVersionsTotal(allVersionsRef.current.length);
-      }
 
-      setOpenDialog(true);
+        setOpenDialog(true);
+      }
     },
-    [selectedPeriode, loadModelesByMarque, loadVersionsByModele]
+    [
+      canManageObjectifs,
+      selectedPeriode,
+      loadModelesByMarque,
+      loadVersionsByModele,
+      applySiteScopedMarques,
+      primaryAssignment,
+    ]
   );
 
   const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
     setEditingObjectif(null);
     setError(null);
+    setDialogSiteInfo(null);
   }, []);
 
   const handleSave = async () => {
+    if (!canManageObjectifs) return;
+
     try {
-      if (formData.targetType === "marque" && !formData.marqueId) {
-        setError("Veuillez selectionner une marque.");
+      if (formData.targetType === 'marque' && !formData.marqueId) {
+        setError('Veuillez sélectionner une marque.');
         return;
       }
-
-      if (formData.targetType === "modele") {
+      if (formData.targetType === 'modele') {
         if (!formData.marqueId) {
-          setError(
-            "Veuillez selectionner une marque afin de choisir un modele."
-          );
+          setError('Veuillez sélectionner une marque afin de choisir un modèle.');
           return;
         }
         if (!formData.modeleId) {
-          setError("Veuillez selectionner un modele.");
+          setError('Veuillez sélectionner un modèle.');
           return;
         }
       }
-
-      if (formData.targetType === "version") {
+      if (formData.targetType === 'version') {
         if (!formData.marqueId || !formData.modeleId || !formData.versionId) {
-          setError(
-            "Veuillez selectionner une marque, un modele et une version."
-          );
+          setError('Veuillez sélectionner une marque, un modèle et une version.');
           return;
         }
       }
@@ -657,11 +785,11 @@ export const ObjectifManagement: React.FC = () => {
 
       const marqueIdPayload = formData.marqueId ? formData.marqueId : null;
       const modeleIdPayload =
-        formData.targetType === "modele" || formData.targetType === "version"
+        formData.targetType === 'modele' || formData.targetType === 'version'
           ? formData.modeleId || null
           : null;
       const versionIdPayload =
-        formData.targetType === "version" ? formData.versionId || null : null;
+        formData.targetType === 'version' ? formData.versionId || null : null;
 
       const apiData = {
         userId: currentUser?.id || 0,
@@ -688,16 +816,15 @@ export const ObjectifManagement: React.FC = () => {
       handleCloseDialog();
       await loadObjectifs({ force: true });
     } catch (err: any) {
-      console.error("Failed to save objectif:", err);
+      console.error('Failed to save objectif', err);
       const apiError = err.response?.data;
-
-      if (apiError?.details && typeof apiError.details === "object") {
+      if (apiError?.details && typeof apiError.details === 'object') {
         const detailMessages = Object.values(apiError.details)
-          .filter((message): message is string => typeof message === "string")
-          .join(" • ");
-        setError(detailMessages || apiError.error || "Failed to save objectif");
+          .filter((message) => message && typeof message === 'string')
+          .join('; ');
+        setError(detailMessages || apiError.error || 'Failed to save objectif');
       } else {
-        setError(apiError?.error || err.message || "Failed to save objectif");
+        setError(apiError?.error || err.message || 'Failed to save objectif');
       }
     } finally {
       setSaving(false);
@@ -705,17 +832,8 @@ export const ObjectifManagement: React.FC = () => {
   };
 
   const getUnitMetrics = useCallback(
-    (
-      nextState: ObjectifFormState
-    ): {
-      unitPrice: number;
-      unitTmDirect: number;
-      unitTmInter: number;
-    } => {
-      const findById = <T extends { id: number }>(
-        collections: T[][],
-        id: number
-      ): T | undefined => {
+    (nextState: ObjectifFormState): { unitPrice: number; unitTmDirect: number; unitTmInter: number } => {
+      const findById = <T extends { id: number }>(collections: T[][], id: number): T | undefined => {
         for (const collection of collections) {
           const match = collection.find((item) => item.id === id);
           if (match) return match;
@@ -724,13 +842,15 @@ export const ObjectifManagement: React.FC = () => {
       };
 
       if (nextState.versionId) {
-        const versionSources: Version[][] = [
+        const versionSources: Version[] = [
           versions,
           ...Object.values(versionCache.current).map((entry) => entry.items),
           allVersionsRef.current,
-        ];
-
-        const selectedVersion = findById(versionSources, nextState.versionId);
+        ].flat();
+        const selectedVersion = findById(
+          [versionSources],
+          nextState.versionId
+        );
         if (selectedVersion) {
           return {
             unitPrice: selectedVersion.prixDeVente ?? 0,
@@ -741,13 +861,12 @@ export const ObjectifManagement: React.FC = () => {
       }
 
       if (nextState.modeleId) {
-        const modeleSources: Modele[][] = [
+        const modeleSources: Modele[] = [
           modeles,
           ...Object.values(modeleCache.current).map((entry) => entry.items),
           allModelesRef.current,
-        ];
-
-        const selectedModele = findById(modeleSources, nextState.modeleId);
+        ].flat();
+        const selectedModele = findById([modeleSources], nextState.modeleId);
         if (selectedModele) {
           return {
             unitPrice: selectedModele.averageSalePrice ?? 0,
@@ -760,10 +879,7 @@ export const ObjectifManagement: React.FC = () => {
       if (nextState.marqueId) {
         const selectedMarque =
           marques.find((marque) => marque.id === nextState.marqueId) ??
-          allMarquesRef.current.find(
-            (marque) => marque.id === nextState.marqueId
-          );
-
+          allMarquesRef.current.find((marque) => marque.id === nextState.marqueId);
         if (selectedMarque) {
           return {
             unitPrice: selectedMarque.averageSalePrice ?? 0,
@@ -773,90 +889,70 @@ export const ObjectifManagement: React.FC = () => {
         }
       }
 
-      return {
-        unitPrice: 0,
-        unitTmDirect: 0,
-        unitTmInter: 0,
-      };
+      return { unitPrice: 0, unitTmDirect: 0, unitTmInter: 0 };
     },
     [marques, modeles, versions]
   );
 
   const handleFormChange = useCallback(
-    <K extends keyof ObjectifFormState>(
-      key: K,
-      rawValue: ObjectifFormState[K]
-    ) => {
+    <K extends keyof ObjectifFormState>(key: K, rawValue: ObjectifFormState[K]) => {
       setFormData((prev) => {
         const nextState: ObjectifFormState = { ...prev };
 
-        if (key === "targetType") {
-          const targetValue =
-            (rawValue as ObjectifFormState["targetType"]) ?? "marque";
+        if (key === 'targetType') {
+          const targetValue = (rawValue as ObjectifFormState['targetType']) ?? 'marque';
           nextState.targetType = targetValue;
           nextState.marqueId = 0;
           nextState.modeleId = 0;
           nextState.versionId = 0;
-          nextState.volume = "";
-          nextState.chiffreAffaire = "0";
-        } else if (key === "marqueId") {
+          nextState.volume = '';
+          nextState.chiffreAffaire = '0';
+        } else if (key === 'marqueId') {
           const marqueId = Number(rawValue) || 0;
           nextState.marqueId = marqueId;
-
-          if (nextState.targetType !== "marque") {
+          if (nextState.targetType !== 'marque') {
             nextState.modeleId = 0;
             nextState.versionId = 0;
           }
-
-          nextState.volume = "0";
-          nextState.chiffreAffaire = "0";
-        } else if (key === "modeleId") {
+          nextState.volume = '';
+          nextState.chiffreAffaire = '0';
+        } else if (key === 'modeleId') {
           const modeleId = Number(rawValue) || 0;
           nextState.modeleId = modeleId;
-
-          if (nextState.targetType === "version") {
+          if (nextState.targetType === 'version') {
             nextState.versionId = 0;
           }
-
-          nextState.volume = "0";
-          nextState.chiffreAffaire = "0";
-        } else if (key === "versionId") {
+          nextState.volume = '';
+          nextState.chiffreAffaire = '0';
+        } else if (key === 'versionId') {
           const versionId = Number(rawValue) || 0;
           nextState.versionId = versionId;
-          nextState.volume = "0";
-          nextState.chiffreAffaire = "0";
-        } else if (key === "volume") {
+          nextState.volume = '';
+          nextState.chiffreAffaire = '0';
+        } else if (key === 'volume') {
           const numericVolume = Number(rawValue);
           nextState.volume =
-            Number.isFinite(numericVolume) && numericVolume >= 0
-              ? (rawValue as string)
-              : "0";
+            Number.isFinite(numericVolume) && numericVolume >= 0 ? (rawValue as string) : '0';
         } else {
           nextState[key] = rawValue;
         }
 
-        const { unitPrice, unitTmDirect, unitTmInter } =
-          getUnitMetrics(nextState);
+        const { unitPrice, unitTmDirect, unitTmInter } = getUnitMetrics(nextState);
+
         const parsedVolume = Number(nextState.volume) || 0;
 
         const computedUnitPrice = unitPrice > 0 ? unitPrice : 0;
-        nextState.salePrice =
-          computedUnitPrice > 0 ? computedUnitPrice.toFixed(2) : "0";
+        nextState.salePrice = computedUnitPrice > 0 ? computedUnitPrice.toFixed(2) : '0';
 
         const computedChiffreAffaire =
-          computedUnitPrice > 0 && parsedVolume > 0
-            ? computedUnitPrice * parsedVolume
-            : 0;
-        nextState.chiffreAffaire =
-          computedChiffreAffaire > 0 ? computedChiffreAffaire.toFixed(2) : "0";
+          computedUnitPrice > 0 && parsedVolume > 0 ? computedUnitPrice * parsedVolume : 0;
+        nextState.chiffreAffaire = computedChiffreAffaire > 0 ? computedChiffreAffaire.toFixed(2) : '0';
 
         const computedTmDirect = unitTmDirect > 0 ? unitTmDirect : 0;
-        nextState.tmDirect =
-          computedTmDirect > 0 ? (computedTmDirect * 100).toFixed(2) : "0";
+        nextState.tmDirect = computedTmDirect > 0 ? (computedTmDirect * 100).toFixed(2) : '0';
 
         const computedTmInter = unitTmInter > 0 ? unitTmInter : 0;
-        nextState.margeInterGroupe =
-          computedTmInter > 0 ? (computedTmInter * 100).toFixed(2) : "0";
+        nextState.margeInterGroupe = computedTmInter > 0 ? (computedTmInter * 100).toFixed(2) : '0';
 
         return nextState;
       });
@@ -865,8 +961,8 @@ export const ObjectifManagement: React.FC = () => {
   );
 
   const columns = useObjectifColumns({
-    hasUpdate: hasUpdatePermission,
-    onView: handleViewObjectif, // NEW
+    hasUpdate: canUpdateObjectif,
+    onView: handleViewObjectif,
     onEdit: handleOpenDialog,
   });
 
@@ -875,18 +971,18 @@ export const ObjectifManagement: React.FC = () => {
       sx={{
         p: 3,
         background: (theme) =>
-          theme.palette.mode === "dark"
-            ? "linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))"
-            : "linear-gradient(135deg, rgba(248,250,252,0.9), rgba(226,232,240,0.7))",
+          theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))'
+            : 'linear-gradient(135deg, rgba(248,250,252,0.9), rgba(226,232,240,0.7))',
         borderRadius: 4,
-        minHeight: "100%",
+        minHeight: '100%',
       }}
     >
       <Stack spacing={3}>
         <ObjectifFilters
           periodes={periodes}
           selectedPeriode={selectedPeriode}
-          hasCreate={hasCreatePermission}
+          hasCreate={canCreateObjectif}
           error={error}
           onClearError={() => setError(null)}
           onChangePeriode={setSelectedPeriode}
@@ -918,15 +1014,13 @@ export const ObjectifManagement: React.FC = () => {
           marquesCount={marquesTotal}
           modelesCount={modelesTotal}
           versionsCount={versionsTotal}
-          groupements={groupements}
-          sites={sites}
+          siteInfo={dialogSiteInfo}
           onClose={handleCloseDialog}
           onSave={handleSave}
           onChangeField={handleFormChange}
           onClearError={() => setError(null)}
         />
 
-        {/* View Details Dialog */}
         <ObjectifDetailsDialog
           open={viewDialogOpen}
           objectif={viewObjectif}

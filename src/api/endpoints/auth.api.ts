@@ -12,6 +12,76 @@ import type {
 } from '../../types/auth.types';
 import { UsersListResponse } from '../../types/user.types';
 
+export interface UserCompleteInfo {
+  userId: number;
+  fullName: string;
+  email: string;
+  username: string;
+  userActive: boolean;
+  userEnabled: boolean;
+  userCreatedAt?: string | null;
+  userUpdatedAt?: string | null;
+  userSiteId?: number | null;
+  groupementType?: string | null;
+  siteId?: number | null;
+  userSiteActive?: boolean | null;
+  siteName?: string | null;
+  siteActive?: boolean | null;
+  userRoles?: string | null;
+  activeRolesCount?: number | null;
+  userPermissions?: string | null;
+  activePermissionsCount?: number | null;
+  userStatus?: string | null;
+  lastActivity?: string | null;
+  raw?: Record<string, any>;
+}
+
+const normalizeUserCompleteInfo = (payload: any): UserCompleteInfo => {
+  if (!payload || typeof payload !== 'object') {
+    return {
+      userId: 0,
+      fullName: '',
+      email: '',
+      username: '',
+      userActive: false,
+      userEnabled: false,
+      raw: payload ?? null,
+    };
+  }
+
+  const toNumber = (value: any, fallback: number | null = null) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  return {
+    userId: toNumber(payload.UserId ?? payload.userId ?? payload.id, 0) ?? 0,
+    fullName: payload.FullName ?? payload.fullName ?? payload.full_name ?? '',
+    email: payload.Email ?? payload.email ?? '',
+    username: payload.Username ?? payload.username ?? '',
+    userActive: Boolean(payload.UserActive ?? payload.userActive ?? payload.active ?? false),
+    userEnabled: Boolean(payload.UserEnabled ?? payload.userEnabled ?? payload.enabled ?? false),
+    userCreatedAt: payload.UserCreatedAt ?? payload.userCreatedAt ?? payload.createdAt ?? null,
+    userUpdatedAt: payload.UserUpdatedAt ?? payload.userUpdatedAt ?? payload.updatedAt ?? null,
+    userSiteId: toNumber(payload.UserSiteId ?? payload.userSiteId ?? payload.idUserSite, null),
+    groupementType: payload.GroupementType ?? payload.groupementType ?? payload.groupement_name ?? null,
+    siteId: toNumber(payload.SiteId ?? payload.siteId, null),
+    userSiteActive: payload.UserSiteActive ?? payload.userSiteActive ?? null,
+    siteName: payload.SiteName ?? payload.siteName ?? null,
+    siteActive: payload.SiteActive ?? payload.siteActive ?? null,
+    userRoles: payload.UserRoles ?? payload.userRoles ?? null,
+    activeRolesCount: toNumber(payload.ActiveRolesCount ?? payload.activeRolesCount, null),
+    userPermissions: payload.UserPermissions ?? payload.userPermissions ?? null,
+    activePermissionsCount: toNumber(
+      payload.ActivePermissionsCount ?? payload.activePermissionsCount,
+      null
+    ),
+    userStatus: payload.UserStatus ?? payload.userStatus ?? null,
+    lastActivity: payload.LastActivity ?? payload.lastActivity ?? null,
+    raw: payload,
+  };
+};
+
 export const authApi = {
   /**
    * Login with username and password
@@ -94,7 +164,7 @@ export const authApi = {
    * Create user with roles, permissions, and site assignment
    */
   createUserComplete: async (userData: CreateUserCompleteRequest): Promise<any> => {
-    const response = await apiClient.post('/api/auth/users/complete', userData);
+    const response = await apiClient.post('/api/auth/create-user-complete', userData);
     return response.data.data;
   },
 
@@ -116,9 +186,11 @@ export const authApi = {
   /**
    * Get complete user information by ID
    */
-  getUserCompleteInfo: async (userId: number) => {
-    const { data } = await apiClient.get(`/api/auth/users/${userId}/complete`);
-    return data.data;
+  getUserCompleteInfo: async (userId: number): Promise<UserCompleteInfo> => {
+    const { data } = await apiClient.get<ApiResponse<any>>(
+      `/api/auth/users/${userId}/complete`
+    );
+    return normalizeUserCompleteInfo(data.data);
   },
 
   /**

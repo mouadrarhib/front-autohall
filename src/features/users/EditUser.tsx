@@ -84,7 +84,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export const EditUser: React.FC = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { id: userId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   // Tab state

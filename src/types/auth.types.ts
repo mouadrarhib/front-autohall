@@ -25,6 +25,18 @@ export interface UserProfile {
   full_name: string;
   actif: boolean;
   idUserSite?: number;
+  site_name?: string;
+  siteName?: string;
+  SiteName?: string;
+  siteId?: number;
+  SiteId?: number;
+  groupement_type?: string;
+  groupementName?: string;
+  GroupementType?: string;
+  userSiteActive?: boolean;
+  UserSiteActive?: boolean;
+  userStatus?: string;
+  lastActivity?: string | null;
 }
 
 export interface UserRole {

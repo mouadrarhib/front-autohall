@@ -35,6 +35,7 @@ import TimeToLeaveIcon from "@mui/icons-material/TimeToLeave";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import logo from "../../assets/logo.png";
 import { useAuthStore } from "../../store/authStore";
+import { useRoles, ROLES, RoleName } from "../../hooks/useRoles";
 
 interface MenuItem {
   title: string;
@@ -44,7 +45,9 @@ interface MenuItem {
     title: string;
     icon: React.ReactElement;
     path: string;
+    roles?: RoleName[]; // Optional roles for children
   }>;
+  roles?: RoleName[]; // Roles that can see this menu item
 }
 
 interface SidebarProps {
@@ -59,23 +62,65 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  
+  // Use role hook
+  const { hasAnyRole, isAdminFonctionnel, isIntegrateurObjectifs } = useRoles();
 
-  const menuItems: MenuItem[] = [
-    { title: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
-    { title: "Users", icon: <PeopleIcon />, path: "/users" },
-    { title: "Sites", icon: <StorefrontIcon />, path: "/sites" },
+  // Define all menu items with role restrictions
+  const allMenuItems: MenuItem[] = [
+    { 
+      title: "Dashboard", 
+      icon: <DashboardIcon />, 
+      path: "/dashboard",
+      // Everyone can see dashboard
+    },
+    { 
+      title: "Users", 
+      icon: <PeopleIcon />, 
+      path: "/users",
+      roles: [ROLES.ADMIN_FONCTIONNEL], // Only admin
+    },
+    { 
+      title: "Sites", 
+      icon: <SecurityIcon />, 
+      path: "/sites",
+      roles: [ROLES.ADMIN_FONCTIONNEL], // Only admin
+    },
     {
       title: "Véhicules",
-      icon: <TimeToLeaveIcon />,
+      icon: <DirectionsCarIcon />,
+      roles: [ROLES.ADMIN_FONCTIONNEL], // Only admin can manage
       children: [
-        { title: "Marques", icon: <DirectionsCarIcon />, path: "/marques" },
-        { title: "Modèles", icon: <CategoryIcon />, path: "/modeles" },
-        { title: "Versions", icon: <LayersIcon />, path: "/versions" },
+        { title: "Marques", icon: <CategoryIcon />, path: "/marques" },
+        { title: "Modèles", icon: <LayersIcon />, path: "/modeles" },
+        { title: "Versions", icon: <TimeToLeaveIcon />, path: "/versions" },
       ],
     },
-    { title: "Périodes", icon: <CalendarTodayIcon />, path: "/periodes" },
-    { title: "Objectifs", icon: <TrackChangesIcon />, path: "/objectifs" },
+    { 
+      title: "Périodes", 
+      icon: <CalendarTodayIcon />, 
+      path: "/periodes",
+      roles: [ROLES.ADMIN_FONCTIONNEL], // Only admin
+    },
+    { 
+      title: "Objectifs", 
+      icon: <TrackChangesIcon />, 
+      path: "/objectifs",
+      roles: [ROLES.ADMIN_FONCTIONNEL, ROLES.INTEGRATEUR_OBJECTIFS], // Both can see
+    },
   ];
+
+  // Filter menu items based on user roles
+  const menuItems = useMemo(() => {
+    return allMenuItems.filter((item) => {
+      // If no roles specified, everyone can see it
+      if (!item.roles || item.roles.length === 0) {
+        return true;
+      }
+      // Check if user has any of the required roles
+      return hasAnyRole(item.roles);
+    });
+  }, [hasAnyRole]);
 
   const isPathActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -96,9 +141,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     if (item.path && isPathActive(item.path)) {
       return true;
     }
+
     if (item.children) {
       return item.children.some((child) => isPathActive(child.path));
     }
+
     return false;
   };
 
@@ -116,38 +163,72 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   return (
     <Box
       sx={{
+        width: isCompact ? "100%" : 280,
+        maxWidth: isCompact ? "100%" : 280,
         height: "100vh",
+        overflow: "hidden",
+        backgroundColor: "#0f172a",
         display: "flex",
         flexDirection: "column",
-        background: "linear-gradient(180deg, rgba(15,23,42,1) 0%, rgba(30,41,59,1) 100%)",
-        borderRight: "1px solid rgba(148, 163, 184, 0.2)",
-        boxShadow: "0 12px 40px rgba(15, 23, 42, 0.35)",
+        flexShrink: 0,
+        borderRight: "1px solid rgba(148, 163, 184, 0.15)",
+        boxShadow: "0 10px 40px rgba(15, 23, 42, 0.4)",
       }}
     >
-      <Toolbar sx={{ justifyContent: isCompact ? "space-between" : "flex-start", px: 2 }}>
+      <Toolbar
+        sx={{
+          px: 2.5,
+          py: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid rgba(148, 163, 184, 0.15)",
+        }}
+      >
         {!isCompact && (
           <Box
             component="img"
             src={logo}
-            alt="Logo"
+            alt="AutoHall"
             sx={{
-              height: 42,
+              height: 48,
               width: "auto",
+              maxWidth: "100%",
               objectFit: "contain",
-              filter: "invert(1) brightness(1.2)",
+              filter: "brightness(0) invert(1)",
             }}
           />
         )}
         {isCompact && onItemClick && (
-          <IconButton onClick={onItemClick} sx={{ color: "#f1f5f9" }}>
+          <IconButton
+            onClick={onItemClick}
+            sx={{
+              color: "#f1f5f9",
+              "&:hover": { backgroundColor: "rgba(59, 130, 246, 0.15)" },
+            }}
+          >
             <CloseIcon />
           </IconButton>
         )}
       </Toolbar>
 
-      <Divider sx={{ borderColor: "rgba(148, 163, 184, 0.2)" }} />
-
-      <List sx={{ flex: 1, overflowY: "auto", px: 2, py: 2 }}>
+      <List
+        sx={{
+          flex: 1,
+          width: "100%",
+          px: 2,
+          py: 2.5,
+          overflowY: "auto",
+          overflowX: "hidden",
+          boxSizing: "border-box",
+          "&::-webkit-scrollbar": { width: 6 },
+          "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "rgba(148, 163, 184, 0.3)",
+            borderRadius: 3,
+          },
+        }}
+      >
         {menuItems.map((item) => {
           const active = isMenuActive(item);
           const isExpanded = openMenus[item.title] ?? active;
@@ -167,94 +248,107 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           };
 
           return (
-            <ListItem key={item.title} disablePadding sx={{ display: "block", mb: 0.5 }}>
-              <ListItemButton
-                onClick={handleItemClick}
-                selected={active && !hasChildren}
-                sx={{
-                  borderRadius: 2,
-                  py: 1.25,
-                  "&.Mui-selected": {
-                    backgroundColor: "rgba(59, 130, 246, 0.15)",
-                    "& .MuiListItemIcon-root": { color: "#3b82f6" },
-                    "& .MuiListItemText-primary": {
-                      color: "#f1f5f9",
-                      fontWeight: 600,
+            <ListItem key={item.title} disablePadding sx={{ mb: 0.75 }}>
+              <Box sx={{ width: "100%" }}>
+                <ListItemButton
+                  onClick={handleItemClick}
+                  selected={active && !hasChildren}
+                  sx={{
+                    borderRadius: 2,
+                    py: 1.25,
+                    px: 2,
+                    "&.Mui-selected": {
+                      backgroundColor: "rgba(59, 130, 246, 0.15)",
+                      "& .MuiListItemIcon-root": { color: "#3b82f6" },
+                      "& .MuiListItemText-primary": {
+                        color: "#f1f5f9",
+                        fontWeight: 700,
+                      },
                     },
-                  },
-                  "&:hover": {
-                    backgroundColor: "rgba(59, 130, 246, 0.08)",
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 40, color: active ? "#3b82f6" : "#94a3b8" }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.title}
-                  primaryTypographyProps={{
-                    fontWeight: active ? 600 : 500,
-                    color: active ? "#f1f5f9" : "#cbd5e1",
+                    "&:hover": {
+                      backgroundColor: "rgba(59, 130, 246, 0.1)",
+                    },
                   }}
-                />
-                {!isCompact && hasChildren && (
-                  <Box sx={{ color: "#94a3b8" }}>
-                    {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                  </Box>
-                )}
-              </ListItemButton>
+                >
+                  <ListItemIcon sx={{ color: "#94a3b8", minWidth: 40 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.title}
+                    primaryTypographyProps={{
+                      fontSize: 15,
+                      fontWeight: active ? 600 : 500,
+                      color: active ? "#f1f5f9" : "#cbd5e1",
+                    }}
+                  />
+                  {!isCompact && hasChildren && (
+                    <Box sx={{ color: "#94a3b8" }}>
+                      {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                    </Box>
+                  )}
+                </ListItemButton>
 
-              {hasChildren && (
-                <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding>
-                    {item.children!.map((child) => {
-                      const childActive = isPathActive(child.path);
-                      return (
-                        <ListItemButton
-                          key={child.path}
-                          onClick={() => handleNavigation(child.path)}
-                          selected={childActive}
-                          sx={{
-                            pl: 7,
-                            borderRadius: 2,
-                            py: 0.75,
-                            "&.Mui-selected": {
-                              backgroundColor: "rgba(59, 130, 246, 0.12)",
-                              "& .MuiListItemIcon-root": { color: "#3b82f6" },
-                              "& .MuiListItemText-primary": {
-                                color: "#f1f5f9",
-                                fontWeight: 600,
+                {hasChildren && (
+                  <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding sx={{ mt: 0.5 }}>
+                      {item.children!.map((child) => {
+                        const childActive = isPathActive(child.path);
+                        return (
+                          <ListItemButton
+                            key={child.path}
+                            onClick={() => handleNavigation(child.path)}
+                            selected={childActive}
+                            sx={{
+                              pl: 7,
+                              borderRadius: 2,
+                              py: 0.75,
+                              "&.Mui-selected": {
+                                backgroundColor: "rgba(59, 130, 246, 0.12)",
+                                "& .MuiListItemIcon-root": { color: "#3b82f6" },
+                                "& .MuiListItemText-primary": {
+                                  color: "#f1f5f9",
+                                  fontWeight: 600,
+                                },
                               },
-                            },
-                            "&:hover": {
-                              backgroundColor: "rgba(59, 130, 246, 0.08)",
-                            },
-                          }}
-                        >
-                          <ListItemIcon sx={{ minWidth: 36, color: childActive ? "#3b82f6" : "#94a3b8" }}>
-                            {child.icon}
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={child.title}
-                            primaryTypographyProps={{
-                              fontWeight: childActive ? 600 : 500,
-                              color: childActive ? "#f1f5f9" : "#cbd5e1",
+                              "&:hover": {
+                                backgroundColor: "rgba(59, 130, 246, 0.08)",
+                              },
                             }}
-                          />
-                        </ListItemButton>
-                      );
-                    })}
-                  </List>
-                </Collapse>
-              )}
+                          >
+                            <ListItemIcon
+                              sx={{ color: "#94a3b8", minWidth: 36 }}
+                            >
+                              {child.icon}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={child.title}
+                              primaryTypographyProps={{
+                                fontSize: 14,
+                                fontWeight: childActive ? 600 : 500,
+                                color: childActive ? "#f1f5f9" : "#cbd5e1",
+                              }}
+                            />
+                          </ListItemButton>
+                        );
+                      })}
+                    </List>
+                  </Collapse>
+                )}
+              </Box>
             </ListItem>
           );
         })}
       </List>
 
-      <Divider sx={{ borderColor: "rgba(148, 163, 184, 0.2)" }} />
+      <Divider sx={{ borderColor: "rgba(148, 163, 184, 0.15)" }} />
 
-      <Box sx={{ p: 2 }}>
+      <Box
+        sx={{
+          p: 2.5,
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+      >
         <Box
           role="button"
           tabIndex={0}
@@ -262,17 +356,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             if (!user) return;
             handleNavigation(`/users/${user.id}`);
           }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              if (!user) return;
-              handleNavigation(`/users/${user.id}`);
-            }
-          }}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            if (!user) return;
+            handleNavigation(`/users/${user.id}`);
+          }
+        }}
+        sx={{
+          display: "flex",
+          width: "100%",
+          alignItems: "center",
+          gap: 1.5,
             p: 1.5,
             borderRadius: 2,
             backgroundColor: "rgba(15, 23, 42, 0.4)",
@@ -292,20 +387,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           <Avatar
             sx={{
               bgcolor: "#3b82f6",
-              color: "#ffffff",
-              width: 40,
-              height: 40,
+              width: 42,
+              height: 42,
+              fontSize: 16,
               fontWeight: 700,
             }}
           >
             {userInitials}
           </Avatar>
           {!isCompact && (
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: "#f1f5f9" }}>
+            <Box sx={{ flex: 1, overflow: "hidden" }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "#f1f5f9",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {user?.full_name || user?.username || "Utilisateur"}
               </Typography>
-              <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "#94a3b8",
+                  fontSize: 12,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  display: "block",
+                }}
+              >
                 {user?.email || "email@autohall.ma"}
               </Typography>
             </Box>
@@ -313,8 +428,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         </Box>
 
         <Button
-          variant="outlined"
           fullWidth
+          variant="outlined"
           startIcon={<LogoutIcon />}
           onClick={async () => {
             try {
@@ -342,7 +457,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         {!isCompact && (
           <Typography
             variant="caption"
-            sx={{ display: "block", textAlign: "center", color: "#64748b", mt: 2 }}
+            sx={{
+              display: "block",
+              textAlign: "center",
+              color: "#64748b",
+              mt: 2,
+              fontSize: 11,
+            }}
           >
             Version 1.0.0
           </Typography>

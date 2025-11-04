@@ -1,4 +1,5 @@
 // src/features/filiales/FilialesList.tsx
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -13,12 +14,12 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { GridColDef } from '@mui/x-data-grid';
+import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import { DataTable } from '../../components/common/DataTable';
 import { filialeApi, Filiale } from '../../api/endpoints/filiale.api';
-import { useAuthStore } from '../../store/authStore';
+import { useRoles, ROLES } from '../../hooks/useRoles';
 import type { PaginationMeta } from '../../types/api.types';
 
 const initialPagination: PaginationMeta = {
@@ -46,19 +47,16 @@ const formatDate = (value?: string) => {
 
 export const FilialesList: React.FC = () => {
   const navigate = useNavigate();
-  const hasCreatePermission = useAuthStore((state) =>
-    state.hasPermission('FILIALE_CREATE')
-  );
-  const hasUpdatePermission = useAuthStore((state) =>
-    state.hasPermission('FILIALE_UPDATE')
-  );
+  
+  // ✅ CHANGED: Use roles instead of permissions
+  const { isAdminFonctionnel } = useRoles();
+  const canManageFiliales = isAdminFonctionnel;
 
   const [filiales, setFiliales] = useState<Filiale[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta>(initialPagination);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
-
   const [showActiveOnly, setShowActiveOnly] = useState(true);
 
   const loadFiliales = useCallback(
@@ -72,6 +70,7 @@ export const FilialesList: React.FC = () => {
           pageSize,
           active: activeFilter ? true : undefined,
         });
+
         const responseData = response?.data ?? [];
         const paginationData = response?.pagination;
 
@@ -107,8 +106,9 @@ export const FilialesList: React.FC = () => {
 
   const handleToggleActive = async (filiale: Filiale, event: React.MouseEvent) => {
     event.stopPropagation();
-
-    if (!hasUpdatePermission || togglingId === filiale.id) return;
+    
+    // ✅ CHANGED: Check role instead of permission
+    if (!canManageFiliales || togglingId === filiale.id) return;
 
     try {
       setTogglingId(filiale.id);
@@ -152,8 +152,8 @@ export const FilialesList: React.FC = () => {
         width: 160,
         renderCell: (params) => (
           <Chip
-            label={params.value ? 'Active' : 'Inactive'}
-            color={params.value ? 'success' : 'default'}
+            label={params.row.active ? 'Active' : 'Inactive'}
+            color={params.row.active ? 'success' : 'default'}
             size="small"
           />
         ),
@@ -164,7 +164,7 @@ export const FilialesList: React.FC = () => {
         flex: 0.7,
         minWidth: 200,
         valueGetter: (params) => {
-          const row = params?.row as Partial<Filiale> | undefined;
+          const row = (params as GridRenderCellParams)?.row as Partial<Filiale> | undefined;
           const value = row?.updatedAt ?? (row as any)?.UpdatedAt;
           return formatDate(value);
         },
@@ -176,43 +176,37 @@ export const FilialesList: React.FC = () => {
         sortable: false,
         renderCell: (params) => {
           const isToggling = togglingId === params.row.id;
-
           return (
-            <Box display="flex" gap={0.5} alignItems="center">
-              {hasUpdatePermission && (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {/* ✅ CHANGED: Check role instead of permission */}
+              {canManageFiliales && (
                 <>
                   <Tooltip title="Edit Filiale">
                     <IconButton
                       size="small"
+                      color="primary"
                       onClick={(event) => handleEdit(params.row.id, event)}
                     >
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
 
-                  <Tooltip title={params.row.active ? 'Deactivate' : 'Activate'}>
-                    <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                  <FormControlLabel
+                    control={
                       <Switch
-                        size="small"
                         checked={params.row.active}
                         onChange={(event) => handleToggleActive(params.row, event as any)}
                         onClick={(event) => event.stopPropagation()}
                         disabled={isToggling}
+                        size="small"
                       />
-                      {isToggling && (
-                        <CircularProgress
-                          size={20}
-                          sx={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            marginTop: '-10px',
-                            marginLeft: '-10px',
-                          }}
-                        />
-                      )}
-                    </Box>
-                  </Tooltip>
+                    }
+                    label=""
+                    sx={{ mr: 0 }}
+                  />
+                  {isToggling && (
+                    <CircularProgress size={20} sx={{ ml: 1 }} />
+                  )}
                 </>
               )}
             </Box>
@@ -220,18 +214,23 @@ export const FilialesList: React.FC = () => {
         },
       },
     ],
-    [hasUpdatePermission, togglingId, handleEdit, handleToggleActive]
+    [canManageFiliales, togglingId, handleEdit, handleToggleActive]
   );
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Filiales Management</Typography>
-        {hasCreatePermission && (
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" fontWeight={600}>
+          Filiales Management
+        </Typography>
+
+        {/* ✅ CHANGED: Check role instead of permission */}
+        {canManageFiliales && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => navigate('/filiales/create')}
+            sx={{ textTransform: 'none' }}
           >
             Create Filiale
           </Button>
@@ -244,7 +243,7 @@ export const FilialesList: React.FC = () => {
         </Alert>
       )}
 
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
         <FormControlLabel
           control={
             <Switch
@@ -268,8 +267,8 @@ export const FilialesList: React.FC = () => {
       <DataTable
         rows={filiales}
         columns={columns}
-        pagination={pagination}
         loading={loading}
+        pagination={pagination}
         onPaginationChange={(model) => {
           handlePaginationChange(model);
           loadFiliales(model.page, model.pageSize);
