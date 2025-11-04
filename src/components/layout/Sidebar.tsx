@@ -1,7 +1,7 @@
-﻿// src/components/layout/Sidebar.tsx
+// src/components/layout/Sidebar.tsx
 
-import React, { useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Avatar,
   Box,
@@ -17,25 +17,26 @@ import {
   Toolbar,
   Typography,
   useMediaQuery,
-} from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import PeopleIcon from "@mui/icons-material/People";
-import SecurityIcon from "@mui/icons-material/Security";
-import TrackChangesIcon from "@mui/icons-material/TrackChanges";
-import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
-import CategoryIcon from "@mui/icons-material/Category";
-import LayersIcon from "@mui/icons-material/Layers";
-import StorefrontIcon from "@mui/icons-material/Storefront";
-import CloseIcon from "@mui/icons-material/Close";
-import LogoutIcon from "@mui/icons-material/Logout";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import TimeToLeaveIcon from "@mui/icons-material/TimeToLeave";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import logo from "../../assets/logo.png";
-import { useAuthStore } from "../../store/authStore";
-import { useRoles, ROLES, RoleName } from "../../hooks/useRoles";
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import PeopleIcon from '@mui/icons-material/People';
+import SecurityIcon from '@mui/icons-material/Security';
+import TrackChangesIcon from '@mui/icons-material/TrackChanges';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import CategoryIcon from '@mui/icons-material/Category';
+import LayersIcon from '@mui/icons-material/Layers';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import CloseIcon from '@mui/icons-material/Close';
+import LogoutIcon from '@mui/icons-material/Logout';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import TimeToLeaveIcon from '@mui/icons-material/TimeToLeave';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+
+import logo from '../../assets/logo.png';
+import { useAuthStore } from '../../store/authStore';
+import { useRoles, ROLES, RoleName } from '../../hooks/useRoles';
 
 interface MenuItem {
   title: string;
@@ -45,9 +46,9 @@ interface MenuItem {
     title: string;
     icon: React.ReactElement;
     path: string;
-    roles?: RoleName[]; // Optional roles for children
+    roles?: RoleName[];
   }>;
-  roles?: RoleName[]; // Roles that can see this menu item
+  roles?: RoleName[];
 }
 
 interface SidebarProps {
@@ -58,66 +59,71 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isCompact = useMediaQuery(theme.breakpoints.down("sm"));
+  const isCompact = useMediaQuery(theme.breakpoints.down('sm'));
+
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-  
-  // Use role hook
+
   const { hasAnyRole, isAdminFonctionnel, isIntegrateurObjectifs } = useRoles();
 
-  // Define all menu items with role restrictions
   const allMenuItems: MenuItem[] = [
-    { 
-      title: "Dashboard", 
-      icon: <DashboardIcon />, 
-      path: "/dashboard",
-      // Everyone can see dashboard
-    },
-    { 
-      title: "Users", 
-      icon: <PeopleIcon />, 
-      path: "/users",
-      roles: [ROLES.ADMIN_FONCTIONNEL], // Only admin
-    },
-    { 
-      title: "Sites", 
-      icon: <SecurityIcon />, 
-      path: "/sites",
-      roles: [ROLES.ADMIN_FONCTIONNEL], // Only admin
+    {
+      title: 'Dashboard',
+      icon: <DashboardIcon />,
+      path: '/dashboard',
     },
     {
-      title: "Véhicules",
+      title: 'Users',
+      icon: <PeopleIcon />,
+      path: '/users',
+      roles: [ROLES.ADMIN_FONCTIONNEL],
+    },
+    {
+      title: 'Sites',
+      icon: <SecurityIcon />,
+      path: '/sites',
+      roles: [ROLES.ADMIN_FONCTIONNEL],
+    },
+    {
+      title: 'Véhicules',
       icon: <DirectionsCarIcon />,
-      roles: [ROLES.ADMIN_FONCTIONNEL], // Only admin can manage
+      roles: [ROLES.ADMIN_FONCTIONNEL],
       children: [
-        { title: "Marques", icon: <CategoryIcon />, path: "/marques" },
-        { title: "Modèles", icon: <LayersIcon />, path: "/modeles" },
-        { title: "Versions", icon: <TimeToLeaveIcon />, path: "/versions" },
+        {
+          title: 'Marques',
+          icon: <CategoryIcon />,
+          path: '/marques',
+        },
+        {
+          title: 'Modèles',
+          icon: <LayersIcon />,
+          path: '/modeles',
+        },
+        {
+          title: 'Versions',
+          icon: <TimeToLeaveIcon />,
+          path: '/versions',
+        },
       ],
     },
-    { 
-      title: "Périodes", 
-      icon: <CalendarTodayIcon />, 
-      path: "/periodes",
-      roles: [ROLES.ADMIN_FONCTIONNEL], // Only admin
+    {
+      title: 'Périodes',
+      icon: <CalendarTodayIcon />,
+      path: '/periodes',
+      roles: [ROLES.ADMIN_FONCTIONNEL],
     },
-    { 
-      title: "Objectifs", 
-      icon: <TrackChangesIcon />, 
-      path: "/objectifs",
-      roles: [ROLES.ADMIN_FONCTIONNEL, ROLES.INTEGRATEUR_OBJECTIFS], // Both can see
+    {
+      title: 'Objectifs',
+      icon: <TrackChangesIcon />,
+      path: '/objectifs',
+      roles: [ROLES.ADMIN_FONCTIONNEL, ROLES.INTEGRATEUR_OBJECTIFS],
     },
   ];
 
-  // Filter menu items based on user roles
   const menuItems = useMemo(() => {
     return allMenuItems.filter((item) => {
-      // If no roles specified, everyone can see it
-      if (!item.roles || item.roles.length === 0) {
-        return true;
-      }
-      // Check if user has any of the required roles
+      if (!item.roles || item.roles.length === 0) return true;
       return hasAnyRole(item.roles);
     });
   }, [hasAnyRole]);
@@ -131,31 +137,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   };
 
   const toggleMenu = (title: string) => {
-    setOpenMenus((prev) => ({
-      ...prev,
-      [title]: !prev[title],
-    }));
+    setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
   };
 
-  const isMenuActive = (item: MenuItem) => {
-    if (item.path && isPathActive(item.path)) {
-      return true;
-    }
-
+  const isMenuActive = (item: MenuItem): boolean => {
+    if (item.path && isPathActive(item.path)) return true;
     if (item.children) {
       return item.children.some((child) => isPathActive(child.path));
     }
-
     return false;
   };
 
   const userInitials = useMemo(() => {
-    if (!user) return "AU";
-    const source = user.full_name || user.username || "AutoHall";
+    if (!user) return 'AU';
+    const source = user.full_name || user.username || 'AutoHall';
     return source
-      .split(" ")
+      .split(' ')
       .map((part) => part[0])
-      .join("")
+      .join('')
       .slice(0, 2)
       .toUpperCase();
   }, [user]);
@@ -163,78 +162,89 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   return (
     <Box
       sx={{
-        width: isCompact ? "100%" : 280,
-        maxWidth: isCompact ? "100%" : 280,
-        height: "100vh",
-        overflow: "hidden",
-        backgroundColor: "#0f172a",
-        display: "flex",
-        flexDirection: "column",
+        width: isCompact ? 100 : '100%',
+        maxWidth: isCompact ? 100 : '100%',
+        height: '100vh',
+        overflowX: 'hidden',
+        overflowY: 'auto', // keep horizontal hidden while enabling vertical scroll
+        backgroundColor: '#0f172a',
+        display: 'flex',
+        flexDirection: 'column',
         flexShrink: 0,
-        borderRight: "1px solid rgba(148, 163, 184, 0.15)",
-        boxShadow: "0 10px 40px rgba(15, 23, 42, 0.4)",
+        borderRight: '1px solid rgba(148, 163, 184, 0.15)',
+        boxShadow: '0 10px 40px rgba(15, 23, 42, 0.4)',
+        // Custom scrollbar styling for webkit browsers
+        '&::-webkit-scrollbar': {
+          width: 6,
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: 'var(--scrollbar-thumb)',
+          borderRadius: 9999,
+        },
+        '&::-webkit-scrollbar-track': {
+          backgroundColor: 'transparent',
+        },
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(148, 163, 184, 0.45) transparent',
       }}
     >
+      {/* Header/Toolbar */}
       <Toolbar
         sx={{
           px: 2.5,
           py: 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: "1px solid rgba(148, 163, 184, 0.15)",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
+          flexShrink: 0,
         }}
       >
-        {!isCompact && (
+        {!isCompact ? (
           <Box
             component="img"
             src={logo}
             alt="AutoHall"
             sx={{
               height: 48,
-              width: "auto",
-              maxWidth: "100%",
-              objectFit: "contain",
-              filter: "brightness(0) invert(1)",
+              width: 'auto',
+              maxWidth: '100%',
+              objectFit: 'contain',
+              filter: 'brightness(0) invert(1)',
             }}
           />
-        )}
-        {isCompact && onItemClick && (
-          <IconButton
-            onClick={onItemClick}
-            sx={{
-              color: "#f1f5f9",
-              "&:hover": { backgroundColor: "rgba(59, 130, 246, 0.15)" },
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
+        ) : (
+          isCompact &&
+          onItemClick && (
+            <IconButton
+              onClick={onItemClick}
+              sx={{
+                color: '#f1f5f9',
+                '&:hover': { backgroundColor: 'rgba(59, 130, 246, 0.15)' },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          )
         )}
       </Toolbar>
 
+      {/* Menu items */}
       <List
         sx={{
           flex: 1,
-          width: "100%",
+          width: '100%',
           px: 2,
           py: 2.5,
-          overflowY: "auto",
-          overflowX: "hidden",
-          boxSizing: "border-box",
-          "&::-webkit-scrollbar": { width: 6 },
-          "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
-          "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "rgba(148, 163, 184, 0.3)",
-            borderRadius: 3,
-          },
+          overflowX: 'hidden',
+          overflowY: 'visible',
+          boxSizing: 'border-box',
         }}
       >
         {menuItems.map((item) => {
           const active = isMenuActive(item);
           const isExpanded = openMenus[item.title] ?? active;
-          const hasChildren = Boolean(
-            item.children && item.children.length > 0
-          );
+          const hasChildren = Boolean(item.children && item.children.length > 0);
 
           const handleItemClick = () => {
             if (hasChildren) {
@@ -249,7 +259,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
 
           return (
             <ListItem key={item.title} disablePadding sx={{ mb: 0.75 }}>
-              <Box sx={{ width: "100%" }}>
+              <Box sx={{ width: '100%' }}>
                 <ListItemButton
                   onClick={handleItemClick}
                   selected={active && !hasChildren}
@@ -257,20 +267,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                     borderRadius: 2,
                     py: 1.25,
                     px: 2,
-                    "&.Mui-selected": {
-                      backgroundColor: "rgba(59, 130, 246, 0.15)",
-                      "& .MuiListItemIcon-root": { color: "#3b82f6" },
-                      "& .MuiListItemText-primary": {
-                        color: "#f1f5f9",
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                      '& .MuiListItemIcon-root': { color: '#3b82f6' },
+                      '& .MuiListItemText-primary': {
+                        color: '#f1f5f9',
                         fontWeight: 700,
                       },
                     },
-                    "&:hover": {
-                      backgroundColor: "rgba(59, 130, 246, 0.1)",
-                    },
+                    '&:hover': { backgroundColor: 'rgba(59, 130, 246, 0.1)' },
                   }}
                 >
-                  <ListItemIcon sx={{ color: "#94a3b8", minWidth: 40 }}>
+                  <ListItemIcon sx={{ color: '#94a3b8', minWidth: 40 }}>
                     {item.icon}
                   </ListItemIcon>
                   <ListItemText
@@ -278,11 +286,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                     primaryTypographyProps={{
                       fontSize: 15,
                       fontWeight: active ? 600 : 500,
-                      color: active ? "#f1f5f9" : "#cbd5e1",
+                      color: active ? '#f1f5f9' : '#cbd5e1',
                     }}
                   />
                   {!isCompact && hasChildren && (
-                    <Box sx={{ color: "#94a3b8" }}>
+                    <Box sx={{ color: '#94a3b8' }}>
                       {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                     </Box>
                   )}
@@ -302,22 +310,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                               pl: 7,
                               borderRadius: 2,
                               py: 0.75,
-                              "&.Mui-selected": {
-                                backgroundColor: "rgba(59, 130, 246, 0.12)",
-                                "& .MuiListItemIcon-root": { color: "#3b82f6" },
-                                "& .MuiListItemText-primary": {
-                                  color: "#f1f5f9",
+                              '&.Mui-selected': {
+                                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                                '& .MuiListItemIcon-root': { color: '#3b82f6' },
+                                '& .MuiListItemText-primary': {
+                                  color: '#f1f5f9',
                                   fontWeight: 600,
                                 },
                               },
-                              "&:hover": {
-                                backgroundColor: "rgba(59, 130, 246, 0.08)",
-                              },
+                              '&:hover': { backgroundColor: 'rgba(59, 130, 246, 0.08)' },
                             }}
                           >
-                            <ListItemIcon
-                              sx={{ color: "#94a3b8", minWidth: 36 }}
-                            >
+                            <ListItemIcon sx={{ color: '#94a3b8', minWidth: 36 }}>
                               {child.icon}
                             </ListItemIcon>
                             <ListItemText
@@ -325,7 +329,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                               primaryTypographyProps={{
                                 fontSize: 14,
                                 fontWeight: childActive ? 600 : 500,
-                                color: childActive ? "#f1f5f9" : "#cbd5e1",
+                                color: childActive ? '#f1f5f9' : '#cbd5e1',
                               }}
                             />
                           </ListItemButton>
@@ -340,15 +344,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         })}
       </List>
 
-      <Divider sx={{ borderColor: "rgba(148, 163, 184, 0.15)" }} />
-
-      <Box
-        sx={{
-          p: 2.5,
-          width: "100%",
-          boxSizing: "border-box",
-        }}
-      >
+      {/* Footer section */}
+      <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.15)', flexShrink: 0 }} />
+      <Box sx={{ p: 2.5, width: '100%', boxSizing: 'border-box', flexShrink: 0 }}>
         <Box
           role="button"
           tabIndex={0}
@@ -356,37 +354,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             if (!user) return;
             handleNavigation(`/users/${user.id}`);
           }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            if (!user) return;
-            handleNavigation(`/users/${user.id}`);
-          }
-        }}
-        sx={{
-          display: "flex",
-          width: "100%",
-          alignItems: "center",
-          gap: 1.5,
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              if (!user) return;
+              handleNavigation(`/users/${user.id}`);
+            }
+          }}
+          sx={{
+            display: 'flex',
+            width: '100%',
+            alignItems: 'center',
+            gap: 1.5,
             p: 1.5,
             borderRadius: 2,
-            backgroundColor: "rgba(15, 23, 42, 0.4)",
-            border: "1px solid rgba(148, 163, 184, 0.25)",
-            boxShadow: "0 12px 30px rgba(15, 23, 42, 0.35)",
-            cursor: user ? "pointer" : "default",
-            transition: "transform 0.2s ease, box-shadow 0.2s ease",
-            "&:hover": user
+            backgroundColor: 'rgba(15, 23, 42, 0.4)',
+            border: '1px solid rgba(148, 163, 184, 0.25)',
+            boxShadow: '0 12px 30px rgba(15, 23, 42, 0.35)',
+            cursor: user ? 'pointer' : 'default',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            '&:hover': user
               ? {
-                  transform: "translateY(-2px)",
-                  boxShadow: "0 16px 36px rgba(37, 99, 235, 0.35)",
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 16px 36px rgba(37, 99, 235, 0.35)',
                 }
               : undefined,
-            outline: "none",
+            outline: 'none',
           }}
         >
           <Avatar
             sx={{
-              bgcolor: "#3b82f6",
+              bgcolor: '#3b82f6',
               width: 42,
               height: 42,
               fontSize: 16,
@@ -396,32 +394,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             {userInitials}
           </Avatar>
           {!isCompact && (
-            <Box sx={{ flex: 1, overflow: "hidden" }}>
+            <Box sx={{ flex: 1, overflow: 'hidden' }}>
               <Typography
                 variant="body2"
                 sx={{
-                  color: "#f1f5f9",
+                  color: '#f1f5f9',
                   fontWeight: 600,
                   fontSize: 14,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
-                {user?.full_name || user?.username || "Utilisateur"}
+                {user?.full_name || user?.username || 'Utilisateur'}
               </Typography>
               <Typography
                 variant="caption"
                 sx={{
-                  color: "#94a3b8",
+                  color: '#94a3b8',
                   fontSize: 12,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  display: "block",
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'block',
                 }}
               >
-                {user?.email || "email@autohall.ma"}
+                {user?.email || 'email@autohall.ma'}
               </Typography>
             </Box>
           )}
@@ -435,32 +433,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             try {
               await logout();
             } finally {
-              navigate("/login", { replace: true });
+              navigate('/login', { replace: true });
             }
           }}
           sx={{
             mt: 2,
-            color: "#f1f5f9",
-            borderColor: "rgba(148, 163, 184, 0.35)",
-            textTransform: "none",
+            color: '#f1f5f9',
+            borderColor: 'rgba(148, 163, 184, 0.35)',
+            textTransform: 'none',
             fontWeight: 600,
-            justifyContent: "flex-start",
-            "&:hover": {
-              borderColor: "rgba(248, 113, 113, 0.8)",
-              backgroundColor: "rgba(248, 113, 113, 0.15)",
+            justifyContent: 'flex-start',
+            '&:hover': {
+              borderColor: 'rgba(248, 113, 113, 0.8)',
+              backgroundColor: 'rgba(248, 113, 113, 0.15)',
             },
           }}
         >
-          Se deconnecter
+          Se déconnecter
         </Button>
 
         {!isCompact && (
           <Typography
             variant="caption"
             sx={{
-              display: "block",
-              textAlign: "center",
-              color: "#64748b",
+              display: 'block',
+              textAlign: 'center',
+              color: '#64748b',
               mt: 2,
               fontSize: 11,
             }}

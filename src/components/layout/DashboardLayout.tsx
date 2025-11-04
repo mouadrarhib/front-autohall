@@ -94,14 +94,26 @@ export const DashboardLayout: React.FC = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 3, md: 4 },
           width: { md: `calc(100% - ${drawerWidth}px)` },
           mt: { xs: '72px', md: '88px' },
+          minHeight: { xs: 'calc(100vh - 72px)', md: 'calc(100vh - 88px)' },
+          maxHeight: { xs: 'calc(100vh - 72px)', md: 'calc(100vh - 88px)' },
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          p: { xs: 3, md: 4 },
           display: 'flex',
           justifyContent: 'center',
+          scrollBehavior: 'smooth',
         }}
       >
-        <Box sx={{ width: '100%', maxWidth: 1200 }}>
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: 1200,
+            minHeight: '100%',
+            pb: { xs: 6, md: 8 },
+          }}
+        >
           <Outlet />
         </Box>
       </Box>
