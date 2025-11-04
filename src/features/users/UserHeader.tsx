@@ -9,14 +9,14 @@ import GroupIcon from '@mui/icons-material/Group';
 interface UserHeaderProps {
   totalUsers: number;
   activeUsers: number;
-  hasCreatePermission: boolean;
+  canCreateUser: boolean;
   onCreate: () => void;
 }
 
 export const UserHeader: React.FC<UserHeaderProps> = ({
   totalUsers,
   activeUsers,
-  hasCreatePermission,
+  canCreateUser,
   onCreate,
 }) => {
   return (
@@ -66,7 +66,7 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
         </Stack>
 
         {/* Right Section - Create Button */}
-        {hasCreatePermission && (
+        {canCreateUser && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}

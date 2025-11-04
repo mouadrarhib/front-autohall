@@ -20,7 +20,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import { authApi } from '../../api/endpoints/auth.api';
 
 export const UserDetails: React.FC = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { id: userId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +84,7 @@ export const UserDetails: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<SecurityIcon />}
-          onClick={() => navigate(`/users/${userId}/permissions`)}
+          onClick={() => navigate(`/users/${userId}/roles-permissions`)}
         >
           Manage Permissions
         </Button>

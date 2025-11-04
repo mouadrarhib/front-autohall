@@ -37,9 +37,10 @@ import type { TypeObjectif } from '../../api/endpoints/typeobjectif.api';
 import type { Marque } from '../../api/endpoints/marque.api';
 import type { Modele } from '../../api/endpoints/modele.api';
 import type { Version } from '../../api/endpoints/version.api';
-import type { Groupement } from '../../types/usersite.types';
-import type { Filiale } from '../../api/endpoints/filiale.api';
-import type { Succursale } from '../../api/endpoints/succursale.api';
+interface ObjectifDialogSiteInfo {
+  siteName: string;
+  groupementName?: string | null;
+}
 
 interface ObjectifDialogProps {
   open: boolean;
@@ -56,8 +57,7 @@ interface ObjectifDialogProps {
   marquesCount: number;
   modelesCount: number;
   versionsCount: number;
-  groupements: Groupement[];
-  sites: Array<Filiale | Succursale>;
+  siteInfo?: ObjectifDialogSiteInfo | null;
   onClose: () => void;
   onSave: () => void;
   onChangeField: <K extends keyof ObjectifFormState>(key: K, value: ObjectifFormState[K]) => void;
@@ -79,8 +79,7 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
   marquesCount,
   modelesCount,
   versionsCount,
-  groupements,
-  sites,
+  siteInfo,
   onClose,
   onSave,
   onChangeField,
@@ -322,44 +321,33 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
 
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Groupement</InputLabel>
-                  <Select
-                    value={formState.groupementId || ''}
-                    label="Groupement"
-                    onChange={(event) => onChangeField('groupementId', Number(event.target.value))}
-                    disabled={saving}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    {groupements.map((groupement) => (
-                      <MenuItem key={groupement.id} value={groupement.id}>
-                        {groupement.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  label="Site"
+                  value={siteInfo?.siteName || 'Non attribue'}
+                  fullWidth
+                  size={isMobile ? 'small' : 'medium'}
+                  InputProps={{ readOnly: true }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    },
+                  }}
+                />
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Site</InputLabel>
-                  <Select
-                    value={formState.siteId || ''}
-                    label="Site"
-                    onChange={(event) => onChangeField('siteId', Number(event.target.value))}
-                    disabled={saving}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    <MenuItem value="">
-                      <em>Non specifie</em>
-                    </MenuItem>
-                    {sites.map((site) => (
-                      <MenuItem key={site.id} value={site.id}>
-                        {'name' in site && typeof site.name === 'string' ? site.name : ''}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  label="Groupement"
+                  value={siteInfo?.groupementName || 'Non attribue'}
+                  fullWidth
+                  size={isMobile ? 'small' : 'medium'}
+                  InputProps={{ readOnly: true }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    },
+                  }}
+                />
               </Grid>
             </Grid>
           </Box>

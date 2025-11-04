@@ -25,7 +25,8 @@ import {
   type Succursale,
 } from "../../api/endpoints/succursale.api";
 import { marqueApi, type Marque } from "../../api/endpoints/marque.api";
-import { useAuthStore } from "../../store/authStore";
+// ✅ CHANGE 1: Replace this import
+import { useRoles } from "../../hooks/useRoles";
 import { SiteFilters } from "./SiteFilters";
 import { SiteTable } from "./SiteTable";
 import { SiteDialog } from "./SiteDialog";
@@ -45,19 +46,14 @@ const DEFAULT_PAGINATION: PaginationState = {
 };
 
 export const SitesManagement: React.FC = () => {
-  const hasCreateFiliale = useAuthStore((state) =>
-    state.hasPermission("FILIALE_CREATE")
-  );
-  const hasUpdateFiliale = useAuthStore((state) =>
-    state.hasPermission("FILIALE_UPDATE")
-  );
-  const hasCreateSuccursale = useAuthStore((state) =>
-    state.hasPermission("SUCCURSALE_CREATE")
-  );
-  const hasUpdateSuccursale = useAuthStore((state) =>
-    state.hasPermission("SUCCURSALE_UPDATE")
-  );
+  // ✅ CHANGE 2: Replace these 4 lines with role check
+  const { isAdminFonctionnel } = useRoles();
+  const hasCreateFiliale = isAdminFonctionnel;
+  const hasUpdateFiliale = isAdminFonctionnel;
+  const hasCreateSuccursale = isAdminFonctionnel;
+  const hasUpdateSuccursale = isAdminFonctionnel;
 
+  // ⬇️ EVERYTHING BELOW STAYS EXACTLY THE SAME ⬇️
   const [activeTab, setActiveTab] = useState<SiteType>("filiale");
   const [sites, setSites] = useState<(Filiale | Succursale)[]>([]);
   const [loading, setLoading] = useState(false);
@@ -137,6 +133,7 @@ export const SitesManagement: React.FC = () => {
   const handleOpenDialog = (mode: DialogMode, site?: Filiale | Succursale) => {
     setDialogMode(mode);
     setCurrentSite(site ?? null);
+
     if (mode === "edit" && site) {
       setFormState({
         name: site.name,
@@ -148,6 +145,7 @@ export const SitesManagement: React.FC = () => {
         active: true,
       });
     }
+
     setError(null);
     setDialogOpen(true);
   };
@@ -210,6 +208,7 @@ export const SitesManagement: React.FC = () => {
   const handleToggleActive = async (site: Filiale | Succursale) => {
     try {
       setTogglingId(site.id);
+
       if (activeTab === "filiale") {
         if (site.active) {
           await filialeApi.deactivateFiliale(site.id);
@@ -223,6 +222,7 @@ export const SitesManagement: React.FC = () => {
           await succursaleApi.activateSuccursale(site.id);
         }
       }
+
       setReloadToken((value) => value + 1);
     } catch (err: any) {
       console.error("Failed to toggle site", err);

@@ -57,7 +57,7 @@ interface Site {
 }
 
 export const UserRolesPermissions: React.FC = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { id: userId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [user, setUser] = useState<any>(null);
