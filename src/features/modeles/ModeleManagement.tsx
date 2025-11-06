@@ -47,7 +47,7 @@ export const ModeleManagement: React.FC = () => {
   const [formState, setFormState] = useState<ModeleFormState>({
     name: '',
     idMarque: null,
-    imageUrl: '',
+    image: undefined,
     active: true,
   });
   const [saving, setSaving] = useState(false);
@@ -161,14 +161,14 @@ export const ModeleManagement: React.FC = () => {
       setFormState({
         name: modele.name,
         idMarque: modele.idMarque ?? null,
-        imageUrl: modele.imageUrl ?? '',
+        image: undefined,
         active: modele.active,
       });
     } else {
       setFormState({
         name: '',
         idMarque: filterMarqueId === 'all' ? null : filterMarqueId,
-        imageUrl: '',
+        image: undefined,
         active: true,
       });
     }
@@ -206,7 +206,7 @@ export const ModeleManagement: React.FC = () => {
       const payload = {
         name: formState.name.trim(),
         idMarque: formState.idMarque,
-        imageUrl: formState.imageUrl || null,
+        image: formState.image,
         active: formState.active,
       };
 
