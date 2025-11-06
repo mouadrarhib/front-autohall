@@ -10,7 +10,7 @@ export interface PaginationState {
 export interface ModeleFormState {
   name: string;
   idMarque: number | null;
-  imageUrl: string;
+  image?: File; // ✅ CHANGED: from imageUrl to image
   active: boolean;
 }
 

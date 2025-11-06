@@ -1,4 +1,5 @@
 // src/api/endpoints/marque.api.ts
+
 import { apiClient, type ApiResponse } from '../client';
 
 export interface Marque {
@@ -20,14 +21,14 @@ export interface Marque {
 export interface CreateMarqueDto {
   name: string;
   idFiliale: number;
-  imageUrl?: string | null;
+  image?: File;
   active?: boolean;
 }
 
 export interface UpdateMarqueDto {
   name?: string | null;
   idFiliale?: number | null;
-  imageUrl?: string | null;
+  image?: File;
   active?: boolean | null;
 }
 
@@ -52,7 +53,6 @@ const toNumber = (value: any, defaultValue = 0): number => {
   if (value === null || value === undefined || value === '') {
     return defaultValue;
   }
-
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : defaultValue;
 };
@@ -61,7 +61,6 @@ const toNullableNumber = (value: any): number | undefined => {
   if (value === null || value === undefined || value === '') {
     return undefined;
   }
-
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
 };
@@ -78,7 +77,6 @@ const normalizeMarque = (input: RawMarque): Marque => {
   }
 
   const image = input.imageUrl ?? input.image ?? null;
-
   return {
     id: toNumber(input.id),
     name: input.name ?? input.nom ?? '',
@@ -112,7 +110,6 @@ const normalizePaginatedResponse = (
   };
 } => {
   const nestedData = payload?.data ?? payload;
-
   const itemsSource = Array.isArray(nestedData?.data)
     ? nestedData.data
     : Array.isArray(nestedData)
@@ -120,7 +117,6 @@ const normalizePaginatedResponse = (
     : [];
 
   const marques = itemsSource.map((item: RawMarque) => normalizeMarque(item));
-
   const paginationSource = nestedData?.pagination ?? payload?.pagination ?? {};
 
   const page = toNumber(paginationSource.page, fallbackPage);
@@ -148,14 +144,50 @@ const normalizePaginatedResponse = (
   };
 };
 
+// ✅ FIXED: Only add fields that are explicitly provided
+// DON'T add imageUrl - backend keeps existing image if not provided
+const toFormData = (data: CreateMarqueDto | UpdateMarqueDto): FormData => {
+  const formData = new FormData();
+  
+  // Only append name if provided
+  if ('name' in data && data.name !== undefined && data.name !== null) {
+    formData.append('name', data.name);
+  }
+  
+  // Only append idFiliale if provided
+  if ('idFiliale' in data && data.idFiliale !== undefined && data.idFiliale !== null) {
+    formData.append('idFiliale', String(data.idFiliale));
+  }
+  
+  // ✅ CRITICAL: Only add image field if a new File is provided
+  // If no file, don't add anything - backend will keep existing image
+  if ('image' in data && data.image instanceof File) {
+    formData.append('image', data.image);
+  }
+  
+  // Only append active if provided
+  if ('active' in data && data.active !== undefined && data.active !== null) {
+    formData.append('active', String(data.active));
+  }
+  
+  // ✅ REMOVED: Don't send imageUrl at all
+  // Backend logic: if req.file exists → use new file
+  //                if req.file doesn't exist AND req.body.imageUrl is undefined → keep existing
+  
+  return formData;
+};
+
 export const marqueApi = {
   create: async (data: CreateMarqueDto): Promise<Marque> => {
-    const response = await apiClient.post<ApiResponse<any>>('/api/marques', data);
+    const formData = toFormData(data);
+    const response = await apiClient.post<ApiResponse<Marque>>('/api/marques', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return normalizeMarque(response.data.data);
   },
 
   getById: async (id: number): Promise<Marque> => {
-    const response = await apiClient.get<ApiResponse<any>>(`/api/marques/${id}`);
+    const response = await apiClient.get<ApiResponse<Marque>>(`/api/marques/${id}`);
     return normalizeMarque(response.data.data);
   },
 
@@ -174,11 +206,9 @@ export const marqueApi = {
       page: params?.page ?? 1,
       pageSize: params?.pageSize ?? 10,
     };
-
     const response = await apiClient.get<ApiResponse<any>>('/api/marques', {
       params: query,
     });
-
     return normalizePaginatedResponse(response.data.data, query.page, query.pageSize);
   },
 
@@ -199,14 +229,12 @@ export const marqueApi = {
       page: params?.page ?? 1,
       pageSize: params?.pageSize ?? 10,
     };
-
     const response = await apiClient.get<ApiResponse<any>>(
       `/api/marques/by-filiale/${idFiliale}`,
       {
         params: query,
       }
     );
-
     return normalizePaginatedResponse(response.data.data, query.page, query.pageSize);
   },
 
@@ -226,26 +254,27 @@ export const marqueApi = {
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 10,
     };
-
     const response = await apiClient.get<ApiResponse<any>>('/api/marques/search', {
       params: query,
     });
-
     return normalizePaginatedResponse(response.data.data, query.page, query.pageSize);
   },
 
   update: async (id: number, data: UpdateMarqueDto): Promise<Marque> => {
-    const response = await apiClient.patch<ApiResponse<any>>(`/api/marques/${id}`, data);
+    const formData = toFormData(data);
+    const response = await apiClient.patch<ApiResponse<Marque>>(`/api/marques/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return normalizeMarque(response.data.data);
   },
 
   activate: async (id: number): Promise<Marque> => {
-    const response = await apiClient.post<ApiResponse<any>>(`/api/marques/${id}/activate`);
+    const response = await apiClient.post<ApiResponse<Marque>>(`/api/marques/${id}/activate`);
     return normalizeMarque(response.data.data);
   },
 
   deactivate: async (id: number): Promise<Marque> => {
-    const response = await apiClient.post<ApiResponse<any>>(`/api/marques/${id}/deactivate`);
+    const response = await apiClient.post<ApiResponse<Marque>>(`/api/marques/${id}/deactivate`);
     return normalizeMarque(response.data.data);
   },
 };

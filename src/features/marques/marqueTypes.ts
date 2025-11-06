@@ -10,7 +10,7 @@ export interface PaginationState {
 export interface MarqueFormState {
   name: string;
   idFiliale: number | null;
-  imageUrl: string;
+  image?: File; // Only file upload - no URL
   active: boolean;
 }
 

@@ -1,11 +1,12 @@
 // src/api/endpoints/modele.api.ts
+
 import { apiClient, type ApiResponse } from '../client';
 
 export interface Modele {
   id: number;
   name: string;
   idMarque: number;
-  imageUrl?: string | null;
+  imageUrl?: string | null; // Backend stores Cloudinary URL
   active: boolean;
   marqueName?: string;
   marqueActive?: boolean;
@@ -22,14 +23,14 @@ export interface Modele {
 export interface CreateModeleDto {
   name: string;
   idMarque: number;
-  imageUrl?: string | null;
+  image?: File; // ✅ CHANGED: Only file upload
   active?: boolean;
 }
 
 export interface UpdateModeleDto {
   name?: string | null;
   idMarque?: number | null;
-  imageUrl?: string | null;
+  image?: File; // ✅ CHANGED: Only file upload
   active?: boolean | null;
 }
 
@@ -54,7 +55,6 @@ const toNumber = (value: any, defaultValue = 0): number => {
   if (value === null || value === undefined || value === '') {
     return defaultValue;
   }
-
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : defaultValue;
 };
@@ -63,7 +63,6 @@ const toNullableNumber = (value: any): number | undefined => {
   if (value === null || value === undefined || value === '') {
     return undefined;
   }
-
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
 };
@@ -80,7 +79,6 @@ const normalizeModele = (input: RawModele): Modele => {
   }
 
   const image = input.imageUrl ?? input.image ?? null;
-
   return {
     id: toNumber(input.id),
     name: input.name ?? input.nom ?? '',
@@ -116,7 +114,6 @@ const normalizePaginatedResponse = (
   };
 } => {
   const nestedData = payload?.data ?? payload;
-
   const itemsSource = Array.isArray(nestedData?.data)
     ? nestedData.data
     : Array.isArray(nestedData)
@@ -124,7 +121,6 @@ const normalizePaginatedResponse = (
     : [];
 
   const modeles = itemsSource.map((item: RawModele) => normalizeModele(item));
-
   const paginationSource = nestedData?.pagination ?? payload?.pagination ?? {};
 
   const page = toNumber(paginationSource.page, fallbackPage);
@@ -152,26 +148,44 @@ const normalizePaginatedResponse = (
   };
 };
 
+// ✅ NEW: Convert DTO to FormData
+const toFormData = (data: CreateModeleDto | UpdateModeleDto): FormData => {
+  const formData = new FormData();
+  
+  if ('name' in data && data.name !== undefined && data.name !== null) {
+    formData.append('name', data.name);
+  }
+  
+  if ('idMarque' in data && data.idMarque !== undefined && data.idMarque !== null) {
+    formData.append('idMarque', String(data.idMarque));
+  }
+  
+  if ('image' in data && data.image instanceof File) {
+    formData.append('image', data.image);
+  }
+  
+  if ('active' in data && data.active !== undefined && data.active !== null) {
+    formData.append('active', String(data.active));
+  }
+  
+  return formData;
+};
+
 export const modeleApi = {
-  /**
-   * Create a new modele
-   */
+  // ✅ MODIFIED: Always use FormData
   create: async (data: CreateModeleDto): Promise<Modele> => {
-    const response = await apiClient.post<ApiResponse<any>>('/api/modeles', data);
+    const formData = toFormData(data);
+    const response = await apiClient.post<ApiResponse<Modele>>('/api/modeles', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return normalizeModele(response.data.data);
   },
 
-  /**
-   * Get modele by ID
-   */
   getById: async (id: number): Promise<Modele> => {
-    const response = await apiClient.get<ApiResponse<any>>(`/api/modeles/${id}`);
+    const response = await apiClient.get<ApiResponse<Modele>>(`/api/modeles/${id}`);
     return normalizeModele(response.data.data);
   },
 
-  /**
-   * List modeles with pagination
-   */
   list: async (params?: ModeleListParams): Promise<{
     data: Modele[];
     pagination: {
@@ -187,17 +201,12 @@ export const modeleApi = {
       page: params?.page ?? 1,
       pageSize: params?.pageSize ?? 10,
     };
-
     const response = await apiClient.get<ApiResponse<any>>('/api/modeles', {
       params: query,
     });
-
     return normalizePaginatedResponse(response.data.data, query.page, query.pageSize);
   },
 
-  /**
-   * List modeles by marque
-   */
   listByMarque: async (
     idMarque: number,
     params?: Omit<ModeleListParams, 'idMarque'>
@@ -215,20 +224,15 @@ export const modeleApi = {
       page: params?.page ?? 1,
       pageSize: params?.pageSize ?? 10,
     };
-
     const response = await apiClient.get<ApiResponse<any>>(
       `/api/modeles/by-marque/${idMarque}`,
       {
         params: query,
       }
     );
-
     return normalizePaginatedResponse(response.data.data, query.page, query.pageSize);
   },
 
-  /**
-   * Search modeles
-   */
   search: async (params: SearchModeleParams): Promise<{
     data: Modele[];
     pagination: {
@@ -245,35 +249,28 @@ export const modeleApi = {
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 10,
     };
-
     const response = await apiClient.get<ApiResponse<any>>('/api/modeles/search', {
       params: query,
     });
-
     return normalizePaginatedResponse(response.data.data, query.page, query.pageSize);
   },
 
-  /**
-   * Update modele
-   */
+  // ✅ MODIFIED: Always use FormData
   update: async (id: number, data: UpdateModeleDto): Promise<Modele> => {
-    const response = await apiClient.patch<ApiResponse<any>>(`/api/modeles/${id}`, data);
+    const formData = toFormData(data);
+    const response = await apiClient.patch<ApiResponse<Modele>>(`/api/modeles/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return normalizeModele(response.data.data);
   },
 
-  /**
-   * Activate modele
-   */
   activate: async (id: number): Promise<Modele> => {
-    const response = await apiClient.post<ApiResponse<any>>(`/api/modeles/${id}/activate`);
+    const response = await apiClient.post<ApiResponse<Modele>>(`/api/modeles/${id}/activate`);
     return normalizeModele(response.data.data);
   },
 
-  /**
-   * Deactivate modele
-   */
   deactivate: async (id: number): Promise<Modele> => {
-    const response = await apiClient.post<ApiResponse<any>>(`/api/modeles/${id}/deactivate`, {});
+    const response = await apiClient.post<ApiResponse<Modele>>(`/api/modeles/${id}/deactivate`, {});
     return normalizeModele(response.data.data);
   },
 };

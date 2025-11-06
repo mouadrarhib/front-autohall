@@ -8,10 +8,10 @@ import { marqueApi, type Marque } from '../../api/endpoints/marque.api';
 import { useAuthStore } from '../../store/authStore';
 import { MarqueFilters } from './MarqueFilters';
 import { MarqueTable } from './MarqueTable';
-import { MarqueDialog } from './MarqueDialog';
 import { MarqueDetailsDialog } from './MarqueDetailsDialog'; // New import
 import { useMarqueColumns } from './useMarqueColumns';
 import type { DialogMode, MarqueFormState, PaginationState } from './marqueTypes';
+import { MarqueDialog } from './MarqueDialog';
 
 const DEFAULT_PAGINATION: PaginationState = {
   page: 1,
@@ -47,7 +47,7 @@ export const MarqueManagement: React.FC = () => {
   const [formState, setFormState] = useState<MarqueFormState>({
     name: '',
     idFiliale: null,
-    imageUrl: '',
+    image: undefined, 
     active: true,
   });
   const [saving, setSaving] = useState(false);
@@ -167,14 +167,14 @@ export const MarqueManagement: React.FC = () => {
       setFormState({
         name: marque.name,
         idFiliale: marque.idFiliale ?? null,
-        imageUrl: marque.imageUrl ?? '',
+        image: undefined,
         active: marque.active,
       });
     } else {
       setFormState({
         name: '',
         idFiliale: filterFilialeId === 'all' ? null : filterFilialeId,
-        imageUrl: '',
+        image: undefined,
         active: true,
       });
     }
@@ -212,7 +212,7 @@ export const MarqueManagement: React.FC = () => {
       const payload = {
         name: formState.name.trim(),
         idFiliale: formState.idFiliale,
-        imageUrl: formState.imageUrl || null,
+        image: formState.image,
         active: formState.active,
       };
 
