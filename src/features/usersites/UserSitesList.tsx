@@ -16,7 +16,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import { GridColDef } from '@mui/x-data-grid';
+import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -169,7 +169,7 @@ export const UserSitesList: React.FC = () => {
     navigate(`/user-sites/${userSiteId}/edit`);
   };
 
-  const columns: GridColDef[] = [
+  const columns: GridColDef<UserWithSite>[] = [
     {
       field: 'Username',
       headerName: 'Username',
@@ -186,91 +186,114 @@ export const UserSitesList: React.FC = () => {
       field: 'GroupementType',
       headerName: 'Groupement',
       width: 160,
-      renderCell: (params) => (
-        <Chip
-          label={params.value || 'Unassigned'}
-          color={params.value === 'Filiale' ? 'primary' : params.value === 'Succursale' ? 'secondary' : 'default'}
-          size="small"
-        />
-      ),
+      renderCell: (cellParams) => {
+        const params = cellParams as GridRenderCellParams;
+        return (
+          <Chip
+            label={params.value ?? 'Unassigned'}
+            color={
+              params.value === 'Filiale'
+                ? 'primary'
+                : params.value === 'Succursale'
+                ? 'secondary'
+                : 'default'
+            }
+            size="small"
+          />
+        );
+      },
     },
     {
       field: 'SiteName',
       headerName: 'Site Name',
       flex: 0.8,
       minWidth: 220,
-      valueGetter: (params) => params.value || 'Not assigned',
+      valueGetter: (params) => {
+        const typedParams = params as { value?: string | null };
+        return typedParams.value || 'Not assigned';
+      },
     },
     {
       field: 'UserSiteActive',
       headerName: 'User Site Status',
       width: 160,
-      renderCell: (params) => (
-        <Chip
-          label={
-            params.row.UserSiteId
-              ? params.value ? 'Active' : 'Inactive'
-              : 'Not assigned'
-          }
-          color={
-            params.row.UserSiteId
-              ? params.value
-                ? 'success'
+      renderCell: (cellParams) => {
+        const params = cellParams as GridRenderCellParams;
+        return (
+          <Chip
+            label={
+              params.row.UserSiteId
+                ? params.value
+                  ? 'Active'
+                  : 'Inactive'
+                : 'Not assigned'
+            }
+            color={
+              params.row.UserSiteId
+                ? params.value
+                  ? 'success'
+                  : 'default'
                 : 'default'
-              : 'default'
-          }
-          size="small"
-        />
-      ),
+            }
+            size="small"
+          />
+        );
+      },
     },
     {
       field: 'UserActive',
       headerName: 'User Status',
       width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          color={params.value ? 'success' : 'default'}
-          size="small"
-        />
-      ),
+      renderCell: (cellParams) => {
+        const params = cellParams as GridRenderCellParams;
+        return (
+          <Chip
+            label={params.value ? 'Active' : 'Inactive'}
+            color={params.value ? 'success' : 'default'}
+            size="small"
+          />
+        );
+      },
     },
     {
       field: 'actions',
       headerName: 'Actions',
       width: 220,
       sortable: false,
-      renderCell: (params) => (
-        <Box display="flex" gap={0.5} alignItems="center">
-          <Tooltip title="View User">
-            <IconButton
-              size="small"
-              onClick={(e) => handleViewUser(params.row.UserId, e)}
-            >
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={
-              params.row.UserSiteId
-                ? hasUpdatePermission
-                  ? 'Edit User Site'
-                  : 'No permission'
-                : 'No site assigned'
-            }
-          >
-            <span>
+      renderCell: (cellParams) => {
+        const params = cellParams as GridRenderCellParams;
+        return (
+          <Box display="flex" gap={0.5} alignItems="center">
+            <Tooltip title="View User">
               <IconButton
                 size="small"
-                onClick={(e) => handleEditUserSite(params.row.UserSiteId, e)}
-                disabled={!hasUpdatePermission || !params.row.UserSiteId}
+                onClick={(e) => handleViewUser(params.row.UserId, e)}
               >
-                <EditIcon fontSize="small" />
+                <VisibilityIcon fontSize="small" />
               </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-      ),
+            </Tooltip>
+            <Tooltip
+              title={
+                params.row.UserSiteId
+                  ? hasUpdatePermission
+                    ? 'Edit User Site'
+                    : 'No permission'
+                  : 'No site assigned'
+              }
+            >
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleEditUserSite(params.row.UserSiteId, e)}
+                  disabled={!hasUpdatePermission || !params.row.UserSiteId}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        );
+      },
     },
   ];
 

@@ -28,11 +28,11 @@ import StoreIcon from '@mui/icons-material/Store';
 import SecurityIcon from '@mui/icons-material/Security';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import type { User } from './userTypes';
+import type { UserCompleteInfo } from '../../api/endpoints/auth.api';
 
 interface UserDetailsDialogProps {
   open: boolean;
-  user: User | null;
+  user: UserCompleteInfo | null;
   loading: boolean;
   onClose: () => void;
 }
