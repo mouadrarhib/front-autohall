@@ -16,6 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 import { GridColDef } from '@mui/x-data-grid';
+import type { GridRenderCellParams } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
@@ -178,7 +179,7 @@ export const SuccursalesList: React.FC = () => {
     });
   };
 
-  const columns: GridColDef[] = useMemo(
+  const columns = useMemo<GridColDef<Succursale>[]>(
     () => [
       {
         field: 'name',
@@ -190,13 +191,16 @@ export const SuccursalesList: React.FC = () => {
         field: 'active',
         headerName: 'Status',
         width: 160,
-        renderCell: (params) => (
-          <Chip
-            label={params.value ? 'Active' : 'Inactive'}
-            color={params.value ? 'success' : 'default'}
-            size="small"
-          />
-        ),
+        renderCell: (cellParams) => {
+          const params: GridRenderCellParams = cellParams as GridRenderCellParams;
+          return (
+            <Chip
+              label={params.value ? 'Active' : 'Inactive'}
+              color={params.value ? 'success' : 'default'}
+              size="small"
+            />
+          );
+        },
       },
       {
         field: 'updatedAt',
@@ -204,7 +208,8 @@ export const SuccursalesList: React.FC = () => {
         flex: 0.7,
         minWidth: 200,
         valueGetter: (params) => {
-          const row = params?.row as Partial<Succursale> | undefined;
+          const typedParams = params as { row?: Partial<Succursale> } | undefined;
+          const row = typedParams?.row;
           const value = row?.updatedAt ?? (row as any)?.UpdatedAt;
           return formatDate(value);
         },
@@ -214,7 +219,8 @@ export const SuccursalesList: React.FC = () => {
         headerName: 'Actions',
         width: 220,
         sortable: false,
-        renderCell: (params) => {
+        renderCell: (cellParams) => {
+          const params: GridRenderCellParams = cellParams as GridRenderCellParams;
           const isToggling = togglingId === params.row.id;
 
           return (

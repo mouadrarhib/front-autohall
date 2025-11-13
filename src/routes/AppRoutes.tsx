@@ -49,6 +49,8 @@ import { ObjectifManagement } from '../features/objectifs/ObjectifManagement';
 import { PeriodeManagement } from '../features/periodes/PeriodeManagement';
 
 import { useAuthStore } from '../store/authStore';
+import { VentesManagement } from "../features/ventes/VentesManagement";
+
 
 const RedirectIfAuthenticated: React.FC<{ children: React.ReactElement }> = ({
   children,
@@ -304,6 +306,9 @@ export const AppRoutes: React.FC = () => {
               </RoleGuard>
             }
           />
+
+          <Route path="/ventes" element={<VentesManagement />} />
+
 
           {/* ===== ERROR ROUTES ===== */}
           <Route

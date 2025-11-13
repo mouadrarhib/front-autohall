@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Box, Paper, Stack, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { GridPaginationModel } from "@mui/x-data-grid";
-import { authApi } from "../../api/endpoints/auth.api";
+import { authApi, type UserCompleteInfo } from "../../api/endpoints/auth.api";
 import { useRoles } from "../../hooks/useRoles";
 import { UserHeader } from "./UserHeader";
 import { UserTable } from "./UserTable";
@@ -36,7 +36,7 @@ export const UserList: React.FC = () => {
 
   // Dialog state
   const [openDialog, setOpenDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserCompleteInfo | null>(null);
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
 
   const activeUsersCount = useMemo(

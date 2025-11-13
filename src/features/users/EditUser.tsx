@@ -187,8 +187,12 @@ export const EditUser: React.FC = () => {
         username: userData.Username || userData.username || '',
         fullName: userData.FullName || userData.full_name || '',
         email: userData.Email || userData.email || '',
-        idUserSite: userData.UserSiteId || userData.idUserSite || 0,
-        actif: userData.UserActive !== undefined ? userData.UserActive : userData.actif,
+        idUserSite:
+          userData.userSiteId ??
+          userData.UserSiteId ??
+          userData.idUserSite ??
+          0,
+        actif: userData.userActive,
       };
       setUserInfo(info);
       setInitialUserInfo(info);

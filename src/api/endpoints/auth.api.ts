@@ -34,6 +34,32 @@ export interface UserCompleteInfo {
   userStatus?: string | null;
   lastActivity?: string | null;
   raw?: Record<string, any>;
+
+  // Legacy uppercase aliases (for components still using older naming)
+  UserId?: number;
+  FullName?: string;
+  Email?: string;
+  Username?: string;
+  UserActive?: boolean;
+  UserEnabled?: boolean;
+  UserCreatedAt?: string | null;
+  UserUpdatedAt?: string | null;
+  UserSiteId?: number | null;
+  GroupementType?: string | null;
+  SiteId?: number | null;
+  UserSiteActive?: boolean | null;
+  SiteName?: string | null;
+  SiteActive?: boolean | null;
+  UserRoles?: string | null;
+  ActiveRolesCount?: number | null;
+  UserPermissions?: string | null;
+  ActivePermissionsCount?: number | null;
+  UserStatus?: string | null;
+  LastActivity?: string | null;
+  full_name?: string;
+  idUserSite?: number | null;
+  actif?: boolean | null;
+  active?: boolean | null;
 }
 
 const normalizeUserCompleteInfo = (payload: any): UserCompleteInfo => {
@@ -54,7 +80,7 @@ const normalizeUserCompleteInfo = (payload: any): UserCompleteInfo => {
     return Number.isFinite(parsed) ? parsed : fallback;
   };
 
-  return {
+  const normalized = {
     userId: toNumber(payload.UserId ?? payload.userId ?? payload.id, 0) ?? 0,
     fullName: payload.FullName ?? payload.fullName ?? payload.full_name ?? '',
     email: payload.Email ?? payload.email ?? '',
@@ -79,6 +105,34 @@ const normalizeUserCompleteInfo = (payload: any): UserCompleteInfo => {
     userStatus: payload.UserStatus ?? payload.userStatus ?? null,
     lastActivity: payload.LastActivity ?? payload.lastActivity ?? null,
     raw: payload,
+  };
+
+  return {
+    ...normalized,
+    UserId: normalized.userId,
+    FullName: normalized.fullName,
+    Email: normalized.email,
+    Username: normalized.username,
+    UserActive: normalized.userActive,
+    UserEnabled: normalized.userEnabled,
+    UserCreatedAt: normalized.userCreatedAt ?? null,
+    UserUpdatedAt: normalized.userUpdatedAt ?? null,
+    UserSiteId: normalized.userSiteId ?? null,
+    GroupementType: normalized.groupementType ?? null,
+    SiteId: normalized.siteId ?? null,
+    UserSiteActive: normalized.userSiteActive ?? null,
+    SiteName: normalized.siteName ?? null,
+    SiteActive: normalized.siteActive ?? null,
+    UserRoles: normalized.userRoles ?? null,
+    ActiveRolesCount: normalized.activeRolesCount ?? null,
+    UserPermissions: normalized.userPermissions ?? null,
+    ActivePermissionsCount: normalized.activePermissionsCount ?? null,
+    UserStatus: normalized.userStatus ?? null,
+    LastActivity: normalized.lastActivity ?? null,
+    full_name: normalized.fullName,
+    idUserSite: normalized.userSiteId ?? null,
+    actif: normalized.userActive,
+    active: normalized.userActive,
   };
 };
 
