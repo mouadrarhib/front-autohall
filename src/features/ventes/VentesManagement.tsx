@@ -1,10 +1,12 @@
-﻿import React from "react";
+﻿import React, { useCallback, useState } from "react";
 import { Box, Stack, Button } from "@mui/material";
 import { useRoles } from "../../hooks/useRoles";
 import { VentesTable } from "./VentesTable";
 import { VentesDialog } from "./VentesDialog";
 import { useVentesColumns } from "./useVentesColumns";
 import { useVentesCrud } from "./useVentesCrud";
+import type { Vente } from "../../api/endpoints/ventes.api";
+import { VenteDetailsDialog } from "./VenteDetailsDialog";
 
 export const VentesManagement: React.FC = () => {
   const { isIntegrateurVentes, isAdminFonctionnel } = useRoles();
@@ -34,8 +36,22 @@ export const VentesManagement: React.FC = () => {
     clearError,
   } = useVentesCrud(canRead);
 
+  const [selectedVente, setSelectedVente] = useState<Vente | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const handleViewVente = useCallback((vente: Vente) => {
+    setSelectedVente(vente);
+    setDetailsOpen(true);
+  }, []);
+
+  const handleCloseDetails = useCallback(() => {
+    setDetailsOpen(false);
+    setSelectedVente(null);
+  }, []);
+
   const columns = useVentesColumns({
     canManage,
+    onView: handleViewVente,
     onEdit: handleEditVente,
   });
 
@@ -94,6 +110,12 @@ export const VentesManagement: React.FC = () => {
           onSave={handleSaveVente}
           onChangeField={handleChangeField}
           onClearError={clearError}
+        />
+
+        <VenteDetailsDialog
+          open={detailsOpen}
+          vente={selectedVente}
+          onClose={handleCloseDetails}
         />
       </Stack>
     </Box>
