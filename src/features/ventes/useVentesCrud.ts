@@ -371,10 +371,20 @@ export const useVentesCrud = (canRead: boolean): UseVentesCrudResult => {
       try {
         const response = await typeventeApi.listActiveTypeVentes();
         const payload = response?.data;
-        const items = Array.isArray(payload) ? payload : [];
-        setTypeVentes(items);
+        const candidates = [
+          payload,
+          (payload as any)?.data,
+          (payload as any)?.items,
+          (payload as any)?.results,
+        ];
+        const items =
+          (candidates.find((candidate) => Array.isArray(candidate)) as
+            | TypeVente[]
+            | undefined) ?? (Array.isArray(payload) ? (payload as TypeVente[]) : []);
+        setTypeVentes(items ?? []);
       } catch (err) {
         console.error("Failed to load type ventes", err);
+        setTypeVentes([]);
       }
     };
     fetchTypeVentes();
