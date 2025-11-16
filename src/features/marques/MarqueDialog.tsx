@@ -117,11 +117,8 @@ export const MarqueDialog: React.FC<MarqueDialogProps> = ({
       PaperProps={{
         sx: {
           borderRadius: fullScreen ? 0 : 3,
-          boxShadow: '0 24px 48px rgba(0,0,0,0.12)',
-          background:
-            theme.palette.mode === 'dark'
-              ? alpha('#1e293b', 0.4)
-              : alpha('#f8fafc', 0.8),
+          boxShadow: '0 24px 48px rgba(0, 0, 0, 0.2)',
+          backgroundColor: theme.palette.background.paper,
         },
       }}
     >

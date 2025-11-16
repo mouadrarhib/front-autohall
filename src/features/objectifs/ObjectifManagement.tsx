@@ -831,6 +831,17 @@ export const ObjectifManagement: React.FC = () => {
     }
   };
 
+  const normalizeRatio = (value?: number | null): number => {
+    if (value === null || value === undefined) {
+      return 0;
+    }
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return 0;
+    }
+    return Math.abs(numeric) > 1 ? numeric / 100 : numeric;
+  };
+
   const getUnitMetrics = useCallback(
     (nextState: ObjectifFormState): { unitPrice: number; unitTmDirect: number; unitTmInter: number } => {
       const findById = <T extends { id: number }>(collections: T[][], id: number): T | undefined => {
@@ -854,8 +865,8 @@ export const ObjectifManagement: React.FC = () => {
         if (selectedVersion) {
           return {
             unitPrice: selectedVersion.prixDeVente ?? 0,
-            unitTmDirect: selectedVersion.tmDirect ?? 0,
-            unitTmInter: selectedVersion.tmInterGroupe ?? 0,
+            unitTmDirect: normalizeRatio(selectedVersion.tmDirect),
+            unitTmInter: normalizeRatio(selectedVersion.tmInterGroupe),
           };
         }
       }
@@ -870,8 +881,8 @@ export const ObjectifManagement: React.FC = () => {
         if (selectedModele) {
           return {
             unitPrice: selectedModele.averageSalePrice ?? 0,
-            unitTmDirect: selectedModele.tmDirect ?? 0,
-            unitTmInter: selectedModele.tmInterGroupe ?? 0,
+            unitTmDirect: normalizeRatio(selectedModele.tmDirect),
+            unitTmInter: normalizeRatio(selectedModele.tmInterGroupe),
           };
         }
       }
@@ -883,8 +894,8 @@ export const ObjectifManagement: React.FC = () => {
         if (selectedMarque) {
           return {
             unitPrice: selectedMarque.averageSalePrice ?? 0,
-            unitTmDirect: selectedMarque.tmDirect ?? 0,
-            unitTmInter: selectedMarque.tmInterGroupe ?? 0,
+            unitTmDirect: normalizeRatio(selectedMarque.tmDirect),
+            unitTmInter: normalizeRatio(selectedMarque.tmInterGroupe),
           };
         }
       }
