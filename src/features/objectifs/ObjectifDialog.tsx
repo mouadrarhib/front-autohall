@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   CircularProgress,
@@ -116,6 +117,14 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
   const showTmInterField = !hasSelectedTypeVente || !isDirectTypeVente;
   const tmDirectEditable = isDirectTypeVente;
   const tmInterEditable = hasSelectedTypeVente && !isDirectTypeVente;
+  const getMarqueImage = (marque?: Marque | null) => {
+    const source =
+      marque?.imageUrl ??
+      (marque && 'image' in marque ? ((marque as any).image as string) : null);
+    return source && source.trim().length > 0 ? source : '/placeholder-car.png';
+  };
+  const getModeleImage = (modele?: Modele | null) =>
+    modele?.imageUrl && modele.imageUrl.trim().length > 0 ? modele.imageUrl : '/placeholder-car.png';
 
   const formatCurrency = useMemo(
     () =>
@@ -141,7 +150,12 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
     if (value === null || value === undefined) {
       return 'N/A';
     }
-    return `${(value * 100).toFixed(2)}%`;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return 'N/A';
+    }
+    const normalized = Math.abs(numeric) > 1 ? numeric / 100 : numeric;
+    return `${(normalized * 100).toFixed(2)}%`;
   }, []);
 
   const formatPeriodeLabel = useCallback((periode: Periode) => {
@@ -469,7 +483,11 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5}>
                 <Box flex={1}>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={formState.targetType === 'marque' ? 12 : 6}>
+                    <Grid
+                      item
+                      xs={12}
+                      sm={formState.targetType === 'marque' && selectedMarque ? 6 : 12}
+                    >
                       <FormControl fullWidth size={isMobile ? 'small' : 'medium'} required>
                         <InputLabel>Marque</InputLabel>
                         <Select
@@ -478,47 +496,184 @@ export const ObjectifDialog: React.FC<ObjectifDialogProps> = ({
                           onChange={(event) => onChangeField('marqueId', Number(event.target.value))}
                           disabled={saving}
                           sx={{ borderRadius: 2 }}
-                        >
-                          <MenuItem value="">
-                            <em>Aucune</em>
-                          </MenuItem>
-                          {marques.map((marque) => (
-                            <MenuItem key={marque.id} value={marque.id}>
-                              {marque.name}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        <FormHelperText sx={{ ml: 0.5 }}>
-                          {marquesCount} marque{marquesCount !== 1 ? 's' : ''} disponibles
-                        </FormHelperText>
-                      </FormControl>
-                    </Grid>
-
-                    {isModeleStep && (
-                      <Grid item xs={12} sm={formState.targetType === 'version' ? 6 : 6}>
-                        <FormControl fullWidth size={isMobile ? 'small' : 'medium'} required={formState.targetType !== 'marque'}>
-                          <InputLabel>Modele</InputLabel>
-                          <Select
-                            value={formState.modeleId || ''}
-                            label="Modele"
-                            onChange={(event) => onChangeField('modeleId', Number(event.target.value))}
-                            disabled={saving || !formState.marqueId}
-                            sx={{ borderRadius: 2 }}
                           >
                             <MenuItem value="">
-                              <em>Aucun</em>
+                              <em>Aucune</em>
                             </MenuItem>
-                            {modeles.map((modele) => (
-                              <MenuItem key={modele.id} value={modele.id}>
-                                {modele.name}
+                            {marques.map((marque) => (
+                              <MenuItem key={marque.id} value={marque.id}>
+                                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: '100%' }}>
+                                  <Avatar
+                                    variant="rounded"
+                                    src={getMarqueImage(marque)}
+                                    alt={marque.name}
+                                    imgProps={{
+                                      style: {
+                                        objectFit: 'contain',
+                                        padding: 6,
+                                      },
+                                    }}
+                                    sx={{
+                                      width: 48,
+                                      height: 48,
+                                      bgcolor: 'background.paper',
+                                      border: '1px solid',
+                                      borderColor: 'divider',
+                                    }}
+                                  />
+                                  <Typography variant="body2" fontWeight={600}>
+                                    {marque.name}
+                                  </Typography>
+                                </Stack>
                               </MenuItem>
                             ))}
                           </Select>
                           <FormHelperText sx={{ ml: 0.5 }}>
-                            {modelesCount} modele{modelesCount !== 1 ? 's' : ''} disponibles
+                            {marquesCount} marque{marquesCount !== 1 ? 's' : ''} disponibles
                           </FormHelperText>
-                        </FormControl>
+                      </FormControl>
+                    </Grid>
+                    {formState.targetType === 'marque' && selectedMarque && (
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: 2,
+                            p: 1.5,
+                            bgcolor: 'background.paper',
+                            height: '100%',
+                          }}
+                        >
+                          <Box
+                            component="img"
+                            src={getMarqueImage(selectedMarque)}
+                            alt={selectedMarque.name}
+                            onError={(event: React.SyntheticEvent<HTMLImageElement>) => {
+                              event.currentTarget.onerror = null;
+                              event.currentTarget.src = '/placeholder-car.png';
+                            }}
+                            sx={{
+                              width: '100%',
+                              height: 140,
+                              objectFit: 'contain',
+                              borderRadius: 1,
+                              mb: 1,
+                              backgroundColor: 'white',
+                              p: 1,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          />
+                          <Typography variant="caption" color="text.secondary" textAlign="center">
+                            Aperçu de la marque
+                          </Typography>
+                        </Box>
                       </Grid>
+                    )}
+
+                    {isModeleStep && (
+                      <>
+                        <Grid item xs={12} sm={formState.targetType === 'version' ? 6 : 6}>
+                          <FormControl fullWidth size={isMobile ? 'small' : 'medium'} required={formState.targetType !== 'marque'}>
+                            <InputLabel>Modele</InputLabel>
+                            <Select
+                              value={formState.modeleId || ''}
+                              label="Modele"
+                              onChange={(event) => onChangeField('modeleId', Number(event.target.value))}
+                              disabled={saving || !formState.marqueId}
+                              sx={{ borderRadius: 2 }}
+                            >
+                              <MenuItem value="">
+                                <em>Aucun</em>
+                              </MenuItem>
+                              {modeles.map((modele) => (
+                                <MenuItem key={modele.id} value={modele.id}>
+                                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: '100%' }}>
+                                    <Avatar
+                                      variant="rounded"
+                                      src={getModeleImage(modele)}
+                                      alt={modele.name}
+                                      imgProps={{
+                                        style: {
+                                          objectFit: 'contain',
+                                          padding: 6,
+                                        },
+                                      }}
+                                      sx={{
+                                        width: 48,
+                                        height: 48,
+                                        bgcolor: 'background.paper',
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                      }}
+                                    />
+                                    <Box>
+                                      <Typography variant="body2" fontWeight={600}>
+                                        {modele.name}
+                                      </Typography>
+                                      {modele.marqueName && (
+                                        <Typography variant="caption" color="text.secondary">
+                                          {modele.marqueName}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  </Stack>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                            <FormHelperText sx={{ ml: 0.5 }}>
+                              {modelesCount} modele{modelesCount !== 1 ? 's' : ''} disponibles
+                            </FormHelperText>
+                          </FormControl>
+                        </Grid>
+                        {selectedModele && (
+                          <Grid item xs={12} sm={formState.targetType === 'version' ? 6 : 6}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 2,
+                                p: 1.5,
+                                bgcolor: 'background.paper',
+                                height: '100%',
+                              }}
+                            >
+                              <Box
+                                component="img"
+                                src={getModeleImage(selectedModele)}
+                                alt={selectedModele.name}
+                                onError={(event: React.SyntheticEvent<HTMLImageElement>) => {
+                                  event.currentTarget.onerror = null;
+                                  event.currentTarget.src = '/placeholder-car.png';
+                                }}
+                                sx={{
+                                  width: '100%',
+                                  height: 140,
+                                  objectFit: 'contain',
+                                  borderRadius: 1,
+                                  mb: 1,
+                                  backgroundColor: 'white',
+                                  p: 1,
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                }}
+                              />
+                              <Typography variant="caption" color="text.secondary" textAlign="center">
+                                Aperçu du modele
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        )}
+                      </>
                     )}
 
                     {isVersionStep && (

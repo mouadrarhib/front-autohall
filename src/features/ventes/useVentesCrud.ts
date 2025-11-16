@@ -38,6 +38,17 @@ const pickFirstNumber = (...values: any[]): number | null => {
   return null;
 };
 
+const normalizeRatio = (value?: number | null): number => {
+  if (value === null || value === undefined) {
+    return 0;
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return Math.abs(numeric) > 1 ? numeric / 100 : numeric;
+};
+
 interface UseVentesCrudResult {
   ventes: Vente[];
   pagination: PaginationState;
@@ -227,8 +238,8 @@ export const useVentesCrud = (canRead: boolean): UseVentesCrudResult => {
           const match = list.find((item) => item.id === versionId);
           if (match) {
             unitPrice = match.prixDeVente ?? 0;
-            unitTmDirect = match.tmDirect ?? 0;
-            unitTmInter = match.tmInterGroupe ?? 0;
+            unitTmDirect = normalizeRatio(match.tmDirect);
+            unitTmInter = normalizeRatio(match.tmInterGroupe);
             break;
           }
         }
@@ -238,8 +249,8 @@ export const useVentesCrud = (canRead: boolean): UseVentesCrudResult => {
           const match = list.find((item) => item.id === modeleId);
           if (match) {
             unitPrice = match.averageSalePrice ?? 0;
-            unitTmDirect = match.tmDirect ?? 0;
-            unitTmInter = match.tmInterGroupe ?? 0;
+            unitTmDirect = normalizeRatio(match.tmDirect);
+            unitTmInter = normalizeRatio(match.tmInterGroupe);
             break;
           }
         }
@@ -247,15 +258,24 @@ export const useVentesCrud = (canRead: boolean): UseVentesCrudResult => {
         const match = marques.find((item) => item.id === marqueId);
         if (match) {
           unitPrice = match.averageSalePrice ?? 0;
-          unitTmDirect = (match as any).tmDirect ?? 0;
-          unitTmInter = (match as any).tmInterGroupe ?? 0;
+          unitTmDirect = normalizeRatio((match as any).tmDirect);
+          unitTmInter = normalizeRatio((match as any).tmInterGroupe);
         }
+      }
+
+      const numericVolume = Number(nextState.volume) || 0;
+
+      if (numericVolume <= 0) {
+        nextState.prixVente = "0";
+        nextState.chiffreAffaires = "0";
+        nextState.marge = "0";
+        nextState.margePercentage = "0";
+        return nextState;
       }
 
       const formattedPrice = unitPrice > 0 ? unitPrice.toFixed(2) : "0";
       nextState.prixVente = formattedPrice;
 
-      const numericVolume = Number(nextState.volume) || 0;
       const chiffreAffaires =
         unitPrice > 0 && numericVolume > 0 ? unitPrice * numericVolume : 0;
       nextState.chiffreAffaires =

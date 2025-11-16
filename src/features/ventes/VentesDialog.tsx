@@ -1,5 +1,7 @@
 import React from "react";
 import {
+  Avatar,
+  Box,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -73,6 +75,12 @@ export const VentesDialog: React.FC<VentesDialogProps> = ({
   const selectedType = typeVentes.find(
     (type) => `${type.id}` === formState.idTypeVente
   );
+  const selectedModele =
+    modeles.find((modele) => `${modele.id}` === formState.idModele) ?? null;
+  const getModeleImage = (modele?: Modele | null) =>
+    modele?.imageUrl && modele.imageUrl.trim().length > 0
+      ? modele.imageUrl
+      : "/placeholder-car.png";
   const tmLabel = selectedType
     ? selectedType.name?.trim().toLowerCase() === "intergroupe"
       ? "TM intergroupe (%)"
@@ -217,17 +225,85 @@ export const VentesDialog: React.FC<VentesDialogProps> = ({
               {renderMenuItems(marques)}
             </TextField>
             {showModeleSelect && (
-              <TextField
-                label="Modele"
-                select
-                value={formState.idModele}
-                onChange={(e) => onChangeField("idModele", e.target.value)}
-                fullWidth
-                required
-              >
-                <MenuItem value="">Selectionner un modele</MenuItem>
-                {renderMenuItems(modeles)}
-              </TextField>
+              <>
+                <TextField
+                  label="Modele"
+                  select
+                  value={formState.idModele}
+                  onChange={(e) => onChangeField("idModele", e.target.value)}
+                  fullWidth
+                  required
+                >
+                  <MenuItem value="">Selectionner un modele</MenuItem>
+                  {modeles.map((modele) => (
+                    <MenuItem key={modele.id} value={`${modele.id}`}>
+                      <Stack
+                        direction="row"
+                        spacing={1.5}
+                        alignItems="center"
+                        sx={{ width: "100%" }}
+                      >
+                        <Avatar
+                          variant="rounded"
+                          src={getModeleImage(modele)}
+                          alt={modele.name}
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            bgcolor: "grey.100",
+                          }}
+                        />
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>
+                            {modele.name}
+                          </Typography>
+                          {modele.marqueName && (
+                            <Typography variant="caption" color="text.secondary">
+                              {modele.marqueName}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Stack>
+                    </MenuItem>
+                  ))}
+                </TextField>
+                {selectedModele && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 2,
+                      p: 1.5,
+                      minWidth: { xs: "100%", sm: 180 },
+                      bgcolor: "background.paper",
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={getModeleImage(selectedModele)}
+                      alt={selectedModele.name}
+                      onError={(event: React.SyntheticEvent<HTMLImageElement>) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = "/placeholder-car.png";
+                      }}
+                      sx={{
+                        width: "100%",
+                        height: 100,
+                        objectFit: "cover",
+                        borderRadius: 1,
+                        mb: 1,
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary" textAlign="center">
+                      Aperçu du modèle
+                    </Typography>
+                  </Box>
+                )}
+              </>
             )}
             {showVersionSelect && (
               <TextField
