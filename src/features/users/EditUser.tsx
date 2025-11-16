@@ -32,6 +32,7 @@ import {
   Tab,
   Checkbox,
   Chip,
+  FormHelperText,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -387,85 +388,124 @@ export const EditUser: React.FC = () => {
         <CardContent>
           {/* Tab 1: User Information */}
           <TabPanel value={activeTab} index={0}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Username"
-                  value={userInfo.username}
-                  onChange={(e) => setUserInfo({ ...userInfo, username: e.target.value })}
-                  required
-                  disabled={saving}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 3,
+                border: (theme) => `1px solid ${theme.palette.divider}`,
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
+              }}
+            >
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2} sx={{ mb: 3 }}>
+                <Box>
+                  <Typography variant="h6" fontWeight={700}>
+                    Account Details
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Update the user’s core information and status.
+                  </Typography>
+                </Box>
+                <Chip
+                  size="small"
+                  label={userInfo.actif ? 'Active' : 'Inactive'}
+                  color={userInfo.actif ? 'success' : 'default'}
+                  variant={userInfo.actif ? 'filled' : 'outlined'}
                 />
-              </Grid>
+              </Stack>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Full Name"
-                  value={userInfo.fullName}
-                  onChange={(e) => setUserInfo({ ...userInfo, fullName: e.target.value })}
-                  required
-                  disabled={saving}
-                />
-              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Username"
+                    value={userInfo.username}
+                    onChange={(e) => setUserInfo({ ...userInfo, username: e.target.value })}
+                    required
+                    disabled={saving}
+                    helperText="The unique handle used for login"
+                  />
+                </Grid>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={userInfo.email}
-                  onChange={(e) => setUserInfo({ ...userInfo, email: e.target.value })}
-                  required
-                  disabled={saving}
-                />
-              </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Full Name"
+                    value={userInfo.fullName}
+                    onChange={(e) => setUserInfo({ ...userInfo, fullName: e.target.value })}
+                    required
+                    disabled={saving}
+                    helperText="Display name shown across the app"
+                  />
+                </Grid>
 
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required disabled={saving}>
-                  <InputLabel>Site Assignment</InputLabel>
-                  <Select
-                    value={userInfo.idUserSite}
-                    onChange={(e) => setUserInfo({ ...userInfo, idUserSite: Number(e.target.value) })}
-                  >
-                    {Array.isArray(sites) && sites.length > 0 ? (
-                      sites.map((site) => (
-                        <MenuItem key={site.id} value={site.id}>
-                          {site.name} ({site.type})
-                        </MenuItem>
-                      ))
-                    ) : (
-                      <MenuItem disabled>No sites available</MenuItem>
-                    )}
-                  </Select>
-                </FormControl>
-              </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    value={userInfo.email}
+                    onChange={(e) => setUserInfo({ ...userInfo, email: e.target.value })}
+                    required
+                    disabled={saving}
+                    helperText="Used for notifications and recovery"
+                  />
+                </Grid>
 
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={userInfo.actif}
-                      onChange={(e) => setUserInfo({ ...userInfo, actif: e.target.checked })}
-                      disabled={saving}
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1" fontWeight={600}>
-                        {userInfo.actif ? 'Active' : 'Inactive'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {userInfo.actif
-                          ? 'User can log in and access the system'
-                          : 'User cannot log in or access the system'}
-                      </Typography>
-                    </Box>
-                  }
-                />
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth required disabled={saving}>
+                    <InputLabel>Site Assignment</InputLabel>
+                    <Select
+                      value={userInfo.idUserSite}
+                      label="Site Assignment"
+                      onChange={(e) => setUserInfo({ ...userInfo, idUserSite: Number(e.target.value) })}
+                    >
+                      {Array.isArray(sites) && sites.length > 0 ? (
+                        sites.map((site) => (
+                          <MenuItem key={site.id} value={site.id}>
+                            {site.name} ({site.type})
+                          </MenuItem>
+                        ))
+                      ) : (
+                        <MenuItem disabled>No sites available</MenuItem>
+                      )}
+                    </Select>
+                    <FormHelperText>Select the site where the user operates</FormHelperText>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={userInfo.actif}
+                        onChange={(e) => setUserInfo({ ...userInfo, actif: e.target.checked })}
+                        disabled={saving}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body1" fontWeight={600}>
+                          {userInfo.actif ? 'Active' : 'Inactive'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {userInfo.actif
+                            ? 'User can log in and access the system'
+                            : 'User cannot log in or access the system'}
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{
+                      px: 1.5,
+                      py: 1,
+                      border: (theme) => `1px dashed ${theme.palette.divider}`,
+                      borderRadius: 2,
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.01),
+                    }}
+                  />
+                </Grid>
               </Grid>
-            </Grid>
+            </Paper>
           </TabPanel>
 
           {/* Tab 2: Roles */}
@@ -478,7 +518,8 @@ export const EditUser: React.FC = () => {
                     p: 3,
                     borderRadius: 3,
                     border: (theme) => `1px solid ${theme.palette.divider}`,
-                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03),
+                    boxShadow: (theme) => theme.shadows[1],
                   }}
                 >
                   <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
@@ -502,7 +543,7 @@ export const EditUser: React.FC = () => {
                   {allRoles.length === 0 ? (
                     <Alert severity="info">No roles available</Alert>
                   ) : (
-                    <Grid container spacing={2}>
+                    <Grid container spacing={2.5}>
                       {allRoles.map((role) => {
                         const isSelected = userRoles.includes(role.id);
                         return (
@@ -523,7 +564,7 @@ export const EditUser: React.FC = () => {
                                 },
                               }}
                             >
-                              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
                                   <Box>
                                     <Typography variant="subtitle1" fontWeight={700}>
@@ -543,18 +584,33 @@ export const EditUser: React.FC = () => {
                                     />
                                   )}
                                 </Stack>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <Chip
+                                    size="small"
+                                    label={role.active ? 'Active' : 'Inactive'}
+                                    color={role.active ? 'success' : 'default'}
+                                    variant={role.active ? 'filled' : 'outlined'}
+                                  />
+                                  <Typography variant="caption" color="text.secondary">
+                                    ID: {role.id}
+                                  </Typography>
+                                </Stack>
                                 <FormControlLabel
                                   control={
                                     <Checkbox
                                       checked={isSelected}
                                       onChange={() => handleRoleToggle(role.id)}
-                                      disabled={saving}
+                                      disabled={saving || !role.active}
                                       color="primary"
                                     />
                                   }
                                   label={
-                                    <Typography variant="body2" color="text.secondary">
-                                      {isSelected ? 'Assigned to this user' : 'Assign this role'}
+                                    <Typography variant="body2" color={role.active ? 'text.secondary' : 'text.disabled'}>
+                                      {role.active
+                                        ? isSelected
+                                          ? 'Assigned to this user'
+                                          : 'Assign this role'
+                                        : 'Inactive role (cannot assign)'}
                                     </Typography>
                                   }
                                   sx={{ m: 0, alignItems: 'flex-start' }}
@@ -570,7 +626,7 @@ export const EditUser: React.FC = () => {
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 3 }}>
                     <Typography variant="caption" color={userRoles.length > 0 ? 'success.main' : 'text.secondary'}>
                       {userRoles.length > 0
-                        ? 'Roles selected — save changes to update access.'
+                        ? 'Roles selected - save changes to update access.'
                         : 'Select at least one role to keep the user aligned with access policies.'}
                     </Typography>
                   </Stack>
