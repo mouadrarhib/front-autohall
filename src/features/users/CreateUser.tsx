@@ -1,6 +1,6 @@
-// src/features/users/CreateUser.tsx
+﻿// src/features/users/CreateUser.tsx
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import {
@@ -22,31 +22,24 @@ import {
   StepLabel,
   Grid,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
-  Checkbox,
-  ListItemSecondaryAction,
   InputAdornment,
   IconButton,
   Stack,
   Paper,
-  Tooltip,
+  Chip,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { authApi } from '../../api/endpoints/auth.api';
 import { groupementApi } from '../../api/endpoints/groupement.api';
 import { roleApi } from '../../api/endpoints/role.api';
-import { rolePermissionApi } from '../../api/endpoints/rolePermission.api';
-import { groupPermissions } from '../../utils/permissionGrouping';
 import type { Groupement } from '../../types/usersite.types';
-import type { Permission } from '../../types/permission.types';
 import type { Role } from '../../types/role.types';
 
 interface CreateUserFormData {
@@ -57,42 +50,9 @@ interface CreateUserFormData {
   idGroupement: number;
   idSite: number;
   roles: number[];
-  permissions: number[];
   actif: boolean;
 }
-
-const normalizeRolePermission = (raw: any): Permission | null => {
-  const id =
-    raw?.idPermission ??
-    raw?.permissionId ??
-    raw?.IdPermission ??
-    raw?.permission_id ??
-    raw?.id ??
-    null;
-
-  if (!id) {
-    return null;
-  }
-
-  return {
-    id,
-    name:
-      raw?.permissionName ??
-      raw?.PermissionName ??
-      raw?.name ??
-      raw?.permission_name ??
-      '',
-    active: Boolean(
-      raw?.permissionActive ??
-        raw?.PermissionActive ??
-        raw?.active ??
-        raw?.Active ??
-        true
-    ),
-  };
-};
-
-const steps = ['User Information', 'Site Assignment', 'Roles & Permissions'];
+const steps = ['User Information', 'Site Assignment', 'Roles'];
 
 export const CreateUser: React.FC = () => {
   const navigate = useNavigate();
@@ -105,18 +65,10 @@ export const CreateUser: React.FC = () => {
   const [groupements, setGroupements] = useState<Groupement[]>([]);
   const [sites, setSites] = useState<any[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [rolePermissionsCache, setRolePermissionsCache] = useState<
-    Record<number, Permission[]>
-  >({});
-  const [isLoadingRolePermissions, setIsLoadingRolePermissions] = useState(false);
-  const [permissionsError, setPermissionsError] = useState<string | null>(null);
-  const [permissionSearch, setPermissionSearch] = useState('');
 
   // Selection states
   const [selectedGroupement, setSelectedGroupement] = useState<Groupement | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<number[]>([]);
-  const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
   const [showPassword, setShowPassword] = useState(false);
 
   const methods = useForm<CreateUserFormData>({
@@ -128,7 +80,6 @@ export const CreateUser: React.FC = () => {
       idGroupement: 0,
       idSite: 0,
       roles: [],
-      permissions: [],
       actif: true,
     },
   });
@@ -152,7 +103,6 @@ export const CreateUser: React.FC = () => {
 
         setGroupements(groupementsData.filter((g) => g.active));
         setRoles(rolesData.filter((r: Role) => r.active));
-        setPermissions([]);
       } catch (err: any) {
         console.error('Failed to load initial data:', err);
         setError('Failed to load form data. Please refresh the page.');
@@ -163,138 +113,6 @@ export const CreateUser: React.FC = () => {
 
     loadInitialData();
   }, []);
-
-  useEffect(() => {
-    if (loadingData) {
-      return;
-    }
-
-    if (selectedRoles.length === 0) {
-      setPermissions([]);
-      setSelectedPermissions([]);
-      setPermissionsError(null);
-      setIsLoadingRolePermissions(false);
-      return;
-    }
-
-    let isCancelled = false;
-
-    const updatePermissionsForRoles = async () => {
-      const aggregated = new Map<number, Permission>();
-
-      selectedRoles.forEach((roleId) => {
-        const cachedPermissions = rolePermissionsCache[roleId] || [];
-        cachedPermissions.forEach((permission) => {
-          aggregated.set(permission.id, permission);
-        });
-      });
-
-      const missingRoleIds = selectedRoles.filter(
-        (roleId) => !rolePermissionsCache[roleId]
-      );
-
-      if (missingRoleIds.length === 0) {
-        const sortedPermissions = Array.from(aggregated.values()).sort((a, b) =>
-          a.name.localeCompare(b.name)
-        );
-        setPermissions(sortedPermissions);
-        setSelectedPermissions((prev) =>
-          prev.filter((id) => aggregated.has(id))
-        );
-        setPermissionsError(null);
-        return;
-      }
-
-      setIsLoadingRolePermissions(true);
-      setPermissionsError(null);
-
-      try {
-        const fetched = await Promise.all(
-          missingRoleIds.map(async (roleId) => {
-            const response = await rolePermissionApi.getPermissionsByRole(
-              roleId,
-              true
-            );
-            const normalized = response
-              .map(normalizeRolePermission)
-              .filter(
-                (permission): permission is Permission => Boolean(permission)
-              );
-
-            normalized.forEach((permission) => {
-              aggregated.set(permission.id, permission);
-            });
-
-            return { roleId, permissions: normalized };
-          })
-        );
-
-        if (isCancelled) {
-          return;
-        }
-
-        if (fetched.length > 0) {
-          setRolePermissionsCache((prev) => {
-            const updated = { ...prev };
-            fetched.forEach(({ roleId, permissions }) => {
-              updated[roleId] = permissions;
-            });
-            return updated;
-          });
-        }
-
-        const sortedPermissions = Array.from(aggregated.values()).sort((a, b) =>
-          a.name.localeCompare(b.name)
-        );
-
-        setPermissions(sortedPermissions);
-        setSelectedPermissions((prev) =>
-          prev.filter((id) => aggregated.has(id))
-        );
-      } catch (err) {
-        if (isCancelled) {
-          return;
-        }
-
-        console.error('Failed to load permissions for selected roles:', err);
-        setPermissionsError(
-          'Unable to load permissions for the selected roles.'
-        );
-
-        const fallbackPermissions = Array.from(aggregated.values()).sort(
-          (a, b) => a.name.localeCompare(b.name)
-        );
-        setPermissions(fallbackPermissions);
-
-        if (aggregated.size > 0) {
-          setSelectedPermissions((prev) =>
-            prev.filter((id) => aggregated.has(id))
-          );
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoadingRolePermissions(false);
-        }
-      }
-    };
-
-    updatePermissionsForRoles();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [selectedRoles, rolePermissionsCache, loadingData]);
-
-  useEffect(() => {
-    if (selectedRoles.length === 0 && permissionSearch) {
-      setPermissionSearch('');
-    }
-  }, [selectedRoles, permissionSearch]);
-
-  const permissionGroups = useMemo(
-    () => groupPermissions(permissions, { searchTerm: permissionSearch }),
-    [permissions, permissionSearch]
-  );
 
   const handleGroupementChange = async (groupementId: number) => {
     if (!groupementId) {
@@ -337,14 +155,6 @@ export const CreateUser: React.FC = () => {
   const handleRoleToggle = (roleId: number) => {
     setSelectedRoles((prev) =>
       prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
-    );
-  };
-
-  const handlePermissionToggle = (permissionId: number) => {
-    setSelectedPermissions((prev) =>
-      prev.includes(permissionId)
-        ? prev.filter((id) => id !== permissionId)
-        : [...prev, permissionId]
     );
   };
 
@@ -400,8 +210,8 @@ export const CreateUser: React.FC = () => {
       setIsLoading(true);
 
       // Validate final step
-      if (selectedRoles.length === 0 && selectedPermissions.length === 0) {
-        setError('Please assign at least one role or permission to the user');
+      if (selectedRoles.length === 0) {
+        setError('Please assign at least one role to the user');
         setIsLoading(false);
         return;
       }
@@ -421,7 +231,7 @@ export const CreateUser: React.FC = () => {
         idSite: data.idSite,
         site_id: data.idSite, // Some backends might expect this field
         roles: selectedRoles,
-        permissions: selectedPermissions,
+        role_ids: selectedRoles,
         actif: true,
       };
 
@@ -744,261 +554,122 @@ export const CreateUser: React.FC = () => {
                 </Grid>
               )}
 
-              {/* Step 3: Roles & Permissions */}
+              {/* Step 3: Roles */}
               {activeStep === 2 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <Typography variant="h6" fontWeight={600} gutterBottom>
-                      Roles & Permissions
+                      Roles
                     </Typography>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Assign roles and additional permissions to define user access
+                      Assign at least one role to define user access
                     </Typography>
                     <Divider sx={{ mt: 1, mb: 3 }} />
                   </Grid>
 
-                  {/* Roles Section */}
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} md={10} lg={8}>
                     <Paper
                       elevation={0}
                       sx={{
-                        p: 2,
+                        p: 3,
                         border: (theme) => `1px solid ${theme.palette.divider}`,
-                        borderRadius: 2,
+                        borderRadius: 3,
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.015),
                       }}
                     >
-                      <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                        Assign Roles
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                        Roles grant predefined sets of permissions
-                      </Typography>
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight={700}>
+                            Assign Roles
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Choose the roles that apply to this user
+                          </Typography>
+                        </Box>
+                        <Chip
+                          size="small"
+                          label={`Selected: ${selectedRoles.length}`}
+                          color={selectedRoles.length > 0 ? 'primary' : 'default'}
+                          variant={selectedRoles.length > 0 ? 'filled' : 'outlined'}
+                        />
+                      </Stack>
                       <Divider sx={{ my: 2 }} />
-                      <Box
-                        sx={{
-                          maxHeight: 300,
-                          overflow: 'auto',
-                          border: (theme) => `1px solid ${theme.palette.divider}`,
-                          borderRadius: 1,
-                        }}
-                      >
-                        <List dense>
-                          {roles.length === 0 ? (
-                            <ListItem>
-                              <ListItemText 
-                                primary="No roles available" 
-                                secondary="Contact administrator to create roles"
-                              />
-                            </ListItem>
-                          ) : (
-                            roles.map((role) => (
-                              <ListItem 
-                                key={role.id} 
-                                button 
-                                onClick={() => handleRoleToggle(role.id)}
-                                sx={{
-                                  '&:hover': {
-                                    backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                                  },
-                                }}
-                              >
-                                <ListItemText
-                                  primary={role.name}
-                                  secondary={role.description || 'No description'}
-                                />
-                                <ListItemSecondaryAction>
-                                  <Checkbox
-                                    edge="end"
-                                    checked={selectedRoles.includes(role.id)}
-                                    onChange={() => handleRoleToggle(role.id)}
-                                    color="primary"
-                                  />
-                                </ListItemSecondaryAction>
-                              </ListItem>
-                            ))
-                          )}
-                        </List>
-                      </Box>
-                      
-                      <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {selectedRoles.length > 0 && <CheckCircleIcon color="success" fontSize="small" />}
-                        <Typography variant="caption" color={selectedRoles.length > 0 ? 'success.main' : 'text.secondary'}>
-                          Selected: {selectedRoles.length} role(s)
-                        </Typography>
-                      </Box>
-                    </Paper>
-                  </Grid>
-
-                  {/* Permissions Section */}
-                  <Grid item xs={12} md={6}>
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 2,
-                        border: (theme) => `1px solid ${theme.palette.divider}`,
-                        borderRadius: 2,
-                      }}
-                    >
-                      <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                        Additional Permissions
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                        Grant specific permissions beyond role assignments
-                      </Typography>
-                      <Divider sx={{ my: 2 }} />
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="Rechercher une permission..."
-                        value={permissionSearch}
-                        onChange={(e) => setPermissionSearch(e.target.value)}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <SearchIcon fontSize="small" />
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{ mb: 2 }}
-                      />
-
-                      <Box
-                        sx={{
-                          maxHeight: 300,
-                            overflow: 'auto',
-                            border: (theme) => `1px solid ${theme.palette.divider}`,
-                            borderRadius: 1,
-                          }}
-                        >
-                          {isLoadingRolePermissions ? (
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                py: 4,
-                                gap: 1,
-                              }}
-                            >
-                              <CircularProgress size={24} color="primary" />
-                              <Typography variant="body2" color="text.secondary">
-                                Loading permissions for the selected role(s)...
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <>
-                              {permissionsError && (
-                                <Alert severity="error" sx={{ m: 2, borderRadius: 1 }}>
-                                  {permissionsError}
-                                </Alert>
-                              )}
-                              {selectedRoles.length === 0 ? (
-                                <Box sx={{ p: 2 }}>
-                                  <Typography variant="body2" color="text.secondary">
-                                    Select at least one role to view permissions.
-                                  </Typography>
-                                </Box>
-                              ) : permissionGroups.length === 0 ? (
-                                <Box sx={{ p: 2 }}>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {permissionSearch
-                                      ? 'No permissions match your search.'
-                                      : 'No permissions found for the selected role(s).'}
-                                  </Typography>
-                                </Box>
-                              ) : (
-                                <Box sx={{ py: 1 }}>
-                                  {permissionGroups.map((group) => (
-                                    <Box
-                                      key={group.resourceKey}
-                                      sx={{ '&:not(:last-of-type)': { mb: 1.5 } }}
-                                    >
-                                      <Box
-                                        sx={{
-                                          px: 2,
-                                          py: 1,
-                                          backgroundColor: (theme) =>
-                                            alpha(theme.palette.primary.main, 0.05),
-                                        }}
-                                      >
-                                        <Typography
-                                          variant="subtitle2"
-                                          fontWeight={600}
-                                          color="text.primary"
-                                        >
-                                          {group.resourceLabel}
+                      {roles.length === 0 ? (
+                        <Alert severity="info">No roles available. Contact an administrator to create roles.</Alert>
+                      ) : (
+                        <Grid container spacing={2}>
+                          {roles.map((role) => {
+                            const isSelected = selectedRoles.includes(role.id);
+                            return (
+                              <Grid item xs={12} sm={6} key={role.id}>
+                                <Card
+                                  variant="outlined"
+                                  sx={{
+                                    height: '100%',
+                                    borderColor: isSelected ? 'primary.light' : 'divider',
+                                    bgcolor: isSelected
+                                      ? (theme) => alpha(theme.palette.primary.main, 0.06)
+                                      : 'background.paper',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                      borderColor: 'primary.main',
+                                      boxShadow: (theme) =>
+                                        isSelected
+                                          ? '0 8px 18px rgba(37, 99, 235, 0.18)'
+                                          : theme.shadows[2],
+                                    },
+                                  }}
+                                >
+                                  <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                    <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+                                      <Box>
+                                        <Typography variant="subtitle1" fontWeight={700}>
+                                          {role.name}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                          {role.description || 'No description provided'}
                                         </Typography>
                                       </Box>
-                                      <List dense disablePadding>
-                                        {group.items.map(
-                                          ({ permission, actionLabel, rawKey }) => (
-                                            <ListItem
-                                              key={permission.id}
-                                              button
-                                              onClick={() =>
-                                                handlePermissionToggle(permission.id)
-                                              }
-                                              sx={{
-                                                pl: 2,
-                                                pr: 1,
-                                                '&:hover': {
-                                                  backgroundColor: (theme) =>
-                                                    alpha(
-                                                      theme.palette.primary.main,
-                                                      0.08
-                                                    ),
-                                                },
-                                              }}
-                                            >
-                                      <Tooltip
-                                        title={rawKey}
-                                        placement="top-start"
-                                        arrow
-                                      >
-                                        <ListItemText primary={actionLabel} />
-                                      </Tooltip>
-                                              <ListItemSecondaryAction>
-                                                <Checkbox
-                                                  edge="end"
-                                                  checked={selectedPermissions.includes(
-                                                    permission.id
-                                                  )}
-                                                  onChange={() =>
-                                                    handlePermissionToggle(permission.id)
-                                                  }
-                                                  color="primary"
-                                                />
-                                              </ListItemSecondaryAction>
-                                            </ListItem>
-                                          )
-                                        )}
-                                      </List>
-                                    </Box>
-                                  ))}
-                                </Box>
-                              )}
-                            </>
-                          )}
-                        </Box>
-                      
-                      <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {selectedPermissions.length > 0 && <CheckCircleIcon color="success" fontSize="small" />}
-                        <Typography variant="caption" color={selectedPermissions.length > 0 ? 'success.main' : 'text.secondary'}>
-                          Selected: {selectedPermissions.length} permission(s)
+                                      {isSelected && <CheckCircleIcon color="primary" fontSize="small" />}
+                                    </Stack>
+                                    <FormControlLabel
+                                      control={
+                                        <Checkbox
+                                          checked={isSelected}
+                                          onChange={() => handleRoleToggle(role.id)}
+                                          color="primary"
+                                        />
+                                      }
+                                      label={
+                                        <Typography variant="body2" color="text.secondary">
+                                          {isSelected ? 'Assigned to this user' : 'Assign this role'}
+                                        </Typography>
+                                      }
+                                      sx={{ m: 0, alignItems: 'flex-start' }}
+                                    />
+                                  </CardContent>
+                                </Card>
+                              </Grid>
+                            );
+                          })}
+                        </Grid>
+                      )}
+
+                      <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {selectedRoles.length > 0 && <CheckCircleIcon color="success" fontSize="small" />}
+                        <Typography variant="caption" color={selectedRoles.length > 0 ? 'success.main' : 'text.secondary'}>
+                          {selectedRoles.length > 0
+                            ? 'Great choice — roles will define the default permissions for this user.'
+                            : 'Select at least one role before creating the account.'}
                         </Typography>
                       </Box>
+                      {selectedRoles.length === 0 && (
+                        <Alert severity="warning" sx={{ mt: 2 }}>
+                          No role selected yet. Choose the appropriate role(s) to proceed.
+                        </Alert>
+                      )}
                     </Paper>
                   </Grid>
-
-                  {/* Summary Alert */}
-                  {selectedRoles.length === 0 && selectedPermissions.length === 0 && (
-                    <Grid item xs={12}>
-                      <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                        Please assign at least one role or permission to the user before creating the account.
-                      </Alert>
-                    </Grid>
-                  )}
                 </Grid>
               )}
 
@@ -1030,7 +701,7 @@ export const CreateUser: React.FC = () => {
                       type="submit"
                       variant="contained"
                       startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-                      disabled={isLoading || (selectedRoles.length === 0 && selectedPermissions.length === 0)}
+                      disabled={isLoading || selectedRoles.length === 0}
                       sx={{
                         borderRadius: 2,
                         textTransform: 'none',
@@ -1068,3 +739,4 @@ export const CreateUser: React.FC = () => {
     </Box>
   );
 };
+
