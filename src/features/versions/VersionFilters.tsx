@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Chip,
+  Avatar,
   FormControl,
   Grid,
   IconButton,
@@ -134,7 +135,16 @@ export const VersionFilters: React.FC<VersionFiltersProps> = ({
                   <MenuItem value="">Toutes les marques</MenuItem>
                   {marques.map((marque) => (
                     <MenuItem key={marque.id} value={marque.id}>
-                      {marque.name}
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Avatar
+                          src={marque.imageUrl || undefined}
+                          alt={marque.name}
+                          sx={{ width: 28, height: 28, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1) }}
+                        >
+                          {marque.name?.[0] || 'M'}
+                        </Avatar>
+                        <Typography variant="body2">{marque.name}</Typography>
+                      </Stack>
                     </MenuItem>
                   ))}
                 </Select>

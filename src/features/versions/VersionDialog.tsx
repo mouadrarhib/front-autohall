@@ -13,6 +13,7 @@ import {
   FormControl,
   FormControlLabel,
   Grid,
+  Avatar,
   IconButton,
   InputLabel,
   MenuItem,
@@ -190,7 +191,16 @@ export const VersionDialog: React.FC<VersionDialogProps> = ({
                   </MenuItem>
                   {marques.map((marque) => (
                     <MenuItem key={marque.id} value={marque.id}>
-                      {marque.name}
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Avatar
+                          src={marque.imageUrl || undefined}
+                          alt={marque.name}
+                          sx={{ width: 28, height: 28, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1) }}
+                        >
+                          {marque.name?.[0] || 'M'}
+                        </Avatar>
+                        <Typography variant="body2">{marque.name}</Typography>
+                      </Stack>
                     </MenuItem>
                   ))}
                 </Select>
