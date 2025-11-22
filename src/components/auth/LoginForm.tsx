@@ -3,10 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
 import { Alert, Box, Button, Card, CardContent, Divider, InputAdornment, Typography } from '@mui/material';
-import {
-  LockOutlined,
-  PersonOutline,
-} from '@mui/icons-material';
+import { LockOutlined, PersonOutline } from '@mui/icons-material';
 import { FormInput } from '../common/FormInput';
 import { useAuthStore } from '../../store/authStore';
 import logo from '../../assets/logo.png';
@@ -33,20 +30,21 @@ export const LoginForm: React.FC = () => {
     try {
       setError(null);
       setIsLoading(true);
-      
+
       console.log('Submitting login form:', { username: data.username });
       await login(data.username, data.password);
-      
+
       console.log('Login successful, navigating to dashboard...');
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Login form error:', err);
-      
-      const errorMessage = err.response?.data?.error 
-        || err.response?.data?.message 
-        || err.message 
-        || 'Login failed. Please check your credentials.';
-      
+
+      const errorMessage =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        'Echec de la connexion. Veuillez verifier vos identifiants.';
+
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -98,10 +96,10 @@ export const LoginForm: React.FC = () => {
               }}
             />
             <Typography variant="h4" component="h1" fontWeight={600}>
-              Welcome Back
+              Bon retour
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center">
-              Sign in to access your Autohall workspace dashboard.
+              Connectez-vous pour acceder au tableau de bord de votre espace Autohall.
             </Typography>
           </Box>
           <Divider sx={{ mb: 4 }} />
@@ -115,10 +113,10 @@ export const LoginForm: React.FC = () => {
             <form onSubmit={methods.handleSubmit(onSubmit)}>
               <FormInput
                 name="username"
-                label="Username"
-                rules={{ required: 'Username is required' }}
+                label="Nom d'utilisateur"
+                rules={{ required: "Le nom d'utilisateur est requis" }}
                 autoComplete="username"
-                placeholder="Enter your username"
+                placeholder="Entrez votre nom d'utilisateur"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -127,14 +125,14 @@ export const LoginForm: React.FC = () => {
                   ),
                 }}
               />
-              
+
               <FormInput
                 name="password"
-                label="Password"
+                label="Mot de passe"
                 type="password"
-                rules={{ required: 'Password is required' }}
+                rules={{ required: 'Le mot de passe est requis' }}
                 autoComplete="current-password"
-                placeholder="Enter your password"
+                placeholder="Entrez votre mot de passe"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -162,7 +160,7 @@ export const LoginForm: React.FC = () => {
                   },
                 }}
               >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isLoading ? 'Connexion...' : 'Se connecter'}
               </Button>
             </form>
           </FormProvider>

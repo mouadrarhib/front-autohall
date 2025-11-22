@@ -511,7 +511,7 @@ export const EditUser: React.FC = () => {
           {/* Tab 2: Roles */}
           <TabPanel value={activeTab} index={1}>
             <Grid container spacing={3}>
-              <Grid item xs={12} md={10} lg={8}>
+              <Grid item xs={12} md={10} lg={12}>
                 <Paper
                   elevation={0}
                   sx={{

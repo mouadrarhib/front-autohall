@@ -65,16 +65,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const logout = useAuthStore((state) => state.logout);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
-  const { hasAnyRole, isAdminFonctionnel, isIntegrateurObjectifs } = useRoles();
+  const { hasAnyRole } = useRoles();
 
   const allMenuItems: MenuItem[] = [
     {
-      title: "Dashboard",
+      title: "Tableau de bord",
       icon: <DashboardIcon />,
       path: "/dashboard",
     },
     {
-      title: "Users",
+      title: "Utilisateurs",
       icon: <PeopleIcon />,
       path: "/users",
       roles: [ROLES.ADMIN_FONCTIONNEL],
@@ -86,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       roles: [ROLES.ADMIN_FONCTIONNEL],
     },
     {
-      title: "Véhicules",
+      title: "Vehicules",
       icon: <DirectionsCarIcon />,
       roles: [ROLES.ADMIN_FONCTIONNEL],
       children: [
@@ -96,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           path: "/marques",
         },
         {
-          title: "Modèles",
+          title: "Modeles",
           icon: <LayersIcon />,
           path: "/modeles",
         },
@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       ],
     },
     {
-      title: "Périodes",
+      title: "Periodes",
       icon: <CalendarTodayIcon />,
       path: "/periodes",
       roles: [ROLES.ADMIN_FONCTIONNEL],
@@ -172,14 +172,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         maxWidth: isCompact ? 100 : "100%",
         height: "100vh",
         overflowX: "hidden",
-        overflowY: "auto", // keep horizontal hidden while enabling vertical scroll
+        overflowY: "auto",
         backgroundColor: "#0f172a",
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
         borderRight: "1px solid rgba(148, 163, 184, 0.15)",
         boxShadow: "0 10px 40px rgba(15, 23, 42, 0.4)",
-        // Custom scrollbar styling for webkit browsers
         "&::-webkit-scrollbar": {
           width: 6,
         },
@@ -194,7 +193,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         scrollbarColor: "rgba(148, 163, 184, 0.45) transparent",
       }}
     >
-      {/* Header/Toolbar */}
       <Toolbar
         sx={{
           px: 2.5,
@@ -235,7 +233,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         )}
       </Toolbar>
 
-      {/* Menu items */}
       <List
         sx={{
           flex: 1,
@@ -250,9 +247,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         {menuItems.map((item) => {
           const active = isMenuActive(item);
           const isExpanded = openMenus[item.title] ?? active;
-          const hasChildren = Boolean(
-            item.children && item.children.length > 0
-          );
+          const hasChildren = Boolean(item.children && item.children.length > 0);
 
           const handleItemClick = () => {
             if (hasChildren) {
@@ -331,9 +326,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                               },
                             }}
                           >
-                            <ListItemIcon
-                              sx={{ color: "#94a3b8", minWidth: 36 }}
-                            >
+                            <ListItemIcon sx={{ color: "#94a3b8", minWidth: 36 }}>
                               {child.icon}
                             </ListItemIcon>
                             <ListItemText
@@ -356,13 +349,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         })}
       </List>
 
-      {/* Footer section */}
-      <Divider
-        sx={{ borderColor: "rgba(148, 163, 184, 0.15)", flexShrink: 0 }}
-      />
-      <Box
-        sx={{ p: 2.5, width: "100%", boxSizing: "border-box", flexShrink: 0 }}
-      >
+      <Divider sx={{ borderColor: "rgba(148, 163, 184, 0.15)", flexShrink: 0 }} />
+      <Box sx={{ p: 2.5, width: "100%", boxSizing: "border-box", flexShrink: 0 }}>
         <Box
           role="button"
           tabIndex={0}
@@ -465,7 +453,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             },
           }}
         >
-          Se déconnecter
+          Se deconnecter
         </Button>
 
         {!isCompact && (

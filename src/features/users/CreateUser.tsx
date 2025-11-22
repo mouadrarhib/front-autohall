@@ -1,4 +1,4 @@
-﻿// src/features/users/CreateUser.tsx
+// src/features/users/CreateUser.tsx
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -52,7 +52,8 @@ interface CreateUserFormData {
   roles: number[];
   actif: boolean;
 }
-const steps = ['User Information', 'Site Assignment', 'Roles'];
+
+const steps = ['Informations utilisateur', 'Affectation site', 'Roles'];
 
 export const CreateUser: React.FC = () => {
   const navigate = useNavigate();
@@ -61,12 +62,10 @@ export const CreateUser: React.FC = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [activeStep, setActiveStep] = useState(0);
 
-  // Data states
   const [groupements, setGroupements] = useState<Groupement[]>([]);
   const [sites, setSites] = useState<any[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
 
-  // Selection states
   const [selectedGroupement, setSelectedGroupement] = useState<Groupement | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<number[]>([]);
   const [showPassword, setShowPassword] = useState(false);
@@ -90,7 +89,6 @@ export const CreateUser: React.FC = () => {
         setLoadingData(true);
         setError(null);
 
-        // Load groupements and roles in parallel
         const [groupementsData, rolesData] = await Promise.all([
           groupementApi.listGroupements(),
           roleApi.listRoles(),
@@ -104,8 +102,8 @@ export const CreateUser: React.FC = () => {
         setGroupements(groupementsData.filter((g) => g.active));
         setRoles(rolesData.filter((r: Role) => r.active));
       } catch (err: any) {
-        console.error('Failed to load initial data:', err);
-        setError('Failed to load form data. Please refresh the page.');
+        console.error('Echec du chargement des donnees initiales:', err);
+        setError('Impossible de charger les donnees du formulaire. Merci de recharger la page.');
       } finally {
         setLoadingData(false);
       }
@@ -126,28 +124,22 @@ export const CreateUser: React.FC = () => {
     setSelectedGroupement(groupement || null);
 
     try {
-      // Get available sites based on groupement type
       const availableSites = await authApi.getAvailableSites();
       console.log('Available sites:', availableSites);
 
-      // Filter sites based on groupement type
       let filteredSites = availableSites;
-      
+
       if (groupement?.name?.toLowerCase() === 'filiale') {
-        filteredSites = availableSites.filter(
-          (s: any) => s.type?.toLowerCase() === 'filiale'
-        );
+        filteredSites = availableSites.filter((s: any) => s.type?.toLowerCase() === 'filiale');
       } else if (groupement?.name?.toLowerCase() === 'succursale') {
-        filteredSites = availableSites.filter(
-          (s: any) => s.type?.toLowerCase() === 'succursale'
-        );
+        filteredSites = availableSites.filter((s: any) => s.type?.toLowerCase() === 'succursale');
       }
 
       console.log('Filtered sites:', filteredSites);
       setSites(filteredSites);
     } catch (err: any) {
-      console.error('Failed to load sites:', err);
-      setError('Failed to load available sites');
+      console.error('Echec du chargement des sites:', err);
+      setError('Impossible de charger les sites disponibles');
       setSites([]);
     }
   };
@@ -159,38 +151,34 @@ export const CreateUser: React.FC = () => {
   };
 
   const handleNext = async () => {
-    // Validate current step before proceeding
     const values = methods.getValues();
-    
+
     if (activeStep === 0) {
-      // Validate user information
       if (!values.username || !values.full_name || !values.email || !values.password) {
-        setError('Please fill in all required fields');
+        setError('Veuillez remplir tous les champs obligatoires');
         return;
       }
-      
+
       if (values.password.length < 6) {
-        setError('Password must be at least 6 characters');
+        setError('Le mot de passe doit contenir au moins 6 caracteres');
         return;
       }
-      
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
       if (!emailRegex.test(values.email)) {
-        setError('Please enter a valid email address');
+        setError('Veuillez saisir une adresse email valide');
         return;
       }
     }
-    
+
     if (activeStep === 1) {
-      // Validate site assignment
       if (!values.idGroupement || values.idGroupement === 0) {
-        setError('Please select a groupement type');
+        setError('Veuillez selectionner un type de groupement');
         return;
       }
-      
+
       if (!values.idSite || values.idSite === 0) {
-        setError('Please select a site');
+        setError('Veuillez selectionner un site');
         return;
       }
     }
@@ -209,18 +197,15 @@ export const CreateUser: React.FC = () => {
       setError(null);
       setIsLoading(true);
 
-      // Validate final step
       if (selectedRoles.length === 0) {
-        setError('Please assign at least one role to the user');
+        setError("Veuillez assigner au moins un role a l utilisateur");
         setIsLoading(false);
         return;
       }
 
-      // Get groupement name for proper backend processing
       const groupement = groupements.find((g) => g.id === data.idGroupement);
-      const groupementName = groupement?.name?.toLowerCase() as 'filiale' | 'succursale' || 'filiale';
+      const groupementName = (groupement?.name?.toLowerCase() as 'filiale' | 'succursale') || 'filiale';
 
-      // Prepare complete user data
       const userData = {
         username: data.username.trim(),
         full_name: data.full_name.trim(),
@@ -229,7 +214,7 @@ export const CreateUser: React.FC = () => {
         idGroupement: data.idGroupement,
         groupement_name: groupementName,
         idSite: data.idSite,
-        site_id: data.idSite, // Some backends might expect this field
+        site_id: data.idSite,
         roles: selectedRoles,
         role_ids: selectedRoles,
         actif: true,
@@ -237,33 +222,29 @@ export const CreateUser: React.FC = () => {
 
       console.log('Creating user with complete data:', {
         ...userData,
-        password: '***hidden***', // Don't log the actual password
+        password: '***hidden***',
       });
 
-      // Call the complete user creation API
       const result = await authApi.createUserComplete(userData);
-      
+
       console.log('User created successfully:', result);
 
-      // Navigate back to users list
       navigate('/users', {
-        state: { 
-          message: `User "${data.username}" created successfully!` 
-        }
+        state: {
+          message: `Utilisateur "${data.username}" cree avec succes !`,
+        },
       });
     } catch (err: any) {
-      console.error('Failed to create user:', err);
-      
-      // Extract error message from response
-      const errorMessage = 
-        err.response?.data?.error || 
-        err.response?.data?.message || 
+      console.error('Echec de creation utilisateur:', err);
+
+      const errorMessage =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
         err.message ||
-        'Failed to create user. Please try again.';
-      
+        "Impossible de creer l utilisateur. Veuillez reessayer.";
+
       setError(errorMessage);
-      
-      // If it's a validation error, go back to the appropriate step
+
       if (errorMessage.includes('username') || errorMessage.includes('email')) {
         setActiveStep(0);
       } else if (errorMessage.includes('site') || errorMessage.includes('groupement')) {
@@ -280,7 +261,7 @@ export const CreateUser: React.FC = () => {
         <Stack alignItems="center" spacing={2}>
           <CircularProgress size={60} />
           <Typography variant="body1" color="text.secondary">
-            Loading form data...
+            Chargement des donnees du formulaire...
           </Typography>
         </Stack>
       </Box>
@@ -302,13 +283,15 @@ export const CreateUser: React.FC = () => {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h5" fontWeight={700}>
-          Create New User
+          Creer un utilisateur
         </Typography>
       </Stack>
 
-      <Card elevation={0} sx={{ borderRadius: 3, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+      <Card
+        elevation={0}
+        sx={{ borderRadius: 3, border: (theme) => `1px solid ${theme.palette.divider}` }}
+      >
         <CardContent sx={{ p: 4 }}>
-          {/* Stepper */}
           <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
             {steps.map((label) => (
               <Step key={label}>
@@ -317,28 +300,22 @@ export const CreateUser: React.FC = () => {
             ))}
           </Stepper>
 
-          {/* Error Alert */}
           {error && (
-            <Alert 
-              severity="error" 
-              onClose={() => setError(null)}
-              sx={{ mb: 3, borderRadius: 2 }}
-            >
+            <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
 
           <FormProvider {...methods}>
             <form onSubmit={methods.handleSubmit(onSubmit)}>
-              {/* Step 1: User Information */}
               {activeStep === 0 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <Typography variant="h6" fontWeight={600} gutterBottom>
-                      Basic Information
+                      Informations de base
                     </Typography>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Enter the user's basic account details
+                      Renseignez les informations principales du compte
                     </Typography>
                     <Divider sx={{ mt: 1, mb: 3 }} />
                   </Grid>
@@ -347,22 +324,24 @@ export const CreateUser: React.FC = () => {
                     <Controller
                       name="username"
                       control={methods.control}
-                      rules={{ 
-                        required: 'Username is required',
+                      rules={{
+                        required: "Le nom d utilisateur est obligatoire",
                         minLength: {
                           value: 3,
-                          message: 'Username must be at least 3 characters'
-                        }
+                          message: 'Le nom d utilisateur doit avoir au moins 3 caracteres',
+                        },
                       }}
                       render={({ field, fieldState }) => (
                         <TextField
                           {...field}
-                          label="Username"
+                          label="Nom d utilisateur"
                           fullWidth
                           required
                           disabled={isLoading}
                           error={!!fieldState.error}
-                          helperText={fieldState.error?.message || 'Unique username for login'}
+                          helperText={
+                            fieldState.error?.message || 'Nom unique pour la connexion'
+                          }
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}
@@ -373,16 +352,16 @@ export const CreateUser: React.FC = () => {
                     <Controller
                       name="full_name"
                       control={methods.control}
-                      rules={{ required: 'Full name is required' }}
+                      rules={{ required: 'Le nom complet est obligatoire' }}
                       render={({ field, fieldState }) => (
                         <TextField
                           {...field}
-                          label="Full Name"
+                          label="Nom complet"
                           fullWidth
                           required
                           disabled={isLoading}
                           error={!!fieldState.error}
-                          helperText={fieldState.error?.message || 'User\'s complete name'}
+                          helperText={fieldState.error?.message || "Nom complet de l utilisateur"}
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}
@@ -394,22 +373,24 @@ export const CreateUser: React.FC = () => {
                       name="email"
                       control={methods.control}
                       rules={{
-                        required: 'Email is required',
+                        required: "L email est obligatoire",
                         pattern: {
-                          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                          message: 'Invalid email format',
+                          value: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/,
+                          message: 'Format email invalide',
                         },
                       }}
                       render={({ field, fieldState }) => (
                         <TextField
                           {...field}
-                          label="Email Address"
+                          label="Adresse email"
                           type="email"
                           fullWidth
                           required
                           disabled={isLoading}
                           error={!!fieldState.error}
-                          helperText={fieldState.error?.message || 'User\'s email for notifications'}
+                          helperText={
+                            fieldState.error?.message || "Email de l utilisateur pour les notifications"
+                          }
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}
@@ -421,30 +402,27 @@ export const CreateUser: React.FC = () => {
                       name="password"
                       control={methods.control}
                       rules={{
-                        required: 'Password is required',
+                        required: 'Le mot de passe est obligatoire',
                         minLength: {
                           value: 6,
-                          message: 'Password must be at least 6 characters',
+                          message: 'Le mot de passe doit contenir au moins 6 caracteres',
                         },
                       }}
                       render={({ field, fieldState }) => (
                         <TextField
                           {...field}
-                          label="Password"
+                          label="Mot de passe"
                           type={showPassword ? 'text' : 'password'}
                           fullWidth
                           required
                           disabled={isLoading}
                           error={!!fieldState.error}
-                          helperText={fieldState.error?.message || 'Minimum 6 characters'}
+                          helperText={fieldState.error?.message || 'Minimum 6 caracteres'}
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           InputProps={{
                             endAdornment: (
                               <InputAdornment position="end">
-                                <IconButton
-                                  onClick={() => setShowPassword(!showPassword)}
-                                  edge="end"
-                                >
+                                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                                   {showPassword ? <VisibilityOff /> : <Visibility />}
                                 </IconButton>
                               </InputAdornment>
@@ -457,15 +435,14 @@ export const CreateUser: React.FC = () => {
                 </Grid>
               )}
 
-              {/* Step 2: Site Assignment */}
               {activeStep === 1 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <Typography variant="h6" fontWeight={600} gutterBottom>
-                      Site Assignment
+                      Affectation du site
                     </Typography>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Assign the user to a groupement type and specific site
+                      Assignez l utilisateur a un type de groupement et a un site precis
                     </Typography>
                     <Divider sx={{ mt: 1, mb: 3 }} />
                   </Grid>
@@ -474,16 +451,16 @@ export const CreateUser: React.FC = () => {
                     <Controller
                       name="idGroupement"
                       control={methods.control}
-                      rules={{ 
-                        required: 'Groupement is required',
-                        validate: (value) => value !== 0 || 'Please select a groupement type'
+                      rules={{
+                        required: 'Le type de groupement est obligatoire',
+                        validate: (value) => value !== 0 || 'Veuillez selectionner un type de groupement',
                       }}
                       render={({ field, fieldState }) => (
                         <FormControl fullWidth error={!!fieldState.error}>
-                          <InputLabel>Groupement Type *</InputLabel>
+                          <InputLabel>Type de groupement *</InputLabel>
                           <Select
                             {...field}
-                            label="Groupement Type *"
+                            label="Type de groupement *"
                             onChange={(e) => {
                               field.onChange(e);
                               handleGroupementChange(Number(e.target.value));
@@ -492,7 +469,7 @@ export const CreateUser: React.FC = () => {
                             sx={{ borderRadius: 2 }}
                           >
                             <MenuItem value={0} disabled>
-                              Select Type
+                              Choisir un type
                             </MenuItem>
                             {groupements.map((groupement) => (
                               <MenuItem key={groupement.id} value={groupement.id}>
@@ -500,13 +477,9 @@ export const CreateUser: React.FC = () => {
                               </MenuItem>
                             ))}
                           </Select>
-                          {fieldState.error && (
-                            <FormHelperText>{fieldState.error.message}</FormHelperText>
-                          )}
+                          {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
                           {!fieldState.error && (
-                            <FormHelperText>
-                              Choose between Filiale or Succursale
-                            </FormHelperText>
+                            <FormHelperText>Choisir entre Filiale ou Succursale</FormHelperText>
                           )}
                         </FormControl>
                       )}
@@ -517,9 +490,9 @@ export const CreateUser: React.FC = () => {
                     <Controller
                       name="idSite"
                       control={methods.control}
-                      rules={{ 
-                        required: 'Site is required',
-                        validate: (value) => value !== 0 || 'Please select a site'
+                      rules={{
+                        required: 'Le site est obligatoire',
+                        validate: (value) => value !== 0 || 'Veuillez selectionner un site',
                       }}
                       render={({ field, fieldState }) => (
                         <FormControl fullWidth error={!!fieldState.error}>
@@ -531,7 +504,7 @@ export const CreateUser: React.FC = () => {
                             sx={{ borderRadius: 2 }}
                           >
                             <MenuItem value={0} disabled>
-                              {sites.length === 0 ? 'Select Groupement First' : 'Select Site'}
+                              {sites.length === 0 ? 'Choisir un groupement d abord' : 'Choisir un site'}
                             </MenuItem>
                             {sites.map((site) => (
                               <MenuItem key={site.id} value={site.id}>
@@ -539,12 +512,10 @@ export const CreateUser: React.FC = () => {
                               </MenuItem>
                             ))}
                           </Select>
-                          {fieldState.error && (
-                            <FormHelperText>{fieldState.error.message}</FormHelperText>
-                          )}
+                          {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
                           {!fieldState.error && selectedGroupement && (
                             <FormHelperText>
-                              Type: {selectedGroupement.name} | Available sites: {sites.length}
+                              Type: {selectedGroupement.name} | Sites disponibles: {sites.length}
                             </FormHelperText>
                           )}
                         </FormControl>
@@ -554,7 +525,6 @@ export const CreateUser: React.FC = () => {
                 </Grid>
               )}
 
-              {/* Step 3: Roles */}
               {activeStep === 2 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
@@ -562,7 +532,7 @@ export const CreateUser: React.FC = () => {
                       Roles
                     </Typography>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Assign at least one role to define user access
+                      Assignez au moins un role pour definir les acces
                     </Typography>
                     <Divider sx={{ mt: 1, mb: 3 }} />
                   </Grid>
@@ -580,22 +550,24 @@ export const CreateUser: React.FC = () => {
                       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
                         <Box>
                           <Typography variant="subtitle1" fontWeight={700}>
-                            Assign Roles
+                            Assigner des roles
                           </Typography>
                           <Typography variant="caption" color="text.secondary" display="block">
-                            Choose the roles that apply to this user
+                            Choisissez les roles qui s appliquent a cet utilisateur
                           </Typography>
                         </Box>
                         <Chip
                           size="small"
-                          label={`Selected: ${selectedRoles.length}`}
+                          label={`Selectionnes: ${selectedRoles.length}`}
                           color={selectedRoles.length > 0 ? 'primary' : 'default'}
                           variant={selectedRoles.length > 0 ? 'filled' : 'outlined'}
                         />
                       </Stack>
                       <Divider sx={{ my: 2 }} />
                       {roles.length === 0 ? (
-                        <Alert severity="info">No roles available. Contact an administrator to create roles.</Alert>
+                        <Alert severity="info">
+                          Aucun role disponible. Contactez un administrateur pour en creer.
+                        </Alert>
                       ) : (
                         <Grid container spacing={2}>
                           {roles.map((role) => {
@@ -621,13 +593,18 @@ export const CreateUser: React.FC = () => {
                                   }}
                                 >
                                   <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                    <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+                                    <Stack
+                                      direction="row"
+                                      alignItems="flex-start"
+                                      justifyContent="space-between"
+                                      spacing={1}
+                                    >
                                       <Box>
                                         <Typography variant="subtitle1" fontWeight={700}>
                                           {role.name}
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary">
-                                          {role.description || 'No description provided'}
+                                          {role.description || 'Aucune description'}
                                         </Typography>
                                       </Box>
                                       {isSelected && <CheckCircleIcon color="primary" fontSize="small" />}
@@ -642,7 +619,7 @@ export const CreateUser: React.FC = () => {
                                       }
                                       label={
                                         <Typography variant="body2" color="text.secondary">
-                                          {isSelected ? 'Assigned to this user' : 'Assign this role'}
+                                          {isSelected ? 'Assigne a cet utilisateur' : 'Assigner ce role'}
                                         </Typography>
                                       }
                                       sx={{ m: 0, alignItems: 'flex-start' }}
@@ -657,15 +634,18 @@ export const CreateUser: React.FC = () => {
 
                       <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
                         {selectedRoles.length > 0 && <CheckCircleIcon color="success" fontSize="small" />}
-                        <Typography variant="caption" color={selectedRoles.length > 0 ? 'success.main' : 'text.secondary'}>
+                        <Typography
+                          variant="caption"
+                          color={selectedRoles.length > 0 ? 'success.main' : 'text.secondary'}
+                        >
                           {selectedRoles.length > 0
-                            ? 'Great choice — roles will define the default permissions for this user.'
-                            : 'Select at least one role before creating the account.'}
+                            ? 'Parfait - les roles definiront les autorisations par defaut.'
+                            : 'Selectionnez au moins un role avant de creer le compte.'}
                         </Typography>
                       </Box>
                       {selectedRoles.length === 0 && (
                         <Alert severity="warning" sx={{ mt: 2 }}>
-                          No role selected yet. Choose the appropriate role(s) to proceed.
+                          Aucun role selectionne. Choisissez au moins un role pour continuer.
                         </Alert>
                       )}
                     </Paper>
@@ -673,8 +653,15 @@ export const CreateUser: React.FC = () => {
                 </Grid>
               )}
 
-              {/* Navigation Buttons */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4, pt: 3, borderTop: (theme) => `1px solid ${theme.palette.divider}` }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  mt: 4,
+                  pt: 3,
+                  borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                }}
+              >
                 <Box>
                   {activeStep > 0 && (
                     <Button
@@ -682,25 +669,27 @@ export const CreateUser: React.FC = () => {
                       disabled={isLoading}
                       sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
                     >
-                      Back
+                      Retour
                     </Button>
                   )}
                 </Box>
-                
+
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <Button
                     onClick={() => navigate('/users')}
                     disabled={isLoading}
                     sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
                   >
-                    Cancel
+                    Annuler
                   </Button>
-                  
+
                   {activeStep === steps.length - 1 ? (
                     <Button
                       type="submit"
                       variant="contained"
-                      startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                      startIcon={
+                        isLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />
+                      }
                       disabled={isLoading || selectedRoles.length === 0}
                       sx={{
                         borderRadius: 2,
@@ -713,21 +702,21 @@ export const CreateUser: React.FC = () => {
                         },
                       }}
                     >
-                      {isLoading ? 'Creating...' : 'Create User'}
+                      {isLoading ? 'Creation...' : 'Creer l utilisateur'}
                     </Button>
                   ) : (
                     <Button
                       onClick={handleNext}
                       variant="contained"
                       disabled={isLoading}
-                      sx={{ 
-                        borderRadius: 2, 
-                        textTransform: 'none', 
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: 'none',
                         px: 4,
                         fontWeight: 600,
                       }}
                     >
-                      Next
+                      Suivant
                     </Button>
                   )}
                 </Box>
@@ -739,4 +728,3 @@ export const CreateUser: React.FC = () => {
     </Box>
   );
 };
-
