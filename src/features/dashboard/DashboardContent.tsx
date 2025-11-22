@@ -307,7 +307,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           <Grid item xs={12} md={7}>
             <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
               <Typography variant="overline" sx={{ letterSpacing: 4, opacity: 0.75 }}>
-                Welcome back
+                Bon retour
               </Typography>
               <Typography
                 variant={isMobile ? 'h4' : 'h3'}

@@ -113,7 +113,7 @@ export const SiteDashboard: React.FC = () => {
         const detailed = await usersiteApi.getUserSiteById(resolved.id);
         resolved = { ...resolved, ...detailed };
       } catch (err) {
-        console.error('Failed to hydrate site assignment by id', err);
+        console.error('Echec lors du chargement de l affectation site par id', err);
       }
     }
 
@@ -134,7 +134,7 @@ export const SiteDashboard: React.FC = () => {
           resolved = { ...resolved, ...match };
         }
       } catch (err) {
-        console.error('Failed to resolve site assignment via search', err);
+        console.error('Echec lors de la resolution de l affectation site par recherche', err);
       }
     }
 
@@ -247,11 +247,11 @@ export const SiteDashboard: React.FC = () => {
         },
       });
     } catch (err: any) {
-      console.error('Failed to load site dashboard stats:', err);
+      console.error('Echec du chargement des statistiques du site:', err);
       setError(
         err?.response?.data?.error ||
           err?.message ||
-          'Failed to load dashboard statistics'
+          'Impossible de charger les statistiques du tableau de bord.'
       );
     } finally {
       setLoading(false);

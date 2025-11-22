@@ -23,7 +23,7 @@ const emptyStats: DashboardStats = {
 
 export const AdminDashboard: React.FC = () => {
   const user = useAuthStore((state) => state.user);
-  const welcomeName = user?.full_name || user?.username || 'there';
+  const welcomeName = user?.full_name || user?.username || 'la';
   const [stats, setStats] = useState<DashboardStats>(emptyStats);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,11 +95,11 @@ export const AdminDashboard: React.FC = () => {
         userSites: { total: totalUserSites, active: activeUserSites },
       });
     } catch (err: any) {
-      console.error('Failed to load admin dashboard stats:', err);
+      console.error('Echec du chargement des statistiques admin:', err);
       setError(
         err?.response?.data?.error ||
           err?.message ||
-          'Failed to load dashboard statistics'
+          'Impossible de charger les statistiques du tableau de bord.'
       );
     } finally {
       setLoading(false);

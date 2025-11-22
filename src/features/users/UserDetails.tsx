@@ -35,8 +35,12 @@ export const UserDetails: React.FC = () => {
         const userData = await authApi.getUserCompleteInfo(Number(userId));
         setUser(userData);
       } catch (err: any) {
-        console.error('Failed to load user:', err);
-        setError(err.response?.data?.error || 'Failed to load user details');
+        console.error("Echec du chargement de l utilisateur:", err);
+        setError(
+          err.response?.data?.error ||
+            err.message ||
+            'Impossible de charger les details utilisateur.'
+        );
       } finally {
         setLoading(false);
       }
@@ -59,7 +63,7 @@ export const UserDetails: React.FC = () => {
       <Box>
         <Alert severity="error">{error}</Alert>
         <Button onClick={() => navigate('/users')} sx={{ mt: 2 }}>
-          Back to Users
+          Retour a la liste
         </Button>
       </Box>
     );
@@ -72,34 +76,34 @@ export const UserDetails: React.FC = () => {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
-          User Details
+          Details utilisateur
         </Typography>
         <Button
           variant="outlined"
           startIcon={<EditIcon />}
           onClick={() => navigate(`/users/${userId}/edit`)}
         >
-          Edit
+          Modifier
         </Button>
         <Button
           variant="contained"
           startIcon={<SecurityIcon />}
           onClick={() => navigate(`/users/${userId}/roles-permissions`)}
         >
-          Manage Permissions
+          Gerer les autorisations
         </Button>
       </Box>
 
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Basic Information
+            Informations de base
           </Typography>
           <Divider sx={{ mb: 2 }} />
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6} md={4}>
               <Typography variant="caption" color="text.secondary">
-                Username
+                Nom d'utilisateur
               </Typography>
               <Typography variant="body1">
                 {user?.Username || user?.username}
@@ -107,7 +111,7 @@ export const UserDetails: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <Typography variant="caption" color="text.secondary">
-                Full Name
+                Nom complet
               </Typography>
               <Typography variant="body1">
                 {user?.FullName || user?.full_name}
@@ -126,16 +130,16 @@ export const UserDetails: React.FC = () => {
                 Site
               </Typography>
               <Typography variant="body1">
-                {user?.SiteName || 'Unknown Site'}
+                {user?.SiteName || 'Site inconnu'}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <Typography variant="caption" color="text.secondary">
-                Status
+                Statut
               </Typography>
               <Box>
                 <Chip
-                  label={user?.UserActive || user?.actif ? 'Active' : 'Inactive'}
+                  label={user?.UserActive || user?.actif ? 'Actif' : 'Inactif'}
                   color={user?.UserActive || user?.actif ? 'success' : 'default'}
                   size="small"
                 />
@@ -143,7 +147,7 @@ export const UserDetails: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <Typography variant="caption" color="text.secondary">
-                Created At
+                Date de creation
               </Typography>
               <Typography variant="body1">
                 {user?.UserCreatedAt
@@ -154,17 +158,17 @@ export const UserDetails: React.FC = () => {
           </Grid>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
-            Roles & Permissions
+            Roles et autorisations
           </Typography>
           <Divider sx={{ mb: 2 }} />
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
               <Typography variant="caption" color="text.secondary">
-                Active Roles
+                Roles actifs
               </Typography>
               <Box sx={{ mt: 1 }}>
                 <Chip
-                  label={`${user?.ActiveRolesCount || 0} Roles`}
+                  label={`${user?.ActiveRolesCount || 0} roles`}
                   color="primary"
                   size="small"
                 />
@@ -177,11 +181,11 @@ export const UserDetails: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="caption" color="text.secondary">
-                Active Permissions
+                Autorisations actives
               </Typography>
               <Box sx={{ mt: 1 }}>
                 <Chip
-                  label={`${user?.ActivePermissionsCount || 0} Permissions`}
+                  label={`${user?.ActivePermissionsCount || 0} autorisations`}
                   color="success"
                   size="small"
                 />
