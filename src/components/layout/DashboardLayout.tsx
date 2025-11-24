@@ -58,13 +58,15 @@ export const DashboardLayout: React.FC = () => {
             sx={{
               '& .MuiDrawer-paper': {
                 boxSizing: 'border-box',
-                width: DRAWER_WIDTH,
+                width: { xs: '100%', sm: DRAWER_WIDTH },
+                maxWidth: DRAWER_WIDTH,
+                height: { xs: '100dvh', sm: '100vh' },
                 background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #1d4ed8 100%)',
                 color: 'common.white',
               },
             }}
           >
-            <Sidebar onItemClick={() => setMobileOpen(false)} />
+            <Sidebar onItemClick={() => setMobileOpen(false)} isMobile />
           </Drawer>
         ) : (
           <Drawer

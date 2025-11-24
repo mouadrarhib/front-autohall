@@ -53,13 +53,14 @@ interface MenuItem {
 
 interface SidebarProps {
   onItemClick?: () => void;
+  isMobile?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isCompact = useMediaQuery(theme.breakpoints.down("sm"));
+  const isCompact = !isMobile && useMediaQuery(theme.breakpoints.down("sm"));
 
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
@@ -168,9 +169,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   return (
     <Box
       sx={{
-        width: isCompact ? 100 : "100%",
-        maxWidth: isCompact ? 100 : "100%",
-        height: "100vh",
+        width: "100%",
+        maxWidth: "100%",
+        height: { xs: "100dvh", md: "100vh" },
+        maxHeight: { xs: "100dvh", md: "100vh" },
         overflowX: "hidden",
         overflowY: "auto",
         backgroundColor: "#0f172a",
@@ -204,32 +206,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           flexShrink: 0,
         }}
       >
-        {!isCompact ? (
-          <Box
-            component="img"
-            src={logo}
-            alt="AutoHall"
+        <Box
+          component="img"
+          src={logo}
+          alt="AutoHall"
+          sx={{
+            height: 48,
+            width: "auto",
+            maxWidth: "100%",
+            objectFit: "contain",
+            filter: "brightness(0) invert(1)",
+          }}
+        />
+        {isMobile && onItemClick && (
+          <IconButton
+            onClick={onItemClick}
             sx={{
-              height: 48,
-              width: "auto",
-              maxWidth: "100%",
-              objectFit: "contain",
-              filter: "brightness(0) invert(1)",
+              color: "#f1f5f9",
+              "&:hover": { backgroundColor: "rgba(59, 130, 246, 0.15)" },
             }}
-          />
-        ) : (
-          isCompact &&
-          onItemClick && (
-            <IconButton
-              onClick={onItemClick}
-              sx={{
-                color: "#f1f5f9",
-                "&:hover": { backgroundColor: "rgba(59, 130, 246, 0.15)" },
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          )
+            aria-label="Fermer le menu"
+          >
+            <CloseIcon />
+          </IconButton>
         )}
       </Toolbar>
 
