@@ -61,7 +61,7 @@ export const ObjectifFilters: React.FC<ObjectifFiltersProps> = ({
             </Typography>
           </Box>
 
-          <Box sx={{ width: '100%', maxWidth: 560, mx: { xs: 'auto', md: 0 } }}>
+          <Box sx={{ width: '100%', maxWidth: { xs: 600, md: 1100 }, mx: 'auto' }}>
             <Stack spacing={2.5}>
               <FormControl fullWidth>
                 <InputLabel>Selectionner une periode</InputLabel>
