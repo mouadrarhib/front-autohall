@@ -20,11 +20,15 @@ import { alpha } from "@mui/material/styles";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import type { Vente } from "../../api/endpoints/ventes.api";
+import type { Marque } from "../../api/endpoints/marque.api";
+import type { Modele } from "../../api/endpoints/modele.api";
 
 interface VenteDetailsDialogProps {
   open: boolean;
   vente: Vente | null;
   onClose: () => void;
+  marques?: Marque[];
+  modeles?: Modele[];
 }
 
 const EMPTY_PLACEHOLDER = "_";
@@ -102,6 +106,8 @@ export const VenteDetailsDialog: React.FC<VenteDetailsDialogProps> = ({
   open,
   vente,
   onClose,
+  marques = [],
+  modeles = [],
 }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
@@ -110,6 +116,27 @@ export const VenteDetailsDialog: React.FC<VenteDetailsDialogProps> = ({
     return null;
   }
   const isActive = vente.active ?? true;
+  const fallbackImage = "/placeholder-car.png";
+
+  const findMarqueImage = (idMarque?: number | null): string | null => {
+    if (!idMarque) return null;
+    const match = marques.find((marque) => marque.id === idMarque);
+    return match?.imageUrl?.trim() ? match.imageUrl : null;
+  };
+
+  const findModeleImage = (idModele?: number | null): string | null => {
+    if (!idModele) return null;
+    const match = modeles.find((modele) => modele.id === idModele);
+    return match?.imageUrl?.trim() ? match.imageUrl : null;
+  };
+
+  const visualUrl =
+    findModeleImage(vente.idModele) ??
+    findMarqueImage(vente.idMarque) ??
+    fallbackImage;
+  const visualLabel = vente.idModele
+    ? vente.modeleName || "Modèle"
+    : vente.marqueName || "Marque";
 
   return (
     <Dialog
@@ -162,6 +189,49 @@ export const VenteDetailsDialog: React.FC<VenteDetailsDialogProps> = ({
 
       <DialogContent sx={{ py: 3 }}>
         <Stack spacing={3}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              p: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              bgcolor: "background.paper",
+            }}
+          >
+            <Box
+              component="img"
+              src={visualUrl}
+              alt={visualLabel}
+              onError={(event: React.SyntheticEvent<HTMLImageElement>) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = fallbackImage;
+              }}
+              sx={{
+                width: 96,
+                height: 96,
+                objectFit: "cover",
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "background.default",
+              }}
+            />
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                Visuel
+              </Typography>
+              <Typography variant="subtitle1" fontWeight={700}>
+                {formatText(visualLabel)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {vente.idModele ? "Basée sur le modèle" : "Basée sur la marque"}
+              </Typography>
+            </Box>
+          </Box>
+
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <Stack spacing={0.5}>
