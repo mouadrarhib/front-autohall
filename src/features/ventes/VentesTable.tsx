@@ -30,6 +30,8 @@ export const VentesTable: React.FC<VentesTableProps> = ({
       mt: 2,
       boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
       borderRadius: 3,
+      overflow: "hidden",
+      height: { xs: 420, sm: 520, md: 650 },
       background: (theme) =>
         theme.palette.mode === "dark"
           ? alpha("#1e293b", 0.4)
@@ -53,6 +55,9 @@ export const VentesTable: React.FC<VentesTableProps> = ({
         disableColumnSelector
         rowHeight={60}
         sx={{
+          "& .MuiDataGrid-virtualScroller": {
+            overscrollBehavior: "contain",
+          },
           border: "none",
           "& .MuiDataGrid-columnSeparator": { display: "none" },
           "& .MuiDataGrid-row": {

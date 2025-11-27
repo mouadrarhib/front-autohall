@@ -13,6 +13,7 @@ import {
   Divider,
   Alert,
   Skeleton,
+  Stack,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
@@ -70,31 +71,50 @@ export const UserDetails: React.FC = () => {
   }
 
   return (
-    <Box>
-      <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <IconButton onClick={() => navigate('/users')}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" sx={{ flexGrow: 1 }}>
-          Details utilisateur
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<EditIcon />}
-          onClick={() => navigate(`/users/${userId}/edit`)}
-        >
-          Modifier
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<SecurityIcon />}
-          onClick={() => navigate(`/users/${userId}/roles-permissions`)}
-        >
-          Gerer les autorisations
-        </Button>
-      </Box>
+    <Box
+      sx={{
+        p: { xs: 2, md: 3 },
+        maxWidth: 1200,
+        mx: 'auto',
+        width: '100%',
+      }}
+    >
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        justifyContent="space-between"
+        spacing={2}
+        mb={3}
+      >
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ width: '100%' }}>
+          <IconButton onClick={() => navigate('/users')}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4" sx={{ flexGrow: 1 }}>
+            Details utilisateur
+          </Typography>
+        </Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => navigate(`/users/${userId}/edit`)}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
+            Modifier
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SecurityIcon />}
+            onClick={() => navigate(`/users/${userId}/roles-permissions`)}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
+            Gerer les autorisations
+          </Button>
+        </Stack>
+      </Stack>
 
-      <Card>
+      <Card sx={{ borderRadius: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Informations de base

@@ -43,7 +43,7 @@ export const SiteFilters: React.FC<SiteFiltersProps> = ({
       <Paper
         elevation={0}
         sx={{
-          p: 3,
+          p: { xs: 2.5, md: 3 },
           borderRadius: 3,
           background: (theme) =>
             theme.palette.mode === 'dark'
@@ -52,8 +52,8 @@ export const SiteFilters: React.FC<SiteFiltersProps> = ({
           backdropFilter: 'blur(12px)',
         }}
       >
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={2.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <Grid item xs={12} md={7}>
             <Stack spacing={1}>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 {title}
@@ -63,12 +63,18 @@ export const SiteFilters: React.FC<SiteFiltersProps> = ({
               </Typography>
             </Stack>
           </Grid>
-          <Grid item xs={12} md={6} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
-            <Stack direction="row" spacing={2} justifyContent={{ xs: 'flex-start', md: 'flex-end' }} alignItems="center">
+          <Grid item xs={12} md={5} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+            >
               <Chip
                 label={`${totalRecords} ${siteType === 'filiale' ? 'filiale(s)' : 'succursale(s)'}`}
                 color="primary"
                 variant="outlined"
+                sx={{ width: { xs: '100%', sm: 'auto' }, textAlign: 'center' }}
               />
               {hasCreate && (
                 <Button
@@ -80,6 +86,7 @@ export const SiteFilters: React.FC<SiteFiltersProps> = ({
                     textTransform: 'none',
                     fontWeight: 700,
                     boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
+                    width: { xs: '100%', sm: 'auto' },
                   }}
                 >
                   {buttonLabel}

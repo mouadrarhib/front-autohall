@@ -44,7 +44,7 @@ export const PeriodeFilters: React.FC<PeriodeFiltersProps> = ({
       <Paper
         elevation={0}
         sx={{
-          p: 3,
+          p: { xs: 2.5, md: 3 },
           borderRadius: 3,
           background: (theme) =>
             theme.palette.mode === 'dark'
@@ -53,8 +53,8 @@ export const PeriodeFilters: React.FC<PeriodeFiltersProps> = ({
           backdropFilter: 'blur(12px)',
         }}
       >
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={2.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <Grid item xs={12} md={7}>
             <Stack spacing={1}>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 Périodes
@@ -64,14 +64,14 @@ export const PeriodeFilters: React.FC<PeriodeFiltersProps> = ({
               </Typography>
             </Stack>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={5}>
             <Stack
-              direction="row"
+              direction={{ xs: "column", sm: "row" }}
               spacing={2}
               justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
-              alignItems="center"
+              alignItems={{ xs: 'stretch', sm: 'center' }}
             >
-              <FormControl sx={{ minWidth: 200 }}>
+              <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
                 <InputLabel>Type de période</InputLabel>
                 <Select
                   value={selectedTypePeriode ?? ''}
@@ -79,6 +79,7 @@ export const PeriodeFilters: React.FC<PeriodeFiltersProps> = ({
                   onChange={(e) =>
                     onChangeTypePeriode(e.target.value ? Number(e.target.value) : null)
                   }
+                  fullWidth
                 >
                   <MenuItem value="">
                     <em>Tous les types</em>
@@ -100,6 +101,7 @@ export const PeriodeFilters: React.FC<PeriodeFiltersProps> = ({
                     textTransform: 'none',
                     fontWeight: 700,
                     boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
+                    width: { xs: '100%', sm: 'auto' },
                   }}
                 >
                   Nouvelle Période

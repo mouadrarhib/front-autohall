@@ -33,7 +33,15 @@ export const PeriodeTable: React.FC<PeriodeTableProps> = ({
           {error}
         </Alert>
       )}
-      <Paper elevation={0} sx={{ height: 650, width: '100%', borderRadius: 3 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          height: { xs: 420, sm: 520, md: 650 },
+          width: '100%',
+          borderRadius: 3,
+          overflow: 'hidden',
+        }}
+      >
         <DataGrid
           rows={rows}
           columns={columns}
@@ -52,6 +60,9 @@ export const PeriodeTable: React.FC<PeriodeTableProps> = ({
           disableColumnSelector
           density="comfortable"
           sx={{
+            '& .MuiDataGrid-virtualScroller': {
+              overscrollBehavior: 'contain',
+            },
             border: 'none',
             '& .MuiDataGrid-columnSeparator': {
               display: 'none',
