@@ -285,13 +285,15 @@ export const SitesManagement: React.FC = () => {
   return (
     <Box
       sx={{
-        p: 4,
+        p: { xs: 2, md: 4 },
         background: (theme) =>
           theme.palette.mode === "dark"
             ? "linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))"
             : "linear-gradient(135deg, rgba(248,250,252,0.9), rgba(226,232,240,0.7))",
         borderRadius: 4,
         minHeight: "100%",
+        maxWidth: 1200,
+        mx: "auto",
       }}
     >
       <Stack spacing={3}>
@@ -299,6 +301,8 @@ export const SitesManagement: React.FC = () => {
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
+            variant="scrollable"
+            allowScrollButtonsMobile
             sx={{
               borderBottom: 1,
               borderColor: "divider",

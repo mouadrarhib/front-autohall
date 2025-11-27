@@ -42,7 +42,7 @@ export const ObjectifFilters: React.FC<ObjectifFiltersProps> = ({
       <Paper
         elevation={0}
         sx={{
-          p: 3,
+          p: { xs: 2.5, md: 3 },
           borderRadius: 3,
           background: (theme) =>
             theme.palette.mode === 'dark'
@@ -51,20 +51,19 @@ export const ObjectifFilters: React.FC<ObjectifFiltersProps> = ({
           backdropFilter: 'blur(12px)',
         }}
       >
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <Stack spacing={1}>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                Objectifs
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Gerez vos objectifs par periode et maintenez leur statut a jour.
-              </Typography>
-            </Stack>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Stack direction="row" spacing={2} justifyContent={{ xs: 'flex-start', md: 'flex-end' }} alignItems="center">
-              <FormControl sx={{ minWidth: 250 }}>
+        <Stack spacing={2.5}>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              Objectifs
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Gerez vos objectifs par periode et maintenez leur statut a jour.
+            </Typography>
+          </Box>
+
+          <Box sx={{ width: '100%', maxWidth: 560, mx: { xs: 'auto', md: 0 } }}>
+            <Stack spacing={2.5}>
+              <FormControl fullWidth>
                 <InputLabel>Selectionner une periode</InputLabel>
                 <Select
                   value={selectedPeriode ?? ''}
@@ -83,24 +82,37 @@ export const ObjectifFilters: React.FC<ObjectifFiltersProps> = ({
                   ))}
                 </Select>
               </FormControl>
-              {hasCreate && selectedPeriode && (
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={onCreate}
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
-                  }}
-                >
-                  Nouvel Objectif
-                </Button>
-              )}
+
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems={{ xs: 'stretch', sm: 'center' }}
+                flexDirection={{ xs: 'column', sm: 'row' }}
+                gap={2}
+              >
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+                  {selectedPeriode ? 'Periode selectionnee' : 'Toutes les periodes'}
+                </Typography>
+                {hasCreate && selectedPeriode && (
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={onCreate}
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
+                      width: { xs: '100%', sm: 'auto' },
+                    }}
+                  >
+                    Nouvel Objectif
+                  </Button>
+                )}
+              </Box>
             </Stack>
-          </Grid>
-        </Grid>
+          </Box>
+        </Stack>
       </Paper>
       {error && (
         <Alert severity="error" onClose={onClearError}>

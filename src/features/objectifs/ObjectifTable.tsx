@@ -42,6 +42,7 @@ export const ObjectifTable: React.FC<ObjectifTableProps> = ({
         sx={{
           borderRadius: 3,
           overflow: 'hidden',
+          height: { xs: 420, sm: 520, md: 650 },
           bgcolor: (theme) =>
             theme.palette.mode === 'dark'
               ? alpha('#1e293b', 0.4)
@@ -66,6 +67,9 @@ export const ObjectifTable: React.FC<ObjectifTableProps> = ({
           disableColumnSelector
           rowHeight={72}
           sx={{
+            '& .MuiDataGrid-virtualScroller': {
+              overscrollBehavior: 'contain',
+            },
             border: 'none',
             '& .MuiDataGrid-columnSeparator': {
               display: 'none',

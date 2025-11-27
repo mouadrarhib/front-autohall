@@ -305,9 +305,22 @@ export const EditUser: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box
+      sx={{
+        p: { xs: 2, md: 3 },
+        maxWidth: 1200,
+        mx: 'auto',
+        width: '100%',
+      }}
+    >
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        spacing={2}
+        sx={{ mb: 3 }}
+      >
         <Stack direction="row" spacing={2} alignItems="center">
           <IconButton onClick={() => navigate('/users')} size="large">
             <ArrowBackIcon />
@@ -322,12 +335,13 @@ export const EditUser: React.FC = () => {
           </Box>
         </Stack>
 
-        <Stack direction="row" spacing={2}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: { xs: '100%', sm: 'auto' } }}>
           <Button
             variant="outlined"
             startIcon={<LockResetIcon />}
             onClick={() => setOpenPasswordDialog(true)}
             sx={{ borderRadius: 2, textTransform: 'none' }}
+            fullWidth
           >
             Change Password
           </Button>
@@ -337,6 +351,7 @@ export const EditUser: React.FC = () => {
             onClick={handleSave}
             disabled={saving || !hasChanges}
             sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+            fullWidth
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
@@ -363,12 +378,17 @@ export const EditUser: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <Card
+        elevation={0}
+        sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}
+      >
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs
             value={activeTab}
             onChange={(_, newValue) => setActiveTab(newValue)}
             aria-label="user edit tabs"
+            variant="scrollable"
+            allowScrollButtonsMobile
           >
             <Tab
               icon={<PersonIcon />}
@@ -391,7 +411,7 @@ export const EditUser: React.FC = () => {
             <Paper
               elevation={0}
               sx={{
-                p: 3,
+                p: { xs: 2.5, md: 3 },
                 borderRadius: 3,
                 border: (theme) => `1px solid ${theme.palette.divider}`,
                 bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
@@ -403,7 +423,7 @@ export const EditUser: React.FC = () => {
                     Account Details
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Update the user’s core information and status.
+                    Update the user's core information and status.
                   </Typography>
                 </Box>
                 <Chip

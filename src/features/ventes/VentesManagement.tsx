@@ -66,20 +66,27 @@ export const VentesManagement: React.FC = () => {
   return (
     <Box
       sx={{
-        p: 3,
+        p: { xs: 2, md: 3 },
         background: (theme) =>
           theme.palette.mode === "dark"
             ? "linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.6))"
             : "linear-gradient(135deg, rgba(248,250,252,0.9), rgba(226,232,240,0.7))",
         borderRadius: 4,
         minHeight: "100%",
+        maxWidth: 1200,
+        mx: "auto",
       }}
     >
       <Stack spacing={3}>
-        <Stack direction="row" alignItems="center" spacing={2}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ xs: "flex-start", sm: "center" }}
+          spacing={2}
+          justifyContent="space-between"
+        >
           <h2 style={{ margin: 0, fontWeight: 600 }}>Gestion des ventes</h2>
           {canManage && (
-            <Button variant="contained" onClick={handleAddVente}>
+            <Button variant="contained" onClick={handleAddVente} sx={{ width: { xs: "100%", sm: "auto" } }}>
               Nouvelle vente
             </Button>
           )}

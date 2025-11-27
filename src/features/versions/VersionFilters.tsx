@@ -65,7 +65,7 @@ export const VersionFilters: React.FC<VersionFiltersProps> = ({
       <Paper
         elevation={0}
         sx={{
-          p: 3,
+          p: { xs: 2.5, md: 3 },
           background: (theme) =>
             theme.palette.mode === 'dark'
               ? `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.15)}, ${alpha(
@@ -95,92 +95,106 @@ export const VersionFilters: React.FC<VersionFiltersProps> = ({
             </Typography>
           </Box>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Rechercher par nom..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery && (
-                    <InputAdornment position="end">
-                      <IconButton size="small" onClick={() => onSearchChange('')}>
-                        <ClearIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Marque</InputLabel>
-                <Select
-                  value={filterMarqueId === 'all' ? '' : filterMarqueId}
-                  label="Marque (optionnel)"
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    onChangeMarque(value === '' ? 'all' : Number(value));
+          <Box sx={{ width: '100%', maxWidth: 560, mx: { xs: 'auto', md: 0 } }}>
+            <Grid
+              container
+              spacing={2.5}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Rechercher par nom..."
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchQuery && (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => onSearchChange('')}>
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
                   }}
-                  disabled={marquesLoading}
-                >
-                  <MenuItem value="">Toutes les marques</MenuItem>
-                  {marques.map((marque) => (
-                    <MenuItem key={marque.id} value={marque.id}>
-                      <Stack direction="row" alignItems="center" spacing={1.5}>
-                        <Avatar
-                          src={marque.imageUrl || undefined}
-                          alt={marque.name}
-                          sx={{ width: 28, height: 28, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1) }}
-                        >
-                          {marque.name?.[0] || 'M'}
-                        </Avatar>
-                        <Typography variant="body2">{marque.name}</Typography>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                />
+              </Grid>
 
-            <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Modele</InputLabel>
-                <Select
-                  value={filterModeleId === 'all' ? '' : filterModeleId}
-                  label="Modele (optionnel)"
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    onChangeModele(value === '' ? 'all' : Number(value));
-                  }}
-                  disabled={modelesLoading && filterMarqueId !== 'all'}
-                >
-                  <MenuItem value="">Tous les modeles</MenuItem>
-                  {modeles.map((modele) => (
-                    <MenuItem key={modele.id} value={modele.id}>
-                      {modele.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Marque</InputLabel>
+                  <Select
+                    value={filterMarqueId === 'all' ? '' : filterMarqueId}
+                    label="Marque (optionnel)"
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      onChangeMarque(value === '' ? 'all' : Number(value));
+                    }}
+                    disabled={marquesLoading}
+                  >
+                    <MenuItem value="">Toutes les marques</MenuItem>
+                    {marques.map((marque) => (
+                      <MenuItem key={marque.id} value={marque.id}>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                          <Avatar
+                            src={marque.imageUrl || undefined}
+                            alt={marque.name}
+                            sx={{ width: 28, height: 28, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1) }}
+                          >
+                            {marque.name?.[0] || 'M'}
+                          </Avatar>
+                          <Typography variant="body2">{marque.name}</Typography>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Modele</InputLabel>
+                  <Select
+                    value={filterModeleId === 'all' ? '' : filterModeleId}
+                    label="Modele (optionnel)"
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      onChangeModele(value === '' ? 'all' : Number(value));
+                    }}
+                    disabled={modelesLoading && filterMarqueId !== 'all'}
+                  >
+                    <MenuItem value="">Tous les modeles</MenuItem>
+                    {modeles.map((modele) => (
+                      <MenuItem key={modele.id} value={modele.id}>
+                        {modele.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
+
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            flexDirection={{ xs: 'column', sm: 'row' }}
+            gap={2}
+            sx={{ width: '100%', maxWidth: 560, mx: { xs: 'auto', md: 0 } }}
+          >
             <Chip
               label={`${totalRecords} version${totalRecords !== 1 ? 's' : ''} trouvee${totalRecords !== 1 ? 's' : ''}`}
               color="primary"
               size="small"
               variant="outlined"
-              sx={{ fontWeight: 600 }}
+              sx={{ fontWeight: 600, width: { xs: '100%', sm: 'auto' }, textAlign: 'center' }}
             />
             {hasCreate && (
               <Button
@@ -192,6 +206,7 @@ export const VersionFilters: React.FC<VersionFiltersProps> = ({
                   textTransform: 'none',
                   fontWeight: 700,
                   boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
+                  width: { xs: '100%', sm: 'auto' },
                 }}
               >
                 Nouvelle version
