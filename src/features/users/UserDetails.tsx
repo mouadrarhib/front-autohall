@@ -85,8 +85,9 @@ export const UserDetails: React.FC = () => {
         justifyContent="space-between"
         spacing={2}
         mb={3}
+        sx={{ flexWrap: { xs: 'wrap', md: 'nowrap' }, gap: { xs: 2, md: 3 } }}
       >
-        <Stack direction="row" alignItems="center" spacing={2} sx={{ width: '100%' }}>
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ flex: 1, minWidth: 0 }}>
           <IconButton onClick={() => navigate('/users')}>
             <ArrowBackIcon />
           </IconButton>
@@ -94,12 +95,25 @@ export const UserDetails: React.FC = () => {
             Details utilisateur
           </Typography>
         </Stack>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.5}
+          sx={{
+            width: { xs: '100%', sm: 'auto' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            justifyContent: 'flex-end',
+            flexShrink: 0,
+          }}
+        >
           <Button
             variant="outlined"
             startIcon={<EditIcon />}
             onClick={() => navigate(`/users/${userId}/edit`)}
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
+            sx={{
+              width: { xs: '100%', sm: 'auto' },
+              minWidth: { sm: 160 },
+              height: 44,
+            }}
           >
             Modifier
           </Button>
@@ -107,7 +121,11 @@ export const UserDetails: React.FC = () => {
             variant="contained"
             startIcon={<SecurityIcon />}
             onClick={() => navigate(`/users/${userId}/roles-permissions`)}
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
+            sx={{
+              width: { xs: '100%', sm: 'auto' },
+              minWidth: { sm: 190 },
+              height: 44,
+            }}
           >
             Gerer les autorisations
           </Button>

@@ -84,9 +84,9 @@ export const MarqueFilters: React.FC<MarqueFiltersProps> = ({
             </Typography>
           </Box>
 
-          <Box sx={{ width: '100%', maxWidth: 560, mx: { xs: 'auto', md: 0 } }}>
+          <Box sx={{ width: '100%', maxWidth: { xs: 600, md: 1100 }, mx: 'auto' }}>
             <Grid container spacing={2.5} alignItems="center" justifyContent="center">
-              <Grid item xs={12}>
+              <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
                   size="small"
@@ -110,7 +110,7 @@ export const MarqueFilters: React.FC<MarqueFiltersProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} md={6}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Filiale</InputLabel>
                   <Select
@@ -140,7 +140,7 @@ export const MarqueFilters: React.FC<MarqueFiltersProps> = ({
             alignItems={{ xs: 'stretch', sm: 'center' }}
             flexDirection={{ xs: 'column', sm: 'row' }}
             gap={2}
-            sx={{ width: '100%', maxWidth: 560, mx: { xs: 'auto', md: 0 } }}
+            sx={{ width: '100%', maxWidth: { xs: 600, md: 1100 }, mx: 'auto' }}
           >
             <Chip
               label={`${totalRecords} marque${totalRecords !== 1 ? 's' : ''} trouvee${totalRecords !== 1 ? 's' : ''}`}

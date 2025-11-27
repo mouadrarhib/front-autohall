@@ -86,9 +86,9 @@ export const ModeleFilters: React.FC<ModeleFiltersProps> = ({
             </Typography>
           </Box>
 
-          <Box sx={{ width: '100%', maxWidth: 560, mx: { xs: 'auto', md: 0 } }}>
+          <Box sx={{ width: '100%', maxWidth: { xs: 600, md: 1100 }, mx: 'auto' }}>
             <Grid container spacing={2.5} alignItems="center" justifyContent="center">
-              <Grid item xs={12}>
+              <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
                   size="small"
@@ -112,7 +112,7 @@ export const ModeleFilters: React.FC<ModeleFiltersProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} md={6}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Marque</InputLabel>
                   <Select
@@ -151,7 +151,7 @@ export const ModeleFilters: React.FC<ModeleFiltersProps> = ({
             alignItems={{ xs: 'stretch', sm: 'center' }}
             flexDirection={{ xs: 'column', sm: 'row' }}
             gap={2}
-            sx={{ width: '100%', maxWidth: 560, mx: { xs: 'auto', md: 0 } }}
+            sx={{ width: '100%', maxWidth: { xs: 600, md: 1100 }, mx: 'auto' }}
           >
             <Chip
               label={`${totalRecords} modele${totalRecords !== 1 ? 's' : ''} trouve${totalRecords !== 1 ? 's' : ''}`}
