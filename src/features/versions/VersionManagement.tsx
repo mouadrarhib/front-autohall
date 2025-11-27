@@ -312,6 +312,7 @@ export const VersionManagement: React.FC = () => {
         salePrice: formState.price,
         tmDirect: formState.tmPercent,
         tmInterGroupe: formState.marginPercent,
+        active: formState.active,
       };
 
       if (dialogMode === "edit" && currentVersion) {

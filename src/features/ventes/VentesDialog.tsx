@@ -77,9 +77,15 @@ export const VentesDialog: React.FC<VentesDialogProps> = ({
   );
   const selectedModele =
     modeles.find((modele) => `${modele.id}` === formState.idModele) ?? null;
+  const selectedMarque =
+    marques.find((marque) => `${marque.id}` === formState.idMarque) ?? null;
   const getModeleImage = (modele?: Modele | null) =>
     modele?.imageUrl && modele.imageUrl.trim().length > 0
       ? modele.imageUrl
+      : "/placeholder-car.png";
+  const getMarqueLogo = (marque?: Marque | null) =>
+    marque?.imageUrl && marque.imageUrl.trim().length > 0
+      ? marque.imageUrl
       : "/placeholder-car.png";
   const tmLabel = selectedType
     ? selectedType.name?.trim().toLowerCase() === "intergroupe"
@@ -220,9 +226,51 @@ export const VentesDialog: React.FC<VentesDialogProps> = ({
               onChange={(e) => onChangeField("idMarque", e.target.value)}
               fullWidth
               required
+              SelectProps={{
+                renderValue: (value) => {
+                  const marque = marques.find((m) => `${m.id}` === value);
+                  if (!marque) return "Selectionner une marque";
+                  return (
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Avatar
+                        src={getMarqueLogo(marque)}
+                        alt={marque.name}
+                        sx={{ width: 28, height: 28 }}
+                      >
+                        {marque.name?.[0] ?? "M"}
+                      </Avatar>
+                      <Typography variant="body2" fontWeight={600}>
+                        {marque.name}
+                      </Typography>
+                    </Stack>
+                  );
+                },
+              }}
             >
               <MenuItem value="">Selectionner une marque</MenuItem>
-              {renderMenuItems(marques)}
+              {marques.map((marque) => (
+                <MenuItem key={marque.id} value={`${marque.id}`}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Avatar
+                      src={getMarqueLogo(marque)}
+                      alt={marque.name}
+                      sx={{ width: 32, height: 32 }}
+                    >
+                      {marque.name?.[0] ?? "M"}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>
+                        {marque.name}
+                      </Typography>
+                      {marque.filialeName && (
+                        <Typography variant="caption" color="text.secondary">
+                          {marque.filialeName}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Stack>
+                </MenuItem>
+              ))}
             </TextField>
             {showModeleSelect && (
               <>

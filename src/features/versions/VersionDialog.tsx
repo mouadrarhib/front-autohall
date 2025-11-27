@@ -15,6 +15,7 @@ import {
   Grid,
   Avatar,
   IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
@@ -282,39 +283,41 @@ export const VersionDialog: React.FC<VersionDialogProps> = ({
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField
-                  label="TM Direct (%)"
-                  type="number"
-                  value={formState.tmPercent}
-                  onChange={(event) => onChangeField('tmPercent', Number(event.target.value))}
-                  fullWidth
-                  required
-                  disabled={saving}
-                  size={isMobile ? 'small' : 'medium'}
-                  inputProps={{ min: 0, max: 100, step: 0.1 }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                    },
-                  }}
+              <TextField
+                label="TM Direct (%)"
+                type="number"
+                value={formState.tmPercent}
+                onChange={(event) => onChangeField('tmPercent', Number(event.target.value))}
+                fullWidth
+                required
+                disabled={saving}
+                size={isMobile ? 'small' : 'medium'}
+                inputProps={{ min: 0, max: 30, step: 1 }}
+                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField
-                  label="Marge inter groupe (%)"
-                  type="number"
-                  value={formState.marginPercent}
-                  onChange={(event) => onChangeField('marginPercent', Number(event.target.value))}
-                  fullWidth
-                  required
-                  disabled={saving}
-                  size={isMobile ? 'small' : 'medium'}
-                  inputProps={{ min: 0, max: 100, step: 0.1 }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                    },
-                  }}
+              <TextField
+                label="Marge inter groupe (%)"
+                type="number"
+                value={formState.marginPercent}
+                onChange={(event) => onChangeField('marginPercent', Number(event.target.value))}
+                fullWidth
+                required
+                disabled={saving}
+                size={isMobile ? 'small' : 'medium'}
+                inputProps={{ min: 0, max: 30, step: 1 }}
+                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
                 />
               </Grid>
             </Grid>

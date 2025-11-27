@@ -9,6 +9,7 @@ export interface Version {
   prixDeVente: number;
   tmDirect: number;
   tmInterGroupe: number;
+  margeInterGroupe?: number;
   active: boolean;
   nomModele?: string;
   nomMarque?: string;
@@ -24,6 +25,8 @@ export interface CreateVersionDto {
   salePrice: number;
   tmDirect: number;
   tmInterGroupe: number;
+  active?: boolean;
+  margeInterGroupe?: number;
 }
 
 export interface UpdateVersionDto {
@@ -34,6 +37,7 @@ export interface UpdateVersionDto {
   tmDirect?: number;
   tmInterGroupe?: number;
   active?: boolean;
+  margeInterGroupe?: number;
 }
 
 export interface VersionListParams {
@@ -82,7 +86,8 @@ const normalizeVersion = (input: RawVersion): Version => {
     volume: toNumber(input.volume),
     prixDeVente: toNumber(input.prixDeVente ?? input.salePrice),
     tmDirect: toNumber(input.tmDirect),
-    tmInterGroupe: toNumber(input.tmInterGroupe),
+    tmInterGroupe: toNumber(input.tmInterGroupe ?? input.margeInterGroupe),
+    margeInterGroupe: input.margeInterGroupe ? toNumber(input.margeInterGroupe) : undefined,
     active: Boolean(input.active),
     nomModele: input.nomModele,
     nomMarque: input.nomMarque,
