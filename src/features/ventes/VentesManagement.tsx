@@ -123,6 +123,8 @@ export const VentesManagement: React.FC = () => {
           open={detailsOpen}
           vente={selectedVente}
           onClose={handleCloseDetails}
+          marques={marques}
+          modeles={modeles}
         />
       </Stack>
     </Box>

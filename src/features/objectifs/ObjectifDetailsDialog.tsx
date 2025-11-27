@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {
+  Avatar,
   Box,
   Button,
   Dialog,
@@ -15,28 +16,35 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-  Avatar,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import CloseIcon from '@mui/icons-material/Close';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import BusinessIcon from '@mui/icons-material/Business';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import CloseIcon from '@mui/icons-material/Close';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PersonIcon from '@mui/icons-material/Person';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import type { ObjectifView } from '../../api/endpoints/objectif.api';
+import type { Marque } from '../../api/endpoints/marque.api';
+import type { Modele } from '../../api/endpoints/modele.api';
 
 interface ObjectifDetailsDialogProps {
   open: boolean;
   objectif: ObjectifView | null;
   onClose: () => void;
+  marques?: Marque[];
+  modeles?: Modele[];
 }
+
+const FALLBACK_IMAGE = '/placeholder-car.png';
 
 export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
   open,
   objectif,
   onClose,
+  marques = [],
+  modeles = [],
 }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
@@ -61,7 +69,7 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
   const formatDateTime = (value?: string | null): string => {
     if (!value) return '—';
     const date = new Date(value);
-    if (isNaN(date.getTime())) return '—';
+    if (Number.isNaN(date.getTime())) return '—';
     return new Intl.DateTimeFormat('fr-FR', {
       day: '2-digit',
       month: '2-digit',
@@ -71,7 +79,25 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
     }).format(date);
   };
 
+  const findMarqueImage = (id?: number | null): string | null => {
+    if (!id) return null;
+    const match = marques.find((marque) => marque.id === id);
+    return match?.imageUrl?.trim() ? match.imageUrl : null;
+  };
+
+  const findModeleImage = (id?: number | null): string | null => {
+    if (!id) return null;
+    const match = modeles.find((modele) => modele.id === id);
+    return match?.imageUrl?.trim() ? match.imageUrl : null;
+  };
+
   if (!objectif) return null;
+
+  const visualUrl =
+    findModeleImage(objectif.modeleID) ??
+    findMarqueImage(objectif.marqueID) ??
+    FALLBACK_IMAGE;
+  const visualLabel = objectif.modeleName || objectif.marqueName || 'Véhicule';
 
   return (
     <Dialog
@@ -82,15 +108,15 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
       fullScreen={fullScreen}
       PaperProps={{
         sx: {
-              borderRadius: fullScreen ? 0 : 3,
-              backdropFilter: 'blur(10px)',
-              bgcolor: theme.palette.mode === 'dark'
-                  ? alpha('#1e293b', 0.4)
-                  : alpha('#f8fafc', 0.8),
-          },
+          borderRadius: fullScreen ? 0 : 3,
+          backdropFilter: 'blur(10px)',
+          bgcolor:
+            theme.palette.mode === 'dark'
+              ? alpha('#1e293b', 0.4)
+              : alpha('#f8fafc', 0.8),
+        },
       }}
     >
-      {/* Dialog Header */}
       <DialogTitle
         sx={{
           display: 'flex',
@@ -113,7 +139,7 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
           </Avatar>
           <Box>
             <Typography variant="h6" fontWeight={700}>
-              Détails de l'Objectif
+              Détails de l&apos;Objectif
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
               Informations complètes
@@ -134,9 +160,51 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
 
       <Divider />
 
-      {/* Dialog Content */}
       <DialogContent sx={{ pt: 3 }}>
         <Stack spacing={3}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              p: 2,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              bgcolor: 'background.paper',
+            }}
+          >
+            <Box
+              component="img"
+              src={visualUrl}
+              alt={visualLabel}
+              onError={(event: React.SyntheticEvent<HTMLImageElement>) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = FALLBACK_IMAGE;
+              }}
+              sx={{
+                width: 96,
+                height: 96,
+                objectFit: 'cover',
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.default',
+              }}
+            />
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                Visuel
+              </Typography>
+              <Typography variant="subtitle1" fontWeight={700}>
+                {visualLabel}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {objectif.modeleID ? 'Basé sur le modèle' : 'Basé sur la marque'}
+              </Typography>
+            </Box>
+          </Box>
+
           {/* Période & Site Section */}
           <Box>
             <Typography
@@ -150,7 +218,7 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
               Période & Localisation
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Stack spacing={0.5}>
@@ -208,10 +276,10 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
               sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
             >
               <BusinessIcon fontSize="small" />
-              Type d'Objectif
+              Type d&apos;Objectif
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Stack spacing={0.5}>
@@ -227,7 +295,7 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
               <Grid item xs={12} sm={6}>
                 <Stack spacing={0.5}>
                   <Typography variant="caption" color="text.secondary">
-                    Type d'Objectif
+                    Type d&apos;Objectif
                   </Typography>
                   <Typography variant="body1" fontWeight={500}>
                     {objectif.typeObjectifName || '—'}
@@ -250,7 +318,7 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
               Véhicule
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}>
                 <Stack spacing={0.5}>
@@ -300,7 +368,7 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
               Objectifs Financiers
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Stack spacing={0.5}>
@@ -360,7 +428,7 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
               <Grid item xs={12}>
                 <Stack spacing={0.5}>
                   <Typography variant="caption" color="text.secondary">
-                    Chiffre d'Affaire Total
+                    Chiffre d&apos;Affaire Total
                   </Typography>
                   <Typography variant="h5" fontWeight={700} color="success.main">
                     {formatCurrency(objectif.ChiffreDaffaire)}
@@ -383,7 +451,7 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
               Historique
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Stack spacing={0.5}>
@@ -439,7 +507,6 @@ export const ObjectifDetailsDialog: React.FC<ObjectifDetailsDialogProps> = ({
 
       <Divider />
 
-      {/* Dialog Actions */}
       <DialogActions sx={{ p: 2.5 }}>
         <Button
           onClick={onClose}

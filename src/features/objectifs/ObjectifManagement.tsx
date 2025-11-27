@@ -1038,6 +1038,8 @@ export const ObjectifManagement: React.FC = () => {
           open={viewDialogOpen}
           objectif={viewObjectif}
           onClose={handleCloseViewDialog}
+          marques={marques}
+          modeles={modeles}
         />
       </Stack>
     </Box>
