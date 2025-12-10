@@ -70,14 +70,11 @@ VITE_ENABLE_DEVTOOLS=true
 - Sales: scoped by user site context, server pagination, dynamic pricing/margin calculations based on catalog data and type vente (direct vs intergroupe), detail dialog; integrateur ventes can create/update.
 
 ## Screenshots
-Add your captures (PNG/JPG) to `public/screenshots/` using the filenames below so they render automatically:
-- Login: `![Login](public/screenshots/login.png)`
-- Dashboard (admin): `![Dashboard](public/screenshots/dashboard-admin.png)`
-- Users: `![Users](public/screenshots/users.png)`
-- Objectives: `![Objectifs](public/screenshots/objectifs.png)`
-- Sales: `![Ventes](public/screenshots/ventes.png)`
-
-If you prefer, place the files in `docs/screenshots/` and update the paths accordingly.
+![Login](public/screenshots/login.png)
+![Dashboard - Admin](public/screenshots/dashboard-admin.png)
+![Users](public/screenshots/users.png)
+![Objectifs](public/screenshots/objectifs.png)
+![Ventes](public/screenshots/ventes.png)
 
 ## UI and data patterns
 - Tables use `DataTable` (MUI DataGrid) with server pagination hooks and optional selection.
