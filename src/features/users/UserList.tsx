@@ -30,6 +30,7 @@ export const UserList: React.FC = () => {
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [togglingUserId, setTogglingUserId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] =
     useState<PaginationState>(DEFAULT_PAGINATION);
@@ -130,11 +131,39 @@ export const UserList: React.FC = () => {
     [navigate]
   );
 
+  const handleToggleActive = useCallback(
+    async (user: User, event: React.MouseEvent) => {
+      event.stopPropagation();
+      if (togglingUserId !== null) return;
+      try {
+        setTogglingUserId(user.UserId);
+        if (user.UserActive) {
+          await authApi.deactivateUser(user.UserId);
+        } else {
+          await authApi.activateUser(user.UserId);
+        }
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.UserId === user.UserId ? { ...u, UserActive: !user.UserActive } : u
+          )
+        );
+      } catch (err: any) {
+        console.error("Failed to toggle user:", err);
+        setError(err?.response?.data?.error ?? "Failed to update user status");
+      } finally {
+        setTogglingUserId(null);
+      }
+    },
+    [togglingUserId]
+  );
+
   const columns = useUserColumns({
     isSmallScreen,
     isMediumScreen,
     onView: handleViewClick,
     onEdit: handleEditClick,
+    onToggleActive: handleToggleActive,
+    togglingUserId,
     //onPermissions: handlePermissionsClick,
   });
 

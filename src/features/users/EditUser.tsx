@@ -162,15 +162,22 @@ export const EditUser: React.FC = () => {
       }
 
       // Set user info
+      // Prefer the actual site ID (SiteId/siteId) when setting the selection value.
+      // userSiteId can sometimes refer to the assignment record rather than the site itself,
+      // which prevents the select from matching any option.
+      const resolvedSiteId =
+        userData.siteId ??
+        userData.SiteId ??
+        userData.userSiteId ??
+        userData.UserSiteId ??
+        userData.idUserSite ??
+        0;
+
       const info = {
         username: userData.Username || userData.username || '',
         fullName: userData.FullName || userData.full_name || '',
         email: userData.Email || userData.email || '',
-        idUserSite:
-          userData.userSiteId ??
-          userData.UserSiteId ??
-          userData.idUserSite ??
-          0,
+        idUserSite: resolvedSiteId,
         actif: userData.userActive,
       };
       setUserInfo(info);
@@ -245,8 +252,17 @@ export const EditUser: React.FC = () => {
       setSuccess(null);
       const userIdNum = Number(userId);
 
-      // Save user info if changed
-      if (JSON.stringify(userInfo) !== JSON.stringify(initialUserInfo)) {
+      const rolesChanged =
+        JSON.stringify(userRoles.sort()) !== JSON.stringify(initialUserRoles.sort());
+      const siteChanged = userInfo.idUserSite !== initialUserInfo.idUserSite;
+      const userInfoChanged =
+        userInfo.username !== initialUserInfo.username ||
+        userInfo.fullName !== initialUserInfo.fullName ||
+        userInfo.email !== initialUserInfo.email ||
+        userInfo.actif !== initialUserInfo.actif;
+
+      // Save user info; include site when it changed to cover APIs that expect it here
+      if (userInfoChanged || siteChanged) {
         console.log('Updating user info:', userInfo);
         await authApi.updateUser(userIdNum, {
           username: userInfo.username,
@@ -257,8 +273,14 @@ export const EditUser: React.FC = () => {
         });
       }
 
+      // Save site assignment separately to hit the dedicated endpoint
+      if (siteChanged) {
+        console.log('Updating user site assignment:', userInfo.idUserSite);
+        await authApi.updateUserSiteAssignment(userIdNum, userInfo.idUserSite);
+      }
+
       // Save roles if changed
-      if (JSON.stringify(userRoles.sort()) !== JSON.stringify(initialUserRoles.sort())) {
+      if (rolesChanged) {
         console.log('Syncing roles:', userRoles);
         await userRoleApi.syncRolesForUser(userIdNum, userRoles, true);
       }
@@ -274,7 +296,11 @@ export const EditUser: React.FC = () => {
   };
 
   const hasChanges =
-    JSON.stringify(userInfo) !== JSON.stringify(initialUserInfo) ||
+    userInfo.username !== initialUserInfo.username ||
+    userInfo.fullName !== initialUserInfo.fullName ||
+    userInfo.email !== initialUserInfo.email ||
+    userInfo.actif !== initialUserInfo.actif ||
+    userInfo.idUserSite !== initialUserInfo.idUserSite ||
     JSON.stringify(userRoles.sort()) !== JSON.stringify(initialUserRoles.sort());
 
   if (loading) {
@@ -482,7 +508,7 @@ export const EditUser: React.FC = () => {
                     >
                       {Array.isArray(sites) && sites.length > 0 ? (
                         sites.map((site) => (
-                          <MenuItem key={site.id} value={site.id}>
+                          <MenuItem key={`${site.type}-${site.id}`} value={site.id}>
                             {site.name} ({site.type})
                           </MenuItem>
                         ))

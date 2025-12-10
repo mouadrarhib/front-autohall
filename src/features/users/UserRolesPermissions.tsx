@@ -153,16 +153,21 @@ export const UserRolesPermissions: React.FC = () => {
       setSites([]); // Set empty array on error
     }
 
+    // Prefer siteId/SiteId for the select to ensure we match the available site options
+    const resolvedSiteId =
+      userData.siteId ??
+      userData.SiteId ??
+      userData.userSiteId ??
+      userData.UserSiteId ??
+      userData.idUserSite ??
+      0;
+
     // Set user info
     const info = {
       username: userData.Username || userData.username || '',
       fullName: userData.FullName || userData.full_name || '',
       email: userData.Email || userData.email || '',
-      idUserSite:
-        userData.userSiteId ??
-        userData.UserSiteId ??
-        userData.idUserSite ??
-        0,
+      idUserSite: resolvedSiteId,
       actif: userData.userActive,
     };
     setUserInfo(info);
@@ -312,8 +317,19 @@ export const UserRolesPermissions: React.FC = () => {
       setSuccess(null);
       const userIdNum = Number(userId);
 
-      // Save user info if changed
-      if (JSON.stringify(userInfo) !== JSON.stringify(initialUserInfo)) {
+      const rolesChanged =
+        JSON.stringify(userRoles.sort()) !== JSON.stringify(initialUserRoles.sort());
+      const permissionsChanged =
+        JSON.stringify(userPermissions.sort()) !== JSON.stringify(initialUserPermissions.sort());
+      const siteChanged = userInfo.idUserSite !== initialUserInfo.idUserSite;
+      const userInfoChanged =
+        userInfo.username !== initialUserInfo.username ||
+        userInfo.fullName !== initialUserInfo.fullName ||
+        userInfo.email !== initialUserInfo.email ||
+        userInfo.actif !== initialUserInfo.actif;
+
+      // Save user info; include site when it changed to support APIs expecting it here
+      if (userInfoChanged || siteChanged) {
         console.log('Updating user info:', userInfo);
         await authApi.updateUser(userIdNum, {
           username: userInfo.username,
@@ -324,14 +340,20 @@ export const UserRolesPermissions: React.FC = () => {
         });
       }
 
+      // Save site assignment separately
+      if (siteChanged) {
+        console.log('Updating user site assignment:', userInfo.idUserSite);
+        await authApi.updateUserSiteAssignment(userIdNum, userInfo.idUserSite);
+      }
+
       // Save roles if changed
-      if (JSON.stringify(userRoles.sort()) !== JSON.stringify(initialUserRoles.sort())) {
+      if (rolesChanged) {
         console.log('Syncing roles:', userRoles);
         await userRoleApi.syncRolesForUser(userIdNum, userRoles, true);
       }
 
       // Save permissions if changed
-      if (JSON.stringify(userPermissions.sort()) !== JSON.stringify(initialUserPermissions.sort())) {
+      if (permissionsChanged) {
         const permissionsToAdd = userPermissions.filter(
           (id) => !initialUserPermissions.includes(id)
         );
@@ -369,7 +391,11 @@ export const UserRolesPermissions: React.FC = () => {
   );
 
   const hasChanges =
-    JSON.stringify(userInfo) !== JSON.stringify(initialUserInfo) ||
+    userInfo.username !== initialUserInfo.username ||
+    userInfo.fullName !== initialUserInfo.fullName ||
+    userInfo.email !== initialUserInfo.email ||
+    userInfo.actif !== initialUserInfo.actif ||
+    userInfo.idUserSite !== initialUserInfo.idUserSite ||
     JSON.stringify(userRoles.sort()) !== JSON.stringify(initialUserRoles.sort()) ||
     JSON.stringify(userPermissions.sort()) !== JSON.stringify(initialUserPermissions.sort());
 
@@ -495,13 +521,13 @@ export const UserRolesPermissions: React.FC = () => {
       label="Site Assignment"
       onChange={(e) => setUserInfo({ ...userInfo, idUserSite: Number(e.target.value) })}
     >
-      {Array.isArray(sites) && sites.length > 0 ? (
-        sites.map((site) => (
-          <MenuItem key={site.id} value={site.id}>
-            {site.name} ({site.type})
-          </MenuItem>
-        ))
-      ) : (
+                      {Array.isArray(sites) && sites.length > 0 ? (
+                        sites.map((site) => (
+                          <MenuItem key={`${site.type}-${site.id}`} value={site.id}>
+                            {site.name} ({site.type})
+                          </MenuItem>
+                        ))
+                      ) : (
         <MenuItem value={0} disabled>
           No sites available
         </MenuItem>

@@ -33,13 +33,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       color="inherit"
       elevation={0}
       sx={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #0b1120 55%, #1d4ed8 100%)',
-        boxShadow: '0 18px 45px rgba(15, 23, 42, 0.45)',
-        borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
+        background: 'linear-gradient(135deg, #e8f0ff 0%, #edf5ff 50%, #dbeafe 100%)',
+        boxShadow: '0 12px 32px rgba(59, 130, 246, 0.18)',
+        borderBottom: '1px solid rgba(59, 130, 246, 0.12)',
         width: isDesktop ? `calc(100% - ${drawerWidth}px)` : '100%',
         ml: isDesktop ? `${drawerWidth}px` : 0,
         backdropFilter: 'blur(14px)',
-        color: '#e2e8f0',
+        color: '#0f172a',
       }}
     >
       <Toolbar
@@ -67,7 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Typography
               variant="h5"
               fontWeight={600}
-              sx={{ color: '#f8fafc', letterSpacing: 0.2 }}
+              sx={{ color: '#0f172a', letterSpacing: 0.2 }}
             >
               {title}
             </Typography>
@@ -79,13 +79,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: 1,
-            bgcolor: 'rgba(37, 99, 235, 0.16)',
+            bgcolor: 'rgba(59, 130, 246, 0.12)',
             px: 1.25,
             py: 0.7,
             borderRadius: 999,
             backdropFilter: 'blur(10px)',
             boxShadow: 'inset 0 1px 0 rgba(148, 163, 184, 0.2)',
-            border: '1px solid rgba(37, 99, 235, 0.35)',
+            border: '1px solid rgba(59, 130, 246, 0.28)',
           }}
         >
           <IconButton color="inherit" size="small">

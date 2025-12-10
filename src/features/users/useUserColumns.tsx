@@ -5,6 +5,7 @@ import { alpha } from '@mui/material/styles';
 import { Box, Button, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import BusinessIcon from '@mui/icons-material/Business';
 import StoreIcon from '@mui/icons-material/Store';
 import type { GridColDef } from '@mui/x-data-grid';
@@ -15,6 +16,8 @@ interface UseUserColumnsArgs {
   isMediumScreen: boolean;
   onView: (userId: number, event: React.MouseEvent) => void;
   onEdit: (userId: number, event: React.MouseEvent) => void;
+  onToggleActive: (user: User, event: React.MouseEvent) => void;
+  togglingUserId?: number | null;
 }
 
 export const useUserColumns = ({
@@ -22,6 +25,8 @@ export const useUserColumns = ({
   isMediumScreen,
   onView,
   onEdit,
+  onToggleActive,
+  togglingUserId,
 }: UseUserColumnsArgs): GridColDef<User>[] => {
   const baseColumns = useMemo<GridColDef<User>[]>(() => {
     return [
@@ -139,6 +144,28 @@ export const useUserColumns = ({
                 }}
               >
                 <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
+            {/* Activate / Deactivate */}
+            <Tooltip title={params.row.UserActive ? 'Deactivate user' : 'Activate user'}>
+              <IconButton
+                size="small"
+                onClick={(event) => onToggleActive(params.row, event)}
+                disabled={togglingUserId === params.row.UserId}
+                sx={{
+                  transition: 'all 0.2s ease',
+                  color: params.row.UserActive ? 'error.main' : 'success.main',
+                  '&:hover': {
+                    backgroundColor: (theme) =>
+                      params.row.UserActive
+                        ? alpha(theme.palette.error.main, 0.12)
+                        : alpha(theme.palette.success.main, 0.12),
+                    transform: 'scale(1.09)',
+                  },
+                }}
+              >
+                <PowerSettingsNewIcon fontSize="small" />
               </IconButton>
             </Tooltip>
 

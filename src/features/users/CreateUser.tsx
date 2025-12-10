@@ -30,7 +30,8 @@ import {
   Checkbox,
   FormControlLabel,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import Visibility from '@mui/icons-material/Visibility';
@@ -57,6 +58,8 @@ const steps = ['Informations utilisateur', 'Affectation site', 'Roles'];
 
 export const CreateUser: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -269,8 +272,14 @@ export const CreateUser: React.FC = () => {
   }
 
   return (
-    <Box>
-      <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 1.5, sm: 2, md: 3 } }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        spacing={1.5}
+        mb={3}
+        rowGap={0.5}
+      >
         <IconButton
           onClick={() => navigate('/users')}
           disabled={isLoading}
@@ -282,17 +291,32 @@ export const CreateUser: React.FC = () => {
         >
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h5" fontWeight={700}>
+        <Typography variant="h5" fontWeight={700} textAlign={{ xs: 'left', sm: 'inherit' }}>
           Creer un utilisateur
         </Typography>
       </Stack>
 
       <Card
         elevation={0}
-        sx={{ borderRadius: 3, border: (theme) => `1px solid ${theme.palette.divider}` }}
+        sx={(cardTheme) => ({
+          borderRadius: 3,
+          border: `1px solid ${cardTheme.palette.divider}`,
+          boxShadow: { xs: cardTheme.shadows[1], sm: 'none' },
+        })}
       >
-        <CardContent sx={{ p: 4 }}>
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+          <Stepper
+            activeStep={activeStep}
+            alternativeLabel={!isSmallScreen}
+            orientation={isSmallScreen ? 'vertical' : 'horizontal'}
+            sx={{
+              mb: isSmallScreen ? 3 : 4,
+              px: { xs: 0.5, sm: 0 },
+              '& .MuiStepLabel-label': {
+                typography: { xs: 'body2', sm: 'body1' },
+              },
+            }}
+          >
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
@@ -656,17 +680,21 @@ export const CreateUser: React.FC = () => {
               <Box
                 sx={{
                   display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  gap: 2,
                   justifyContent: 'space-between',
+                  alignItems: { xs: 'stretch', sm: 'center' },
                   mt: 4,
                   pt: 3,
-                  borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                  borderTop: (btTheme) => `1px solid ${btTheme.palette.divider}`,
                 }}
               >
-                <Box>
+                <Box sx={{ width: { xs: '100%', sm: 'auto' } }}>
                   {activeStep > 0 && (
                     <Button
                       onClick={handleBack}
                       disabled={isLoading}
+                      fullWidth={isSmallScreen}
                       sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
                     >
                       Retour
@@ -674,10 +702,15 @@ export const CreateUser: React.FC = () => {
                   )}
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 2 }}>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={2}
+                  sx={{ width: { xs: '100%', sm: 'auto' } }}
+                >
                   <Button
                     onClick={() => navigate('/users')}
                     disabled={isLoading}
+                    fullWidth={isSmallScreen}
                     sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
                   >
                     Annuler
@@ -691,6 +724,7 @@ export const CreateUser: React.FC = () => {
                         isLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />
                       }
                       disabled={isLoading || selectedRoles.length === 0}
+                      fullWidth={isSmallScreen}
                       sx={{
                         borderRadius: 2,
                         textTransform: 'none',
@@ -709,6 +743,7 @@ export const CreateUser: React.FC = () => {
                       onClick={handleNext}
                       variant="contained"
                       disabled={isLoading}
+                      fullWidth={isSmallScreen}
                       sx={{
                         borderRadius: 2,
                         textTransform: 'none',
@@ -719,7 +754,7 @@ export const CreateUser: React.FC = () => {
                       Suivant
                     </Button>
                   )}
-                </Box>
+                </Stack>
               </Box>
             </form>
           </FormProvider>
