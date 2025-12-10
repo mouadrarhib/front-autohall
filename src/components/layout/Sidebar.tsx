@@ -175,12 +175,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
         maxHeight: { xs: "100dvh", md: "100vh" },
         overflowX: "hidden",
         overflowY: "auto",
-        backgroundColor: "#0f172a",
+        background: "linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%)",
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
-        borderRight: "1px solid rgba(148, 163, 184, 0.15)",
-        boxShadow: "0 10px 40px rgba(15, 23, 42, 0.4)",
+        borderRight: "1px solid rgba(59, 130, 246, 0.12)",
+        boxShadow: "0 12px 40px rgba(59, 130, 246, 0.12)",
         "&::-webkit-scrollbar": {
           width: 6,
         },
@@ -215,15 +215,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
             width: "auto",
             maxWidth: "100%",
             objectFit: "contain",
-            filter: "brightness(0) invert(1)",
           }}
         />
         {isMobile && onItemClick && (
           <IconButton
             onClick={onItemClick}
             sx={{
-              color: "#f1f5f9",
-              "&:hover": { backgroundColor: "rgba(59, 130, 246, 0.15)" },
+              color: "#1e3a8a",
+              "&:hover": { backgroundColor: "rgba(59, 130, 246, 0.12)" },
             }}
             aria-label="Fermer le menu"
           >
@@ -270,17 +269,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
                     py: 1.25,
                     px: 2,
                     "&.Mui-selected": {
-                      backgroundColor: "rgba(59, 130, 246, 0.15)",
-                      "& .MuiListItemIcon-root": { color: "#3b82f6" },
+                      backgroundColor: "rgba(59, 130, 246, 0.14)",
+                      "& .MuiListItemIcon-root": { color: "#1d4ed8" },
                       "& .MuiListItemText-primary": {
-                        color: "#f1f5f9",
+                        color: "#0f172a",
                         fontWeight: 700,
                       },
                     },
-                    "&:hover": { backgroundColor: "rgba(59, 130, 246, 0.1)" },
+                    "&:hover": { backgroundColor: "rgba(59, 130, 246, 0.08)" },
                   }}
                 >
-                  <ListItemIcon sx={{ color: "#94a3b8", minWidth: 40 }}>
+                  <ListItemIcon sx={{ color: "#334155", minWidth: 40 }}>
                     {item.icon}
                   </ListItemIcon>
                   <ListItemText
@@ -288,11 +287,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
                     primaryTypographyProps={{
                       fontSize: 15,
                       fontWeight: active ? 600 : 500,
-                      color: active ? "#f1f5f9" : "#cbd5e1",
+                      color: active ? "#0f172a" : "#1f2937",
                     }}
                   />
                   {!isCompact && hasChildren && (
-                    <Box sx={{ color: "#94a3b8" }}>
+                    <Box sx={{ color: "#475569" }}>
                       {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                     </Box>
                   )}
@@ -314,18 +313,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
                               py: 0.75,
                               "&.Mui-selected": {
                                 backgroundColor: "rgba(59, 130, 246, 0.12)",
-                                "& .MuiListItemIcon-root": { color: "#3b82f6" },
+                                "& .MuiListItemIcon-root": { color: "#1d4ed8" },
                                 "& .MuiListItemText-primary": {
-                                  color: "#f1f5f9",
+                                  color: "#0f172a",
                                   fontWeight: 600,
                                 },
                               },
                               "&:hover": {
-                                backgroundColor: "rgba(59, 130, 246, 0.08)",
+                                backgroundColor: "rgba(59, 130, 246, 0.07)",
                               },
                             }}
                           >
-                            <ListItemIcon sx={{ color: "#94a3b8", minWidth: 36 }}>
+                            <ListItemIcon sx={{ color: "#475569", minWidth: 36 }}>
                               {child.icon}
                             </ListItemIcon>
                             <ListItemText
@@ -333,7 +332,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
                               primaryTypographyProps={{
                                 fontSize: 14,
                                 fontWeight: childActive ? 600 : 500,
-                                color: childActive ? "#f1f5f9" : "#cbd5e1",
+                                color: childActive ? "#0f172a" : "#334155",
                               }}
                             />
                           </ListItemButton>
@@ -371,15 +370,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
             gap: 1.5,
             p: 1.5,
             borderRadius: 2,
-            backgroundColor: "rgba(15, 23, 42, 0.4)",
-            border: "1px solid rgba(148, 163, 184, 0.25)",
-            boxShadow: "0 12px 30px rgba(15, 23, 42, 0.35)",
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            border: "1px solid rgba(59, 130, 246, 0.2)",
+            boxShadow: "0 12px 30px rgba(59, 130, 246, 0.15)",
             cursor: user ? "pointer" : "default",
             transition: "transform 0.2s ease, box-shadow 0.2s ease",
             "&:hover": user
               ? {
                   transform: "translateY(-2px)",
-                  boxShadow: "0 16px 36px rgba(37, 99, 235, 0.35)",
+                  boxShadow: "0 16px 36px rgba(59, 130, 246, 0.22)",
                 }
               : undefined,
             outline: "none",
@@ -399,27 +398,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
           {!isCompact && (
             <Box sx={{ flex: 1, overflow: "hidden" }}>
               <Typography
-                variant="body2"
-                sx={{
-                  color: "#f1f5f9",
-                  fontWeight: 600,
-                  fontSize: 14,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
+            variant="body2"
+            sx={{
+              color: "#0f172a",
+              fontWeight: 600,
+              fontSize: 14,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
                 }}
               >
                 {user?.full_name || user?.username || "Utilisateur"}
               </Typography>
               <Typography
-                variant="caption"
-                sx={{
-                  color: "#94a3b8",
-                  fontSize: 12,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  display: "block",
+            variant="caption"
+            sx={{
+              color: "#475569",
+              fontSize: 12,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "block",
                 }}
               >
                 {user?.email || "email@autohall.ma"}
@@ -441,14 +440,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
           }}
           sx={{
             mt: 2,
-            color: "#f1f5f9",
-            borderColor: "rgba(148, 163, 184, 0.35)",
+            color: "#1d4ed8",
+            borderColor: "rgba(59, 130, 246, 0.3)",
             textTransform: "none",
             fontWeight: 600,
             justifyContent: "flex-start",
             "&:hover": {
-              borderColor: "rgba(248, 113, 113, 0.8)",
-              backgroundColor: "rgba(248, 113, 113, 0.15)",
+              borderColor: "rgba(59, 130, 246, 0.55)",
+              backgroundColor: "rgba(59, 130, 246, 0.12)",
             },
           }}
         >
@@ -461,7 +460,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, isMobile }) => {
             sx={{
               display: "block",
               textAlign: "center",
-              color: "#64748b",
+              color: "#475569",
               mt: 2,
               fontSize: 11,
             }}
