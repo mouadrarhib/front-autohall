@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Box, Paper, Stack, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { GridPaginationModel } from "@mui/x-data-grid";
+import { toast } from 'react-toastify';
 import { authApi, type UserCompleteInfo } from "../../api/endpoints/auth.api";
 import { useRoles } from "../../hooks/useRoles";
 import { UserHeader } from "./UserHeader";
@@ -12,6 +13,7 @@ import { UserTable } from "./UserTable";
 import { useUserColumns } from "./useUserColumns";
 import { UserDetailsDialog } from "./UserDetailsDialog";
 import type { PaginationState, User } from "./userTypes";
+import { exportRowsToCsv } from '../../utils/csvExport';
 
 const DEFAULT_PAGINATION: PaginationState = {
   page: 1,
@@ -175,13 +177,44 @@ export const UserList: React.FC = () => {
     }));
   };
 
+  const handleExportCsv = useCallback(() => {
+    if (users.length === 0) {
+      toast.info('No users to export.');
+      return;
+    }
+
+    exportRowsToCsv({
+      fileName: `users-${new Date().toISOString().slice(0, 10)}.csv`,
+      rows: users,
+      columns: [
+        { header: 'User ID', accessor: (row) => row.UserId },
+        { header: 'Full Name', accessor: (row) => row.FullName },
+        { header: 'Email', accessor: (row) => row.Email },
+        { header: 'Username', accessor: (row) => row.Username },
+        { header: 'Status', accessor: (row) => (row.UserActive ? 'Active' : 'Inactive') },
+        { header: 'Enabled', accessor: (row) => (row.UserEnabled ? 'Yes' : 'No') },
+        { header: 'Site', accessor: (row) => row.SiteName ?? '' },
+        { header: 'Groupement', accessor: (row) => row.GroupementType ?? '' },
+        { header: 'Roles', accessor: (row) => row.UserRoles ?? '' },
+        { header: 'Permissions', accessor: (row) => row.UserPermissions ?? '' },
+        { header: 'Created At', accessor: (row) => row.UserCreatedAt },
+        { header: 'Updated At', accessor: (row) => row.UserUpdatedAt ?? '' },
+        { header: 'Last Activity', accessor: (row) => row.LastActivity ?? '' },
+      ],
+    });
+
+    toast.success('Users CSV exported successfully.');
+  }, [users]);
+
   return (
     <Stack spacing={3}>
       <UserHeader
         totalUsers={totalUsersCount}
         activeUsers={activeUsersCount}
         canCreateUser={canCreateUser}
+        canExport={users.length > 0}
         onCreate={() => navigate("/users/new")}
+        onExport={handleExportCsv}
       />
 
       {error && (

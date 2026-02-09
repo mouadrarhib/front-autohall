@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import type { Periode } from '../../api/endpoints/periode.api';
 
 interface ObjectifFiltersProps {
@@ -26,6 +27,8 @@ interface ObjectifFiltersProps {
   onClearError: () => void;
   onChangePeriode: (value: number | null) => void;
   onCreate: () => void;
+  onExport: () => void;
+  canExport: boolean;
 }
 
 export const ObjectifFilters: React.FC<ObjectifFiltersProps> = ({
@@ -36,6 +39,8 @@ export const ObjectifFilters: React.FC<ObjectifFiltersProps> = ({
   onClearError,
   onChangePeriode,
   onCreate,
+  onExport,
+  canExport,
 }) => {
   return (
     <>
@@ -93,22 +98,38 @@ export const ObjectifFilters: React.FC<ObjectifFiltersProps> = ({
                 <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
                   {selectedPeriode ? 'Periode selectionnee' : 'Toutes les periodes'}
                 </Typography>
-                {hasCreate && selectedPeriode && (
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
                   <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={onCreate}
+                    variant="outlined"
+                    startIcon={<DownloadRoundedIcon />}
+                    onClick={onExport}
+                    disabled={!canExport}
                     sx={{
                       borderRadius: 2,
                       textTransform: 'none',
                       fontWeight: 700,
-                      boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
                       width: { xs: '100%', sm: 'auto' },
                     }}
                   >
-                    Nouvel Objectif
+                    Exporter CSV
                   </Button>
-                )}
+                  {hasCreate && selectedPeriode && (
+                    <Button
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={onCreate}
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
+                        width: { xs: '100%', sm: 'auto' },
+                      }}
+                    >
+                      Nouvel Objectif
+                    </Button>
+                  )}
+                </Stack>
               </Box>
             </Stack>
           </Box>

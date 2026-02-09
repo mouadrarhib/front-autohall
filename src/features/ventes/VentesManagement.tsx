@@ -1,5 +1,7 @@
-﻿import React, { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Box, Stack, Button } from "@mui/material";
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import { toast } from 'react-toastify';
 import { useRoles } from "../../hooks/useRoles";
 import { VentesTable } from "./VentesTable";
 import { VentesDialog } from "./VentesDialog";
@@ -7,6 +9,7 @@ import { useVentesColumns } from "./useVentesColumns";
 import { useVentesCrud } from "./useVentesCrud";
 import type { Vente } from "../../api/endpoints/ventes.api";
 import { VenteDetailsDialog } from "./VenteDetailsDialog";
+import { exportRowsToCsv } from '../../utils/csvExport';
 
 export const VentesManagement: React.FC = () => {
   const { isIntegrateurVentes, isAdminFonctionnel } = useRoles();
@@ -55,6 +58,37 @@ export const VentesManagement: React.FC = () => {
     onEdit: handleEditVente,
   });
 
+  const handleExportCsv = useCallback(() => {
+    if (ventes.length === 0) {
+      toast.info('No ventes to export.');
+      return;
+    }
+
+    exportRowsToCsv({
+      fileName: `ventes-${new Date().toISOString().slice(0, 10)}.csv`,
+      rows: ventes,
+      columns: [
+        { header: 'ID', accessor: (row) => row.id },
+        { header: 'Type Vente', accessor: (row) => row.typeVenteName ?? '' },
+        { header: 'Utilisateur', accessor: (row) => row.userName ?? '' },
+        { header: 'Filiale', accessor: (row) => row.filialeName ?? '' },
+        { header: 'Succursale', accessor: (row) => row.succursaleName ?? '' },
+        { header: 'Marque', accessor: (row) => row.marqueName ?? '' },
+        { header: 'Modele', accessor: (row) => row.modeleName ?? '' },
+        { header: 'Version', accessor: (row) => row.versionName ?? '' },
+        { header: 'Volume', accessor: (row) => row.volume },
+        { header: 'Prix Vente', accessor: (row) => row.prixVente },
+        { header: 'Chiffre Affaires', accessor: (row) => row.chiffreAffaires },
+        { header: 'Marge', accessor: (row) => row.marge ?? '' },
+        { header: 'Marge %', accessor: (row) => row.margePercentage ?? '' },
+        { header: 'Periode', accessor: (row) => row.ventePeriod ?? `${row.venteMonth}/${row.venteYear}` },
+        { header: 'Active', accessor: (row) => (row.active ? 'Yes' : 'No') },
+      ],
+    });
+
+    toast.success('Ventes CSV exported successfully.');
+  }, [ventes]);
+
   if (!canRead) {
     return (
       <Box mt={4}>
@@ -85,11 +119,22 @@ export const VentesManagement: React.FC = () => {
           justifyContent="space-between"
         >
           <h2 style={{ margin: 0, fontWeight: 600 }}>Gestion des ventes</h2>
-          {canManage && (
-            <Button variant="contained" onClick={handleAddVente} sx={{ width: { xs: "100%", sm: "auto" } }}>
-              Nouvelle vente
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadRoundedIcon />}
+              onClick={handleExportCsv}
+              disabled={ventes.length === 0}
+              sx={{ width: { xs: "100%", sm: "auto" } }}
+            >
+              Exporter CSV
             </Button>
-          )}
+            {canManage && (
+              <Button variant="contained" onClick={handleAddVente} sx={{ width: { xs: "100%", sm: "auto" } }}>
+                Nouvelle vente
+              </Button>
+            )}
+          </Stack>
         </Stack>
 
         <VentesTable

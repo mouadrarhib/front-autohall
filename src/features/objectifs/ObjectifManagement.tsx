@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { Box, Stack } from "@mui/material";
 import type { GridPaginationModel } from "@mui/x-data-grid";
+import { toast } from 'react-toastify';
 import {
   objectifApi,
   ObjectifView,
@@ -34,6 +35,7 @@ import { ObjectifDialog } from "./ObjectifDialog";
 import { ObjectifDetailsDialog } from "./ObjectifDetailsDialog"; // NEW
 import { useObjectifColumns } from "./useObjectifColumns";
 import type { ObjectifFormState, PaginationState } from "./objectifTypes";
+import { exportRowsToCsv } from '../../utils/csvExport';
 
 const extractArray = <T,>(payload: any): T[] => {
   if (!payload) return [];
@@ -977,6 +979,42 @@ export const ObjectifManagement: React.FC = () => {
     onEdit: handleOpenDialog,
   });
 
+  const handleExportCsv = useCallback(() => {
+    if (objectifs.length === 0) {
+      toast.info('No objectifs to export.');
+      return;
+    }
+
+    exportRowsToCsv({
+      fileName: `objectifs-${new Date().toISOString().slice(0, 10)}.csv`,
+      rows: objectifs,
+      columns: [
+        { header: 'ID', accessor: (row) => row.id },
+        { header: 'Periode', accessor: (row) => row.periodeName },
+        { header: 'Type Vente', accessor: (row) => row.typeVenteName },
+        { header: 'Type Objectif', accessor: (row) => row.typeObjectifName },
+        { header: 'Groupement', accessor: (row) => row.groupementName },
+        { header: 'Site', accessor: (row) => row.SiteName },
+        { header: 'Marque', accessor: (row) => row.marqueName ?? '' },
+        { header: 'Modele', accessor: (row) => row.modeleName ?? '' },
+        { header: 'Version', accessor: (row) => row.versionName ?? '' },
+        { header: 'Volume', accessor: (row) => row.volume },
+        { header: 'Prix Vente', accessor: (row) => row.price },
+        { header: 'Chiffre Affaire', accessor: (row) => row.ChiffreDaffaire },
+        { header: 'Marge', accessor: (row) => row.Marge },
+        { header: 'TM Direct', accessor: (row) => row.TMDirect ?? row.tmDirect ?? '' },
+        {
+          header: 'Marge Inter Groupe',
+          accessor: (row) => row.MargeInterGroupe ?? row.margeInterGroupe ?? '',
+        },
+        { header: 'Cree Par', accessor: (row) => row.createdUserFullName },
+        { header: 'Date Creation', accessor: (row) => row.CreatedAt },
+      ],
+    });
+
+    toast.success('Objectifs CSV exported successfully.');
+  }, [objectifs]);
+
   return (
     <Box
       sx={{
@@ -1000,6 +1038,8 @@ export const ObjectifManagement: React.FC = () => {
           onClearError={() => setError(null)}
           onChangePeriode={setSelectedPeriode}
           onCreate={() => handleOpenDialog()}
+          onExport={handleExportCsv}
+          canExport={objectifs.length > 0}
         />
 
         <ObjectifTable

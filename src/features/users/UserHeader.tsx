@@ -5,19 +5,24 @@ import { Box, Button, Chip, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import GroupIcon from '@mui/icons-material/Group';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 
 interface UserHeaderProps {
   totalUsers: number;
   activeUsers: number;
   canCreateUser: boolean;
+  canExport: boolean;
   onCreate: () => void;
+  onExport: () => void;
 }
 
 export const UserHeader: React.FC<UserHeaderProps> = ({
   totalUsers,
   activeUsers,
   canCreateUser,
+  canExport,
   onCreate,
+  onExport,
 }) => {
   return (
     <Box
@@ -66,21 +71,38 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
         </Stack>
 
         {/* Right Section - Create Button */}
-        {canCreateUser && (
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
           <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={onCreate}
+            variant="outlined"
+            startIcon={<DownloadRoundedIcon />}
+            onClick={onExport}
+            disabled={!canExport}
             sx={{
               borderRadius: 2,
               textTransform: 'none',
               fontWeight: 700,
-              boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
+              width: { xs: '100%', sm: 'auto' },
             }}
           >
-            Nouvel utilisateur
+            Exporter CSV
           </Button>
-        )}
+          {canCreateUser && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={onCreate}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 700,
+                boxShadow: '0 12px 28px rgba(37, 99, 235, 0.25)',
+                width: { xs: '100%', sm: 'auto' },
+              }}
+            >
+              Nouvel utilisateur
+            </Button>
+          )}
+        </Stack>
       </Stack>
     </Box>
   );
