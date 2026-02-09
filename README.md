@@ -2,6 +2,21 @@
 
 React 18 + TypeScript + Vite single-page app for the Autohall network. It covers authentication/authorization, dashboards, user and permission management, site management (filiales/succursales), catalog data (marques/modele/versions), objectives and periods, and sales (ventes). UI is built with MUI (including X DataGrid), state and auth with Zustand, forms with React Hook Form, notifications with React Toastify, and routing with React Router.
 
+## Recent updates (Feb 2026)
+- CI/CD pipeline upgraded in GitHub Actions: PR/push verification and Docker image publishing to GHCR on `main`.
+- Added global success toasts for create/update/delete API flows.
+- Added a global `ErrorBoundary` with a friendly fallback screen and reload action.
+- Added CSV export actions for key tables:
+  - ventes
+  - objectifs
+  - users
+- Added period KPI cards on dashboard (active period + objectifs/ventes counts by period).
+- Added frontend unit tests (Vitest + Testing Library) for critical utilities/components.
+- Hardened env handling:
+  - `.env` is no longer tracked
+  - `.env.example` added
+  - dev server/proxy config now supports env defaults
+
 ## Quick start
 - Prerequisites: Node.js 18+ and npm.
 - Install deps: `npm install`
@@ -9,14 +24,17 @@ React 18 + TypeScript + Vite single-page app for the Autohall network. It covers
 - Type-check + build: `npm run build`
 - Preview production build: `npm run preview`
 - Lint: `npm run lint`
+- Test: `npm test`
 
 ## Environment
-Define a `.env` (or `.env.local`) with at least:
+Create a local `.env` from `.env.example` with at least:
 ```
 VITE_API_BASE_URL=http://localhost:3000
 VITE_APP_NAME=Autohall
 VITE_APP_VERSION=1.0.0
 VITE_ENABLE_DEVTOOLS=true
+VITE_DEV_SERVER_PORT=5173
+VITE_DEV_API_PROXY_TARGET=http://localhost:3000
 ```
 `VITE_API_BASE_URL` is required at startup and is used by all Axios clients (cookies enabled via `withCredentials`).
 
@@ -59,7 +77,7 @@ VITE_ENABLE_DEVTOOLS=true
 - API interceptor auto-logs out on 401 and shows a toast, then redirects to `/login`.
 
 ## Feature highlights
-- Dashboard: role-aware view (admin vs site) with KPI cards and alerts.
+- Dashboard: role-aware view (admin vs site) with KPI cards and alerts, including period quick KPIs for objectifs and ventes.
 - Users: server-loaded table, active/total counts, detail dialog, create/edit, and roles/permissions management per user.
 - Permissions: CRUD for permissions plus user assignment views.
 - Sites: tabbed filiale/succursale CRUD, activation toggles, marque listing per filiale.
@@ -68,6 +86,8 @@ VITE_ENABLE_DEVTOOLS=true
 - Periods: create/edit periods used by objectives.
 - Objectives: create/edit by target type (marque/modele/version), scoped by site/groupement/type vente/type objectif and periode; auto-calculates sale price, CA, margins from catalog data; caching for dropdowns and objectives per site/period.
 - Sales: scoped by user site context, server pagination, dynamic pricing/margin calculations based on catalog data and type vente (direct vs intergroupe), detail dialog; integrateur ventes can create/update.
+- CSV export: one-click CSV export on users, objectifs, and ventes screens (with user feedback toasts).
+- Reliability: global error boundary for unexpected UI exceptions.
 
 ## Screenshots
 ![Login](public/screenshots/login.png)
@@ -87,3 +107,4 @@ VITE_ENABLE_DEVTOOLS=true
 - Protect any new route with `ProtectedRoute` and, when relevant, `RoleGuard`.
 - Add new permissions/roles through the auth store helpers (`usePermissions`, `useRoles`) for consistent checks.
 - Default text and labels are French; keep wording consistent.
+- Testing stack: Vitest + jsdom + Testing Library (`src/test/setup.ts`).
