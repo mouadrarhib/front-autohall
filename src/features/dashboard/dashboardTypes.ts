@@ -12,3 +12,9 @@ export interface DashboardStats {
   sites: CountStat;
   userSites: CountStat;
 }
+
+export interface DashboardPeriodKpis {
+  periodLabel: string;
+  objectifsCount: number;
+  ventesCount: number;
+}

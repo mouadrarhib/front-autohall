@@ -19,12 +19,17 @@ import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
-import { DashboardStats } from './dashboardTypes';
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
+import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
+import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
+import { DashboardPeriodKpis, DashboardStats } from './dashboardTypes';
 
 interface DashboardContentProps {
   welcomeName: string;
   stats: DashboardStats;
   statsLoading: boolean;
+  periodKpis: DashboardPeriodKpis;
+  periodKpisLoading: boolean;
   statsError: string | null;
   onClearError: () => void;
   mode: 'admin' | 'site';
@@ -37,6 +42,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   welcomeName,
   stats,
   statsLoading,
+  periodKpis,
+  periodKpisLoading,
   statsError,
   onClearError,
   mode,
@@ -229,6 +236,30 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
       },
     ];
   }, [formatNumber, stats, statsLoading]);
+
+  const periodCards = useMemo(
+    () => [
+      {
+        label: 'Periode active',
+        value: periodKpisLoading ? 'Chargement...' : periodKpis.periodLabel,
+        icon: <CalendarMonthOutlinedIcon />,
+        color: '#2563eb',
+      },
+      {
+        label: 'Objectifs (periode)',
+        value: periodKpisLoading ? '--' : formatNumber(periodKpis.objectifsCount),
+        icon: <FlagOutlinedIcon />,
+        color: '#0891b2',
+      },
+      {
+        label: 'Ventes (periode)',
+        value: periodKpisLoading ? '--' : formatNumber(periodKpis.ventesCount),
+        icon: <PointOfSaleOutlinedIcon />,
+        color: '#16a34a',
+      },
+    ],
+    [formatNumber, periodKpis, periodKpisLoading]
+  );
 
   const priorityUpdates = useMemo(
     () => [
@@ -452,6 +483,34 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
                 <Typography variant="caption" color="text.secondary">
                   {card.caption}
                 </Typography>
+              </Stack>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
+
+      <Grid container spacing={3}>
+        {periodCards.map((card) => (
+          <Grid item xs={12} md={4} key={card.label}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                border: '1px solid rgba(148,163,184,0.22)',
+                height: '100%',
+              }}
+            >
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Avatar sx={{ bgcolor: `${card.color}1f`, color: card.color }}>{card.icon}</Avatar>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                    {card.label}
+                  </Typography>
+                  <Typography variant="h6" fontWeight={700} sx={{ mt: 0.3 }}>
+                    {card.value}
+                  </Typography>
+                </Box>
               </Stack>
             </Paper>
           </Grid>
