@@ -981,7 +981,7 @@ export const ObjectifManagement: React.FC = () => {
 
   const handleExportCsv = useCallback(() => {
     if (objectifs.length === 0) {
-      toast.info('No objectifs to export.');
+      toast.info('Aucun objectif a exporter.');
       return;
     }
 
@@ -991,7 +991,7 @@ export const ObjectifManagement: React.FC = () => {
       columns: [
         { header: 'ID', accessor: (row) => row.id },
         { header: 'Periode', accessor: (row) => row.periodeName },
-        { header: 'Type Vente', accessor: (row) => row.typeVenteName },
+        { header: 'Type de vente', accessor: (row) => row.typeVenteName },
         { header: 'Type Objectif', accessor: (row) => row.typeObjectifName },
         { header: 'Groupement', accessor: (row) => row.groupementName },
         { header: 'Site', accessor: (row) => row.SiteName },
@@ -1012,7 +1012,7 @@ export const ObjectifManagement: React.FC = () => {
       ],
     });
 
-    toast.success('Objectifs CSV exported successfully.');
+    toast.success('Export CSV des objectifs termine.');
   }, [objectifs]);
 
   return (

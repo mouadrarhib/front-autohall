@@ -60,7 +60,7 @@ export const VentesManagement: React.FC = () => {
 
   const handleExportCsv = useCallback(() => {
     if (ventes.length === 0) {
-      toast.info('No ventes to export.');
+      toast.info('Aucune vente a exporter.');
       return;
     }
 
@@ -82,11 +82,11 @@ export const VentesManagement: React.FC = () => {
         { header: 'Marge', accessor: (row) => row.marge ?? '' },
         { header: 'Marge %', accessor: (row) => row.margePercentage ?? '' },
         { header: 'Periode', accessor: (row) => row.ventePeriod ?? `${row.venteMonth}/${row.venteYear}` },
-        { header: 'Active', accessor: (row) => (row.active ? 'Yes' : 'No') },
+        { header: 'Actif', accessor: (row) => (row.active ? 'Oui' : 'Non') },
       ],
     });
 
-    toast.success('Ventes CSV exported successfully.');
+    toast.success('Export CSV des ventes termine.');
   }, [ventes]);
 
   if (!canRead) {

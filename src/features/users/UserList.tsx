@@ -179,7 +179,7 @@ export const UserList: React.FC = () => {
 
   const handleExportCsv = useCallback(() => {
     if (users.length === 0) {
-      toast.info('No users to export.');
+      toast.info('Aucun utilisateur a exporter.');
       return;
     }
 
@@ -187,23 +187,23 @@ export const UserList: React.FC = () => {
       fileName: `users-${new Date().toISOString().slice(0, 10)}.csv`,
       rows: users,
       columns: [
-        { header: 'User ID', accessor: (row) => row.UserId },
-        { header: 'Full Name', accessor: (row) => row.FullName },
+        { header: 'ID utilisateur', accessor: (row) => row.UserId },
+        { header: 'Nom complet', accessor: (row) => row.FullName },
         { header: 'Email', accessor: (row) => row.Email },
-        { header: 'Username', accessor: (row) => row.Username },
-        { header: 'Status', accessor: (row) => (row.UserActive ? 'Active' : 'Inactive') },
-        { header: 'Enabled', accessor: (row) => (row.UserEnabled ? 'Yes' : 'No') },
+        { header: 'Nom utilisateur', accessor: (row) => row.Username },
+        { header: 'Statut', accessor: (row) => (row.UserActive ? 'Actif' : 'Inactif') },
+        { header: 'Compte actif', accessor: (row) => (row.UserEnabled ? 'Oui' : 'Non') },
         { header: 'Site', accessor: (row) => row.SiteName ?? '' },
         { header: 'Groupement', accessor: (row) => row.GroupementType ?? '' },
         { header: 'Roles', accessor: (row) => row.UserRoles ?? '' },
         { header: 'Permissions', accessor: (row) => row.UserPermissions ?? '' },
-        { header: 'Created At', accessor: (row) => row.UserCreatedAt },
-        { header: 'Updated At', accessor: (row) => row.UserUpdatedAt ?? '' },
-        { header: 'Last Activity', accessor: (row) => row.LastActivity ?? '' },
+        { header: 'Date creation', accessor: (row) => row.UserCreatedAt },
+        { header: 'Date modification', accessor: (row) => row.UserUpdatedAt ?? '' },
+        { header: 'Derniere activite', accessor: (row) => row.LastActivity ?? '' },
       ],
     });
 
-    toast.success('Users CSV exported successfully.');
+    toast.success('Export CSV des utilisateurs termine.');
   }, [users]);
 
   return (
