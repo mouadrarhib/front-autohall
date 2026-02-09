@@ -1,4 +1,4 @@
-name: Frontend CI
+name: Frontend CI/CD
 
 on:
   pull_request:
@@ -8,13 +8,19 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: frontend-ci-${{ github.ref }}
+  group: frontend-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/autohall-frontend
 
 jobs:
   verify:
     name: Verify Frontend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -23,7 +29,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies
@@ -32,7 +38,9 @@ jobs:
       - name: Lint (non-blocking during rollout)
         shell: bash
         run: |
-          if npm run | grep -q " lint"; then
+          if ! npx --no-install eslint -v >/dev/null 2>&1; then
+            echo "::warning file=package.json,line=27::eslint is not installed. Add eslint and plugins to devDependencies to enforce linting in CI."
+          elif npm run | grep -q " lint"; then
             npm run lint || echo "::warning file=package.json,line=9::Lint failed. Keeping CI green during progressive rollout."
           else
             echo "::notice::No lint script found."
@@ -44,4 +52,45 @@ jobs:
         run: npm run build
 
       - name: Build Docker image
-        run: docker build --tag autohall-frontend:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: autohall-frontend:ci
+
+  publish-image:
+    name: Publish Frontend Image
+    runs-on: ubuntu-latest
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            type=raw,value=latest
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
