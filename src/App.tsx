@@ -8,6 +8,7 @@ import { AppRoutes } from './routes/AppRoutes';
 import { useAuthStore } from './store/authStore';
 import { useActivityTracker } from './hooks/useActivityTracker';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 const theme = createTheme({
   palette: {
@@ -41,7 +42,9 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
-        <AppContent />
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
         <ToastContainer
           position="top-right"
           autoClose={3000}
