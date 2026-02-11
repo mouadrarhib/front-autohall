@@ -4,6 +4,8 @@ React 18 + TypeScript + Vite single-page app for the Autohall network. It covers
 
 ## Recent updates (Feb 2026)
 - CI/CD pipeline upgraded in GitHub Actions: PR/push verification and Docker image publishing to GHCR on `main`.
+- Login page redesigned with a more professional AutoHall-branded layout (desktop split panel + responsive mobile form).
+- Docker build now supports runtime API injection through `VITE_API_BASE_URL` build arg (used by infra compose).
 - Added global success toasts for create/update/delete API flows.
 - Added a global `ErrorBoundary` with a friendly fallback screen and reload action.
 - Added CSV export actions for key tables:
@@ -37,6 +39,16 @@ VITE_DEV_SERVER_PORT=5173
 VITE_DEV_API_PROXY_TARGET=http://localhost:3000
 ```
 `VITE_API_BASE_URL` is required at startup and is used by all Axios clients (cookies enabled via `withCredentials`).
+
+## Docker build and run
+Build the frontend image with explicit API base URL:
+
+```bash
+docker build --build-arg VITE_API_BASE_URL=http://localhost:3001 -t autohall-frontend:local .
+docker run --rm -p 5173:80 autohall-frontend:local
+```
+
+When running through backend infra compose (`autohall-backend/infra/docker-compose.yml`), this build arg is set automatically.
 
 ## Project layout (src/)
 - `api/` Axios client + endpoints per domain (`auth`, `permissions`, `filiale`, `succursale`, `usersite`, `marque`, `modele`, `version`, `objectif`, `periode`, `typeobjectif`, `typevente`, `ventes`, etc.). Response interceptor logs out on 401 and shows toasts for 401/403.
@@ -88,13 +100,6 @@ VITE_DEV_API_PROXY_TARGET=http://localhost:3000
 - Sales: scoped by user site context, server pagination, dynamic pricing/margin calculations based on catalog data and type vente (direct vs intergroupe), detail dialog; integrateur ventes can create/update.
 - CSV export: one-click CSV export on users, objectifs, and ventes screens (with user feedback toasts).
 - Reliability: global error boundary for unexpected UI exceptions.
-
-## Screenshots
-![Login](public/screenshots/login.png)
-![Dashboard - Admin](public/screenshots/dashboard-admin.png)
-![Users](public/screenshots/users.png)
-![Objectifs](public/screenshots/objectifs.png)
-![Ventes](public/screenshots/ventes.png)
 
 ## UI and data patterns
 - Tables use `DataTable` (MUI DataGrid) with server pagination hooks and optional selection.
